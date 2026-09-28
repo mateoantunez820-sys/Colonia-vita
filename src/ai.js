@@ -6,8 +6,10 @@ import { CONFIG, UPGRADES, EVENTS, avgGenes, cap, upCost, setAlloc, buyNutrients
 const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5";
 // Precio por millón de tokens (entrada, salida) para estimar el gasto real.
 const PRICE = { in: Number(process.env.CLAUDE_PRICE_IN || 5), out: Number(process.env.CLAUDE_PRICE_OUT || 25) };
-const BUDGET_USD = Number(process.env.AI_BUDGET_USD || 0);        // presupuesto inicial que pones tú
-const REVENUE_SHARE = Number(process.env.AI_REVENUE_SHARE || 0.3); // parte de los ingresos reales que financia a las IA
+// Dinero real: se lee en cada uso para que cambiarlo en Render no necesite tocar el código.
+const num = (k, d) => { const v = process.env[k]; return v === undefined || v === "" ? d : Number(v); };
+// AI_BUDGET_USD: presupuesto inicial que pones tú · AI_REVENUE_SHARE: parte de los ingresos reales
+// que financia a las IA · AI_DAILY_USD: tope de gasto por día pase lo que pase (también en modo rápido).
 // 144 ciclos = una consulta al día por colonia en modo real (unos 0,02 $ por consulta).
 const MIN_TICKS_BETWEEN_CALLS = Number(process.env.AI_MIN_TICKS || 144);
 
@@ -17,8 +19,17 @@ export function aiEnabled() {
   client ??= new Anthropic();
   return true;
 }
-// Dinero real disponible para las IA: presupuesto + parte de ingresos reales - gastado
-export function budgetLeft(w) { return BUDGET_USD + REVENUE_SHARE * w.ai.revenueUsd - w.ai.spentUsd; }
+function spentToday(w, now = new Date()) {
+  const day = now.toISOString().slice(0, 10);
+  if (w.ai.day !== day) { w.ai.day = day; w.ai.spentTodayUsd = 0; }
+  return w.ai.spentTodayUsd;
+}
+// Dinero real disponible ahora para las IA: lo que queda del presupuesto total
+// (inicial + parte de los ingresos reales - gastado), y nunca más que lo que queda del tope de hoy.
+export function budgetLeft(w) {
+  const total = num("AI_BUDGET_USD", 0) + num("AI_REVENUE_SHARE", 0.3) * w.ai.revenueUsd - w.ai.spentUsd;
+  return Math.min(total, num("AI_DAILY_USD", 0.5) - spentToday(w));
+}
 
 const PLAN_SCHEMA = {
   type: "object",
@@ -47,6 +58,7 @@ async function ask(w, system, user, schema, maxTokens = 2000) {
   const u = res.usage || {};
   const cost = ((u.input_tokens || 0) * PRICE.in + (u.output_tokens || 0) * PRICE.out) / 1e6;
   w.ai.spentUsd = +(w.ai.spentUsd + cost).toFixed(5); w.ai.calls++;
+  w.ai.spentTodayUsd = +(spentToday(w) + cost).toFixed(5);
   if (res.stop_reason === "refusal") throw new Error("La IA rechazó la petición");
   const text = res.content.filter(b => b.type === "text").map(b => b.text).join("");
   return JSON.parse(text);

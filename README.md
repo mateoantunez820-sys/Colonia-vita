@@ -26,6 +26,8 @@ Las IA solo gastan dinero real hasta este límite:
 presupuesto = AI_BUDGET_USD + AI_REVENUE_SHARE × ingresos reales registrados − gasto ya hecho
 ```
 
+y nunca más de `AI_DAILY_USD` al día (0,5 $ por defecto), también en modo rápido, donde los ciclos pasan 300 veces más deprisa.
+
 Cuando registras ingresos reales (`POST /api/admin/revenue`), una parte financia a las IA: así se pagan solas a medida que el juego gana dinero. Pon además un límite de gasto en tu cuenta de Anthropic.
 
 VIT y CEL son tokens del juego, sin valor fuera de él. No hay blockchain pública ni pagos reales conectados todavía.

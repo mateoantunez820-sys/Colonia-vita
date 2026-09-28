@@ -219,3 +219,21 @@ test("otros módulos pueden engancharse al nacimiento de una colonia hija", () =
   assert.deepEqual(seen, [[true, g.id, g.id]]);
   assert.equal(hija.parent, g.id);
 });
+
+test("el gasto real de la IA tiene tope diario además del presupuesto total", async () => {
+  const saved = { b: process.env.AI_BUDGET_USD, d: process.env.AI_DAILY_USD };
+  process.env.AI_BUDGET_USD = "5"; process.env.AI_DAILY_USD = "0.5";
+  try {
+    const { budgetLeft } = await import("../src/ai.js");
+    const w = core.createWorld();
+    assert.ok(Math.abs(budgetLeft(w) - 0.5) < 1e-9, "un día nuevo empieza con el tope diario");
+    w.ai.spentUsd = 0.48; w.ai.spentTodayUsd = 0.48;
+    assert.ok(budgetLeft(w) < 0.05, "gastado el tope de hoy, las IA esperan a mañana");
+    w.ai.day = "2000-01-01";
+    assert.ok(Math.abs(budgetLeft(w) - 0.5) < 1e-9, "al día siguiente vuelve el tope");
+    w.ai.spentUsd = 5;
+    assert.ok(budgetLeft(w) <= 0, "agotado el presupuesto total, se paran aunque quede tope diario");
+  } finally {
+    for (const [k, v] of [["AI_BUDGET_USD", saved.b], ["AI_DAILY_USD", saved.d]]) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+  }
+});
