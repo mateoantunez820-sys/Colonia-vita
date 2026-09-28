@@ -18,6 +18,9 @@ export const CONFIG = {
   CHAIN_MAX: 3000,
   UPKEEP_FREE: 600,      // tesoro exento de mantenimiento (por encima de lo necesario para fundar)
   UPKEEP_RATE: 0.001,    // parte del tesoro sobrante que se quema cada ciclo (freno a la inflación)
+  GRATITUDE_TICKS: 432,  // 3 días de gratitud para una colonia salvada
+  GRATITUDE_EFFORT: 2,   // recolecta y se repara el doble mientras dura
+  GRATITUDE_RES_MAX: 10, // pero acuña como mucho con un 10 % de su esfuerzo: el doble va a crecer, no a crear VIT
 };
 
 export const TRAITS = { ef: "Eficiencia", res: "Resistencia", fer: "Fertilidad" };
@@ -94,7 +97,7 @@ const validPersona = p => !!p && [p.riesgo, p.codicia, p.cuidado].every(Number.i
 
 const newStats = () => ({
   events: Object.fromEntries(Object.keys(EVENTS).map(k => [k, 0])),
-  births: 0, deaths: 0, foundings: 0, rescues: 0, reseeds: 0, extinctions: 0, aiConsults: 0, upkeepBurned: 0,
+  births: 0, deaths: 0, foundings: 0, rescues: 0, reseeds: 0, extinctions: 0, aiConsults: 0, upkeepBurned: 0, gratitude: 0,
 });
 
 // Repara mundos guardados por versiones anteriores (personalidades rotas, contadores nuevos).
@@ -106,6 +109,7 @@ export function migrateWorld(w) {
     if (validPersona(col.ai.persona)) continue;
     const parent = w.colonies[col.parent]?.ai.persona;
     col.ai.persona = newPersona(Math.random, validPersona(parent) ? parent : undefined);
+    if (col.alive) grantGratitude(w, col, "haber sido reparada");
     fixed++;
   }
   return fixed;
@@ -135,6 +139,25 @@ export function newCell(w, col, g, owner) {
     id: "CEL-" + hash(w.serial + ":" + col.id).slice(0, 6).toUpperCase(), n: w.serial, g, owner,
     born: col.edad, mined: 0, life: Math.round(430 + g.res * 24 + Math.random() * 120),
   };
+}
+
+// Gratitud: una colonia salvada (reparada, ayudada o renacida) trabaja el doble unos días
+// y la supervisora la cuida: menos eventos y nunca se le piden células ni VIT para otras.
+export function grantGratitude(w, col, why) {
+  const fresh = !(col.gratitud > 0);
+  col.gratitud = CONFIG.GRATITUDE_TICKS;
+  if (!fresh) return;
+  w.stats.gratitude++;
+  clog(w, col, `<b>Agradecida</b> por ${why}: durante 3 días recolecta y se repara el doble, y acuña con tope del ${CONFIG.GRATITUDE_RES_MAX} %`);
+}
+const grateful = col => col.gratitud > 0;
+
+// Punto de enganche para otros módulos (por ejemplo, una escuela de colonias aprendices):
+// cada función recibe (world, hija, madre) justo después de fundarse la hija.
+const bornHooks = [];
+export function onColonyBorn(fn) {
+  bornHooks.push(fn);
+  return () => { const i = bornHooks.indexOf(fn); if (i >= 0) bornHooks.splice(i, 1); };
 }
 
 export const cap = col => CONFIG.CELL_CAP_BASE + 100 * col.up.territorio;
@@ -317,8 +340,10 @@ export function stepColony(w, col, env, rnd = Math.random) {
   col.minuto = env.minuto ?? (col.minuto + 10) % 1440;
   col.edad++;
   if (col.plan > 0) col.plan--; else autopilot(w, col, env);
+  const grat = grateful(col), effort = grat ? CONFIG.GRATITUDE_EFFORT : 1;
+  if (grat && --col.gratitud === 0) clog(w, col, "Termina su periodo de gratitud");
 
-  const eventRate = 0.02 * (env.difficulty || 1);
+  const eventRate = 0.02 * (env.difficulty || 1) * (grat ? 0.5 : 1);
   if (col.eventLeft > 0 && --col.eventLeft === 0) { clog(w, col, `Termina: ${EVENTS[col.event].name}`); col.event = null; }
   else if (!col.event && rnd() < eventRate) {
     const keys = Object.keys(EVENTS); col.event = keys[Math.floor(rnd() * keys.length)]; col.eventLeft = 12 + Math.floor(rnd() * 18);
@@ -328,10 +353,10 @@ export function stepColony(w, col, env, rnd = Math.random) {
 
   const f = factors(col, env), a = col.alloc, cells = col.cells, N = cells.length, avg = avgGenes(cells);
   let sumF = 0; for (const c of cells) sumF += 1 + c.g.ef / 20;
-  col.energia += 0.2 * f.luz * f.prod * (a.rec / 100) * sumF
+  col.energia += 0.2 * f.luz * f.prod * (a.rec / 100) * sumF * effort
     - N * 0.03 * f.cons * (1 + col.met / 30)
     - (a.rep / 100) * 1.2 * Math.max(0.25, N / 40);
-  col.salud += (a.rep / 100) * 2.2 * (1 + avg.res / 20) - 0.35 - f.dmg * (1 - avg.res / 25);
+  col.salud += (a.rep / 100) * 2.2 * (1 + avg.res / 20) * effort - 0.35 - f.dmg * (1 - avg.res / 25);
 
   const born = [];
   if (col.energia > 20 + N * 0.2 && N > 0) {
@@ -345,7 +370,7 @@ export function stepColony(w, col, env, rnd = Math.random) {
       const child = newCell(w, col, mutG(parent.g, rnd() < 0.12 ? 4 : 2, rnd), parent.owner);
       cells.push(child); born.push(child);
     }
-    const m = (a.res / 100) * col.energia * 0.01;
+    const m = ((grat ? Math.min(a.res, CONFIG.GRATITUDE_RES_MAX) : a.res) / 100) * col.energia * 0.01;
     col.energia -= m * 4;
     const mm = m * (1 + 0.25 * col.up.refineria);
     for (const c of cells) {
@@ -381,7 +406,7 @@ export function stepColony(w, col, env, rnd = Math.random) {
     if (amt < 1) continue;
     const n = Math.floor(amt); col.mintBuf[owner] -= n; mint(w, n);
     if (owner === "colonia") col.treasury += n;
-    else if (w.users[owner]) w.users[owner].vit += n;
+    else if (w.users[owner]) { w.users[owner].vit += n; w.users[owner].mined = (w.users[owner].mined || 0) + n; }
     block(w, "acuñación", col.id, owner === "colonia" ? col.id : owner, n);
   }
   // Mantenimiento: el tesoro que pasa de UPKEEP_FREE se va quemando poco a poco.
@@ -395,7 +420,7 @@ export function stepColony(w, col, env, rnd = Math.random) {
   if (col.edad % 6 === 0) { col.hist.push([+(col.energia / (150 + cells.length)).toFixed(3), +(col.salud / 100).toFixed(3), +(cells.length / cap(col)).toFixed(3)]); if (col.hist.length > 144) col.hist.shift(); }
 
   if (!cells.length) {
-    col.alive = false; w.stats.extinctions++;
+    col.alive = false; col.gratitud = 0; w.stats.extinctions++;
     col.cause = col.salud <= 0 ? "La salud llegó a cero." : "No quedó ninguna célula.";
     clog(w, col, `<b>Extinción</b> tras ${(col.edad / 144).toFixed(1)} días`);
   }
@@ -422,13 +447,16 @@ export function maybeFound(w, col, rnd = Math.random) {
   block(w, "fundación", col.id, child.id, CONFIG.FOUND_SEED_VIT, "VIT", pool.slice(0, 3).map(c => c.id));
   clog(w, col, `Funda la colonia <b>${name}</b> con ${pool.length} células y su propia IA`);
   clog(w, child, `Nace de ${col.name}. Su IA empieza con ${CONFIG.FOUND_SEED_VIT} VIT para financiarse`);
+  for (const fn of bornHooks) {
+    try { fn(w, child, col); } catch (e) { console.error("[onColonyBorn]", e); } // un módulo con fallos no para el mundo
+  }
   return child;
 }
 
 // Una colonia extinta renace desde la colonia viva más rica, que paga el rescate.
 export function reseed(w, dead, rnd = Math.random) {
   if (dead.alive) return false;
-  const donor = Object.values(w.colonies).filter(c => c.alive && c.cells.length > 80 && c.treasury > 80).sort((a, b) => b.treasury - a.treasury)[0];
+  const donor = Object.values(w.colonies).filter(c => c.alive && !grateful(c) && c.cells.length > 80 && c.treasury > 80).sort((a, b) => b.treasury - a.treasury)[0];
   if (!donor) return false;
   const pool = donor.cells.filter(c => c.owner === "colonia").sort(() => rnd() - 0.5).slice(0, 20);
   if (pool.length < 20) return false;
@@ -439,6 +467,7 @@ export function reseed(w, dead, rnd = Math.random) {
   dead.gen++; w.stats.reseeds++;
   block(w, "rescate", donor.id, dead.id, 60, "VIT", pool.slice(0, 3).map(c => c.id));
   clog(w, dead, `Renace gracias a ${donor.name} (generación ${dead.gen})`);
+  grantGratitude(w, dead, "renacer");
   return true;
 }
 
@@ -458,11 +487,12 @@ export function supervise(w) {
   // Rescate de colonias al borde del colapso con VIT de la más rica
   for (const c of alive) {
     if (c.salud < 20 && c.treasury < 5) {
-      const donor = alive.filter(d => d !== c && d.treasury > 100).sort((a, b) => b.treasury - a.treasury)[0];
+      const donor = alive.filter(d => d !== c && !grateful(d) && d.treasury > 100).sort((a, b) => b.treasury - a.treasury)[0];
       if (donor) {
         donor.treasury -= 30; c.treasury += 27; burn(w, 3); w.stats.rescues++;
         block(w, "ayuda", donor.id, c.id, 30);
         clog(w, c, `La supervisora envía ayuda de ${donor.name} (+27 VIT)`);
+        grantGratitude(w, c, "la ayuda recibida");
       }
     }
   }
@@ -487,6 +517,7 @@ export function colonySummary(w, col) {
     genome: genomeCode(col), cells: col.cells.length, cap: cap(col), energia: Math.round(col.energia), salud: Math.round(col.salud),
     treasury: Math.floor(col.treasury), event: col.event ? EVENTS[col.event].name : null, edadDias: +(col.edad / 144).toFixed(1),
     rarity: rar, persona: col.ai.persona, sharePrice: +sharePrice(col).toFixed(3), investors: Object.keys(col.fund?.shares || {}).filter(k => k !== "colonia").length, aiCalls: col.ai.calls, aiSpentVit: col.ai.spentVit, planBy: col.plan > 0 ? col.planBy : "autopiloto",
+    gratitudDias: grateful(col) ? +(col.gratitud / 144).toFixed(1) : 0,
   };
 }
 export function colonyDetail(w, col, uid) {

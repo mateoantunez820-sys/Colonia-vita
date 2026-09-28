@@ -10,6 +10,7 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - **IA por colonia.** Cada colonia tiene un autopiloto con personalidad (riesgo, codicia, cuidado) que de noche ahorra energía y solo compra nutrientes en emergencias. Si hay clave de Anthropic y presupuesto, consulta a Claude una vez al día y **paga su consulta con su propio tesoro VIT** (25 VIT). Si no puede pagar, sigue con el autopiloto.
 - **Colonias que fundan colonias.** Una colonia con tesoro y población suficientes funda una hija con sus mejores células y una IA nueva que hereda y muta su personalidad.
 - **Supervisora IA.** Ajusta la dificultad, envía ayuda a colonias en apuros y hace renacer a las extintas.
+- **Gratitud.** Una colonia salvada (reparada, ayudada o renacida) queda agradecida 3 días: recolecta y se repara el doble, sufre la mitad de eventos y no se le piden recursos para otras. El doble va a crecer, no a crear VIT: mientras dura acuña como mucho con un 10 % de su esfuerzo.
 - **Carteras de agentes IA.** Los jugadores compran participaciones de una colonia. El valor de la cartera es el tesoro más las células de la colonia a precio de recompra: se gana si la IA la hace crecer y se pierde si la gasta mal. Si el tesoro no alcanza para pagar una retirada, se paga lo que hay y el resto sigue invertido.
 - **Salud real.** Registrar hábitos (pasos, agua, sueño, ejercicio) da VIT y energía a la colonia. Hoy es autodeclarado.
 - **Anuncios con recompensa.** Hasta 6 al día, 2 VIT cada uno. El botón ya existe; falta conectar la red de anuncios.
@@ -17,6 +18,9 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - Misiones diarias, racha de visitas, mercado de células, mejoras y ranking.
 - **Freno a la inflación.** El tesoro de cada colonia por encima de 600 VIT se quema a un 0,1 % por ciclo. En 40 simulaciones de 60 días se quema el 68 % de lo emitido.
 - **Rangos y respeto entre colonias.** La Ley VITA está por encima de todo, Oruz es el rango intermedio y gestor social, y Ámbar es la élite. Ver abajo.
+- **Oruz, el mundo paralelo.** Un ecomundo aparte con su escuela para las colonias recién nacidas y el Ámbar de Oruz, piezas únicas registradas en la cadena. Ver abajo.
+- **Lumar, el mar de la luna.** El segundo ecomundo: un mar que sigue la luna real, donde nacen las Perlas de Lumar. Una perla no la usa quien la recoge: se regala. Ver abajo.
+- **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta.
 
 ## Rangos: Ley VITA, Oruz y Ámbar
 
@@ -29,6 +33,24 @@ Cada hora se reúne el consejo de VITA (`src/rangos.js`):
 - **Ámbar, la élite.** Hay un asiento por cada cuatro colonias vivas, para las que más suman entre respeto y mérito.
 - Las colectas solo pasan VIT de un tesoro a otro, sin acuñar ni quemar nada. Cada colecta, ascenso, descenso y sanción queda en la cadena.
 
+## Oruz: el mundo paralelo
+
+`src/oruz.js` avanza una hora de Oruz en cada ciclo de la federación:
+
+- **Mapa.** Siete regiones (nido, pradera, bosque, desierto, tundra, pantano y volcán) generadas desde una semilla, con estaciones de un día real (Brotes, Soles, Resinas y Brumas) y fenómenos que viajan entre regiones.
+- **Ecosistema.** Flora luminosa, polillas de néctar, sombras cazadoras y hongos del suelo dependen unas de otras y se equilibran solas.
+- **Escuela.** Cada colonia que nace estudia 12 lecciones. En cada una, su estrategia, la de su madre, el consejo de Vita y tres variaciones viven el mismo escenario durante tres días en copias aisladas, y se queda con la que más crece. Se gradúa con un rol (productora, polinizadora, guardiana o recicladora) que le da una ventaja pequeña. Las lecciones no tocan el mundo real ni crean VIT.
+- **Ámbar de Oruz.** Nace donde viven las cuatro especies, unas 2,5 piezas al día de media. Cada pieza tiene un código único, un tono y una pureza, y su nacimiento, su recolección y su infusión quedan en la cadena (`/api/oruz/ambar/AMB-XXXXXXXX` da su certificado). Cada jugador recoge 2 al día e infundirla da energía y salud a una colonia. No es dinero y no se vende por dinero real.
+
+## Lumar: el mar de la luna
+
+`src/lumar.js` es el segundo ecomundo. Usa el mismo motor que Oruz (`src/ecomundo.js`: el mapa de siete regiones, las cuatro especies y las piezas con certificado) y avanza una hora de Lumar en cada ciclo:
+
+- **La luna de verdad.** La fase de la luna es la misma que se ve esa noche en el cielo, en cualquier lugar de la Tierra. La marea sube dos veces por día de Lumar, más fuerte con luna nueva o llena (mareas vivas).
+- **Mar.** Siete regiones (laguna, arrecife, kelp, posidonia, abismo, fuentes termales y arena) donde algas de luz, ostras perleras, estrellas de mar y pepinos de mar se equilibran solos. La marea alta trae alimento y la baja deja al aire los fondos someros; en las fuentes termales la energía sale del calor, no del sol.
+- **Perlas de Lumar.** Las ostras forman nácar donde viven las cuatro especies. Nacen unas 1,5 perlas al día de media: unas 3 con luna llena y 0,3 con luna nueva, y las de las noches de desove del coral, justo después de la luna llena, salen con más brillo. Cada perla tiene un código único, un color y un brillo, y su certificado está en `/api/lumar/perla/PRL-XXXXXXXX`.
+- **Se regalan.** Cada jugador recoge una perla al día, pero no la puede usar: solo puede regalarla, con el código de invitación de un amigo o "a quien la necesite" (primero quien tiene células en una colonia con sequía, helada o plaga). Quien la recibe la infunde en una colonia: la cura y acorta su sequía, helada o plaga. Recoger, regalar e infundir suman puntos en la liga. Las perlas no crean VIT y no se venden por dinero real.
+
 ## El dinero real y las IA
 
 Las IA solo gastan dinero real hasta este límite:
@@ -36,6 +58,8 @@ Las IA solo gastan dinero real hasta este límite:
 ```
 presupuesto = AI_BUDGET_USD + AI_REVENUE_SHARE × ingresos reales registrados − gasto ya hecho
 ```
+
+y nunca más de `AI_DAILY_USD` al día (0,5 $ por defecto), también en modo rápido, donde los ciclos pasan 300 veces más deprisa.
 
 Cuando registras ingresos reales (`POST /api/admin/revenue`), una parte financia a las IA: así se pagan solas a medida que el juego gana dinero. Pon además un límite de gasto en tu cuenta de Anthropic.
 
@@ -46,7 +70,7 @@ VIT y CEL son tokens del juego, sin valor fuera de él. No hay blockchain públi
 ```
 npm install
 npm run dev      # modo rápido: 1 ciclo cada 2 segundos
-npm test         # 15 pruebas: simulación de 45 días, economía, carteras, anti-abuso, clima e IA
+npm test         # simulación de 45 días, economía, carteras, gratitud, anti-abuso, clima e IA
 ```
 
 Abre http://localhost:3000.

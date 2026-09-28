@@ -6,6 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "./core.js";
 import * as rangos from "./rangos.js";
+import * as oruz from "./oruz.js";
+import * as lumar from "./lumar.js";
+import * as ret from "./retention.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
@@ -33,6 +36,13 @@ const PUBLIC_URL = String(process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_
 const TRUSTED_PROXY_HOPS = Number(process.env.TRUSTED_PROXY_HOPS || 0);
 const JOIN_PER_HOUR = Number(process.env.JOIN_PER_HOUR || 60); // cuentas nuevas por hora en todo el servidor
 const WEATHER_MAX_AGE_MS = 3600000;
+// Clave de las copias firmadas: sin ella, las cuentas no sobreviven a que el servidor pierda su mundo.
+// En Render, ADMIN_TOKEN se genera una vez y no cambia entre despliegues, así que sirve de base.
+const SAVE_SECRET = process.env.SAVE_SECRET || ADMIN_TOKEN;
+const SAVE_KEY = SAVE_SECRET ? core.hash("vita-save:" + SAVE_SECRET) : null;
+// Con la misma semilla, Oruz renace con el mismo mapa si el mundo se crea de nuevo
+const ORUZ_SEED = process.env.ORUZ_SEED || (SAVE_SECRET ? core.hash("oruz:" + SAVE_SECRET) : undefined);
+const LUMAR_SEED = ORUZ_SEED ? core.hash("lumar:" + ORUZ_SEED) : undefined;
 
 let world, dirty = false, realWeather = null, simWeather = null, aiBusy = false;
 const activity = new Map(); // uid -> último acceso
@@ -47,6 +57,8 @@ async function load() {
   const fixed = core.migrateWorld(world);
   if (fixed) { console.log(`Reparadas ${fixed} personalidades de IA dañadas`); dirty = true; }
   for (const u of Object.values(world.users)) { byToken.set(u.tokenHash, u); if (u.recoveryHash) byRecovery.set(u.recoveryHash, u); }
+  if (!world.oruz) { oruz.ensure(world, ORUZ_SEED); dirty = true; }
+  if (!world.lumar) { lumar.ensure(world, LUMAR_SEED, simNow()); dirty = true; }
 }
 async function save() {
   if (!dirty) return;
@@ -72,13 +84,16 @@ function simClock() {
   const m = 8 * 60 + world.tick * 10;
   return { day: Math.floor(world.createdAt / 86400000) + Math.floor(m / 1440), minute: m % 1440 };
 }
+// La luna de Lumar es la real. En modo rápido avanza 10 minutos por ciclo, como el reloj del juego.
+function simNow() { return FAST ? world.createdAt + world.tick * 600000 : Date.now(); }
 function attention() {
   const now = Date.now(); let n = 0;
   for (const [, t] of activity) if (now - t < 120000) n++;
   return Math.min(1, n / 5);
 }
-function envFor() {
-  return { minuto: FAST ? undefined : realMinute(), weather: currentWeather(), attention: attention(), difficulty: world.ai.difficulty };
+function envFor(col) {
+  const env = { minuto: FAST ? undefined : realMinute(), weather: currentWeather(), attention: attention(), difficulty: world.ai.difficulty };
+  return col ? oruz.envFor(world, col, env) : env;
 }
 async function refreshWeather() {
   try { realWeather = await fetchWeather(); }
@@ -97,7 +112,10 @@ const tickMs = { last: 0, max: 0 };
 function tick() {
   const t0 = performance.now();
   core.stepWorld(world, envFor);
+  oruz.step(world);
+  lumar.step(world, simNow());
   rangos.step(world);
+  ret.leagueTick(world);
   tickMs.last = performance.now() - t0; tickMs.max = Math.max(tickMs.max, tickMs.last);
   dirty = true;
   if (!aiBusy && aiEnabled()) {
@@ -106,7 +124,7 @@ function tick() {
     if (col || sup) {
       aiBusy = true;
       (async () => {
-        if (col) await consultColony(world, col, envFor());
+        if (col) await consultColony(world, col, envFor(col));
         if (sup) { world.ai.lastSupervisor = world.tick; await superviseWithClaude(world); }
       })().catch(e => console.error("[ai]", e.message)).finally(() => { aiBusy = false; dirty = true; });
     }
@@ -134,15 +152,15 @@ async function readRaw(req, max) {
   for await (const c of req) { size += c.length; if (size > max) throw new Error("too_large"); chunks.push(c); }
   return Buffer.concat(chunks);
 }
-async function readBody(req) {
-  const raw = await readRaw(req, 10000);
+async function readBody(req, max = 10000) {
+  const raw = await readRaw(req, max);
   return raw.length ? JSON.parse(raw.toString("utf8")) : {};
 }
 function userFrom(req) {
   const m = /^Bearer ([a-f0-9]{48})$/.exec(req.headers.authorization || "");
   if (!m) return null;
   const u = byToken.get(core.hash(m[1]));
-  if (u) { activity.set(u.id, Date.now()); core.checkDay(world, u); }
+  if (u) { activity.set(u.id, Date.now()); core.checkDay(world, u); ret.touch(world, u); dirty = true; }
   return u || null;
 }
 // Da al jugador un código de recuperación nuevo; el anterior deja de valer.
@@ -162,7 +180,8 @@ function worldView(u) {
     supply: roundSupply(), players: Object.keys(world.users).length, online: [...activity.values()].filter(t => Date.now() - t < 120000).length,
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
-    chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash } : null,
+    chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
+    oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true, real: ANUNCIOS.enabled }, demoPurchases: DEMO_PURCHASES && !PAGOS.enabled,
     pagos: PAGOS.enabled ? { enabled: true, test: !PAGOS.live, packs: packsView(PAGOS) } : { enabled: false },
   };
@@ -186,6 +205,13 @@ async function handleAction(u, b) {
       return core.watchedAd(world, u);
     }
     case "spore": return core.mineSpore(world, u, 1 + Math.floor(Math.random() * 3));
+    case "amber_collect": return oruz.collectAmber(world, u, String(b.id || ""));
+    case "amber_infuse": return col ? oruz.infuseAmber(world, u, String(b.id || ""), col) : needCol();
+    case "pearl_collect": return lumar.collectPearl(world, u, String(b.id || ""));
+    // Sin código solo si se pide expresamente: un código olvidado no manda la perla a otra persona
+    case "pearl_give": return lumar.givePearl(world, u, String(b.id || ""), b.azar === true ? null : String(b.code || ""));
+    case "pearl_infuse": return col ? lumar.infusePearl(world, u, String(b.id || ""), col) : needCol();
+    case "welcome_seen": u.welcome = null; u.premio = null; return { ok: true };
     case "buy_demo": {
       if (!DEMO_PURCHASES || PAGOS.enabled) return { ok: false, error: "Las compras de prueba no están activadas" };
       core.grant(world, u, 50, "compra demo"); world.ai.demoRevenueUsd += 0.99;
@@ -221,7 +247,10 @@ async function route(req, res) {
     if (name.length < 2) return send(res, 400, { ok: false, error: "Elige un nombre de al menos 2 letras" });
     const token = randomBytes(24).toString("hex");
     const u = core.createUser(world, name, core.hash(token));
-    byToken.set(u.tokenHash, u); dirty = true;
+    byToken.set(u.tokenHash, u);
+    ret.onJoin(world, u, b.ref);
+    ret.touch(world, u);
+    dirty = true;
     return send(res, 200, { ok: true, token, id: u.id, recovery: newRecovery(u) });
   }
 
@@ -248,7 +277,8 @@ async function route(req, res) {
   if (url.pathname === "/api/action" && req.method === "POST") {
     const u = userFrom(req); if (!u) return send(res, 401, { ok: false, error: "Entra con tu nombre primero" });
     if (limited("act:" + u.id, 60, 60000)) return send(res, 429, { ok: false, error: "Vas muy rápido" });
-    const r = await handleAction(u, await readBody(req));
+    const body = await readBody(req), r = await handleAction(u, body);
+    if (r.ok) ret.award(world, u, body.type);
     dirty = true;
     return send(res, r.ok ? 200 : 400, r);
   }
@@ -287,6 +317,37 @@ async function route(req, res) {
   }
   if (url.pathname === "/ads.txt" && ANUNCIOS.enabled) return send(res, 200, adsTxt(ANUNCIOS), { "cache-control": "public, max-age=3600" });
 
+  // Copia firmada de la cuenta: el navegador la guarda y la devuelve si el servidor se reinició
+  if (url.pathname === "/api/save" && req.method === "GET") {
+    // Sin 401: el navegador borra su token ante un 401 y entonces ya no podría recuperar la cuenta
+    const u = userFrom(req); if (!u) return send(res, 200, { ok: false, error: "Este servidor no conoce tu cuenta" });
+    const save = ret.makeSave(world, u, SAVE_KEY);
+    return send(res, 200, save ? { ok: true, save } : { ok: false, error: "Las copias no están activadas" });
+  }
+  if (url.pathname === "/api/restore" && req.method === "POST") {
+    if (limited("restore:" + ip, 10, 3600000)) return send(res, 429, { ok: false, error: "Demasiados intentos desde tu red" });
+    const r = ret.restoreSave(world, (await readBody(req, 200000)).save, SAVE_KEY);
+    if (!r.ok) return send(res, 400, r);
+    byToken.set(r.user.tokenHash, r.user);
+    if (r.user.recoveryHash) byRecovery.set(r.user.recoveryHash, r.user);
+    dirty = true;
+    return send(res, 200, { ok: true, id: r.user.id, cells: r.cells, vit: r.vit, amber: r.amber, pearls: r.pearls });
+  }
+
+  // Certificado de origen de una pieza de Ámbar de Oruz
+  const am = /^\/api\/oruz\/ambar\/(AMB-[0-9A-F]{8})$/.exec(url.pathname);
+  if (am && req.method === "GET") {
+    const c = oruz.certificate(world, am[1]);
+    return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa pieza de Ámbar no existe en este mundo" });
+  }
+
+  // Certificado de origen de una Perla de Lumar
+  const pm = /^\/api\/lumar\/perla\/(PRL-[0-9A-F]{8})$/.exec(url.pathname);
+  if (pm && req.method === "GET") {
+    const c = lumar.certificate(world, pm[1]);
+    return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa perla no existe en este mundo" });
+  }
+
   // Panel del dueño: métricas y registro de ingresos reales (que financian a las IA).
   if (url.pathname.startsWith("/api/admin")) {
     if (!ADMIN_TOKEN || req.headers.authorization !== `Bearer ${ADMIN_TOKEN}`) return send(res, 401, { ok: false });
@@ -297,7 +358,7 @@ async function route(req, res) {
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
         worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
-        legalCompleto: legalInfo().completo, pagos: paymentsMetrics(world, PAGOS), anunciosReales: ANUNCIOS.enabled,
+        legalCompleto: legalInfo().completo, pagos: paymentsMetrics(world, PAGOS), anunciosReales: ANUNCIOS.enabled, retention: ret.metrics(world), saves: !!SAVE_KEY,
       });
     }
     // Para calibrar TRUSTED_PROXY_HOPS tras desplegar: "ip" debe ser tu IP pública.
@@ -337,7 +398,8 @@ const server = http.createServer((req, res) => route(req, res).catch(e => {
   console.error(e); send(res, 500, { ok: false, error: "Error interno" });
 }));
 server.listen(PORT, () => console.log(`Colonia VITA en http://localhost:${PORT} · modo ${FAST ? "rápido" : "tiempo real"} · IA ${aiEnabled() ? "activa" : "solo autopiloto"}`
-  + ` · pagos ${PAGOS.enabled ? (PAGOS.live ? "reales" : "de prueba") : "apagados"} · anuncios ${ANUNCIOS.enabled ? (ANUNCIOS.test ? "AdSense de prueba" : "AdSense") : "de demostración"}`));
+  + ` · pagos ${PAGOS.enabled ? (PAGOS.live ? "reales" : "de prueba") : "apagados"} · anuncios ${ANUNCIOS.enabled ? (ANUNCIOS.test ? "AdSense de prueba" : "AdSense") : "de demostración"}`
+  + ` · copias ${SAVE_KEY ? "firmadas" : "desactivadas (falta ADMIN_TOKEN o SAVE_SECRET)"}`));
 if (!PAGOS.enabled && (PAGOS.key || PAGOS.hook)) console.warn(`Pagos apagados: falta ${PAGOS.missing.join(", ")}`);
 if (process.env.ADSENSE_CLIENT && !ANUNCIOS.enabled) console.warn("Anuncios apagados: ADSENSE_CLIENT debe tener la forma ca-pub-1234567890123456");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => { dirty = true; await saveNow().catch(() => {}); process.exit(0); });
