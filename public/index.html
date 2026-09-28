@@ -61,7 +61,7 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
 .item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--surf2)}
 .item p{margin:0;color:var(--mute);font-size:12px}.item>button,.item>.done{grid-row:1/span 2;grid-column:2}
 .done{color:var(--life);font:600 12px var(--mono)}
-.list{display:grid;gap:8px}
+.list{display:grid;gap:8px;align-content:start}
 .note{color:var(--mute);font-size:12px;margin:0}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px)}
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:900px){.money{grid-template-columns:1fr 1fr}}@media(max-width:520px){.money{grid-template-columns:1fr}}
@@ -70,7 +70,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
 .code{font:600 clamp(18px,4.5vw,26px) var(--mono);letter-spacing:.06em;margin:0;overflow-wrap:anywhere;user-select:all}
 .foot{text-align:center;padding:8px 0}
 .welcome{border-color:var(--vit)}.welcome p{margin:0}
-.oruz{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start}@media(max-width:900px){.oruz{grid-template-columns:1fr}}
+.oruz-cols{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start}@media(max-width:900px){.oruz-cols{grid-template-columns:1fr}}
 #oMap{display:block;width:100%;height:auto;background:#061014;border-radius:10px;touch-action:manipulation}
 .hx{cursor:pointer}.hx polygon{stroke:#24414D;stroke-width:1.5}.hx.sel polygon{stroke:var(--vit);stroke-width:3}.hx:focus{outline:none}.hx:focus-visible polygon{stroke:var(--ink)}
 .hx-n{font:700 11px var(--display);fill:var(--ink);text-anchor:middle}.hx-b{font:8.5px var(--mono);fill:#C9D8DB;text-anchor:middle}.hx-a{font:600 8.5px var(--mono);fill:var(--life);text-anchor:middle}.hx-f{font:15px var(--body);text-anchor:middle}
@@ -145,7 +145,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
   <section class="panel" id="oruz" hidden>
     <h2>Oruz · el mundo paralelo <span class="pill" id="oCal"></span></h2>
     <p class="note">Un ecomundo aparte, con su mapa, sus estaciones y cuatro roles que se equilibran solos. Las colonias recién nacidas estudian aquí antes de salir a la federación, y donde el ecosistema está sano nace el Ámbar de Oruz.</p>
-    <div class="oruz">
+    <div class="oruz-cols">
       <div class="list">
         <svg id="oMap" viewBox="-160 -140 320 280" role="group" aria-label="Mapa de Oruz. Toca una región para ver su ecosistema."></svg>
         <div class="legend" id="oLegend"></div>
