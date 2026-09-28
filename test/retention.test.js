@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as core from "../src/core.js";
 import * as oruz from "../src/oruz.js";
+import * as lumar from "../src/lumar.js";
 import * as ret from "../src/retention.js";
 
 const KEY = "clave-de-prueba";
@@ -50,6 +51,54 @@ test("la copia firmada devuelve la cuenta, sus células, sus fondos y su Ámbar 
   assert.equal(r3.ok, true, r3.error);
   assert.equal(ret.restoreSave(w3, save, KEY).ok, false, "una copia de su mundo de origen tampoco vuelve dos veces");
   assert.ok(core.verifyChain(w2));
+});
+
+// Pone una perla libre en el mar de Lumar
+function perla(w) {
+  w.lumar.regions[0].nacar = 1; w.tick++; lumar.step(w, T0 + w.tick * 600000);
+  return Object.values(w.lumar.perlas).find(p => p.n === w.lumar.perlaSerial).id;
+}
+
+test("la copia firmada guarda las perlas: las recogidas para regalar y las recibidas para infundir", () => {
+  const w = core.createWorld(T0); lumar.ensure(w, "perlas", T0);
+  const ana = core.createUser(w, "Ana", core.hash("token-ana")), leo = core.createUser(w, "Leo", core.hash("token-leo"));
+  ana.code = "ANA234"; leo.code = "LEO234";
+  const p1 = perla(w), p2 = perla(w);
+  assert.equal(lumar.collectPearl(w, leo, p1).ok, true);
+  assert.equal(lumar.givePearl(w, leo, p1, "ANA234").ok, true);
+  assert.equal(lumar.collectPearl(w, ana, p2).ok, true);
+  const save = ret.makeSave(w, ana, KEY);
+
+  const w2 = core.createWorld(T0); lumar.ensure(w2, "perlas", T0);
+  const r = ret.restoreSave(w2, save, KEY);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.pearls, 2); assert.equal(r.user.welcome.perlas, 2);
+  const u = r.user, col = Object.values(w2.colonies)[0];
+  assert.deepEqual(lumar.pearlsOf(w2, u.id, "regalada").map(p => [p.id, p.deName]), [[p1, "Leo"]]);
+  assert.deepEqual(lumar.pearlsOf(w2, u.id, "guardada").map(p => p.id), [p2]);
+  assert.equal(lumar.infusePearl(w2, u, p2, col).ok, false, "la que recogió sigue siendo para regalar");
+  assert.equal(lumar.infusePearl(w2, u, p1, col).ok, true, "la que le regalaron la puede infundir");
+  assert.equal(ret.restoreSave(w2, save, KEY).ok, false, "y la cuenta no se duplica");
+  assert.equal(Object.values(w2.lumar.perlas).length, 2, "ni sus perlas");
+  assert.ok(core.verifyChain(w2));
+});
+
+test("al volver, el jugador ve las perlas que le regalaron y las que nacieron en Lumar", () => {
+  const w = core.createWorld(T0); lumar.ensure(w, "vuelta", T0);
+  const ana = core.createUser(w, "Ana", "h1"), leo = core.createUser(w, "Leo", "h2");
+  ret.touch(w, ana, T0); ret.touch(w, leo, T0);
+  const p1 = perla(w), p2 = perla(w);
+  assert.equal(lumar.collectPearl(w, leo, p1).ok, true);
+  assert.equal(lumar.givePearl(w, leo, p1, ana.code, T0 + H).ok, true);
+  ret.touch(w, ana, T0 + 3 * H);
+  const r = ana.welcome;
+  assert.ok(r, "hay informe de regreso");
+  assert.deepEqual(r.regalos, [{ id: p1, de: "Leo", color: w.lumar.perlas[p1].color }]);
+  assert.equal(r.perlasNuevas, 2);
+  assert.equal(r.perlasLibres, 1);
+  assert.equal(w.lumar.perlas[p2].estado, "libre");
+  for (const k of ["pearl_collect", "pearl_give", "pearl_infuse"]) assert.ok(ret.LEAGUE.pts[k] > 0, `${k} suma en la liga`);
+  assert.equal(ret.metrics(w, T0 + 3 * H).lumar.regaladas, 1);
 });
 
 test("sin clave no hay copias", () => {

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import * as core from "./core.js";
 import * as rangos from "./rangos.js";
 import * as oruz from "./oruz.js";
+import * as lumar from "./lumar.js";
 import * as ret from "./retention.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
@@ -35,6 +36,7 @@ const SAVE_SECRET = process.env.SAVE_SECRET || ADMIN_TOKEN;
 const SAVE_KEY = SAVE_SECRET ? core.hash("vita-save:" + SAVE_SECRET) : null;
 // Con la misma semilla, Oruz renace con el mismo mapa si el mundo se crea de nuevo
 const ORUZ_SEED = process.env.ORUZ_SEED || (SAVE_SECRET ? core.hash("oruz:" + SAVE_SECRET) : undefined);
+const LUMAR_SEED = ORUZ_SEED ? core.hash("lumar:" + ORUZ_SEED) : undefined;
 
 let world, dirty = false, realWeather = null, simWeather = null, aiBusy = false;
 const activity = new Map(); // uid -> último acceso
@@ -50,6 +52,7 @@ async function load() {
   if (fixed) { console.log(`Reparadas ${fixed} personalidades de IA dañadas`); dirty = true; }
   for (const u of Object.values(world.users)) { byToken.set(u.tokenHash, u); if (u.recoveryHash) byRecovery.set(u.recoveryHash, u); }
   if (!world.oruz) { oruz.ensure(world, ORUZ_SEED); dirty = true; }
+  if (!world.lumar) { lumar.ensure(world, LUMAR_SEED, simNow()); dirty = true; }
 }
 async function save() {
   if (!dirty) return;
@@ -72,6 +75,8 @@ function simClock() {
   const m = 8 * 60 + world.tick * 10;
   return { day: Math.floor(world.createdAt / 86400000) + Math.floor(m / 1440), minute: m % 1440 };
 }
+// La luna de Lumar es la real. En modo rápido avanza 10 minutos por ciclo, como el reloj del juego.
+function simNow() { return FAST ? world.createdAt + world.tick * 600000 : Date.now(); }
 function attention() {
   const now = Date.now(); let n = 0;
   for (const [, t] of activity) if (now - t < 120000) n++;
@@ -99,6 +104,7 @@ function tick() {
   const t0 = performance.now();
   core.stepWorld(world, envFor);
   oruz.step(world);
+  lumar.step(world, simNow());
   rangos.step(world);
   ret.leagueTick(world);
   tickMs.last = performance.now() - t0; tickMs.max = Math.max(tickMs.max, tickMs.last);
@@ -162,7 +168,7 @@ function worldView(u) {
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
-    oruz: oruz.view(world, u), liga: ret.leagueView(world, u),
+    oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }
@@ -183,6 +189,10 @@ async function handleAction(u, b) {
     case "spore": return core.mineSpore(world, u, 1 + Math.floor(Math.random() * 3));
     case "amber_collect": return oruz.collectAmber(world, u, String(b.id || ""));
     case "amber_infuse": return col ? oruz.infuseAmber(world, u, String(b.id || ""), col) : needCol();
+    case "pearl_collect": return lumar.collectPearl(world, u, String(b.id || ""));
+    // Sin código solo si se pide expresamente: un código olvidado no manda la perla a otra persona
+    case "pearl_give": return lumar.givePearl(world, u, String(b.id || ""), b.azar === true ? null : String(b.code || ""));
+    case "pearl_infuse": return col ? lumar.infusePearl(world, u, String(b.id || ""), col) : needCol();
     case "welcome_seen": u.welcome = null; u.premio = null; return { ok: true };
     case "buy_demo": {
       if (!DEMO_PURCHASES) return { ok: false, error: "Los pagos aún no están activados" };
@@ -269,7 +279,7 @@ async function route(req, res) {
     byToken.set(r.user.tokenHash, r.user);
     if (r.user.recoveryHash) byRecovery.set(r.user.recoveryHash, r.user);
     dirty = true;
-    return send(res, 200, { ok: true, id: r.user.id, cells: r.cells, vit: r.vit, amber: r.amber });
+    return send(res, 200, { ok: true, id: r.user.id, cells: r.cells, vit: r.vit, amber: r.amber, pearls: r.pearls });
   }
 
   // Certificado de origen de una pieza de Ámbar de Oruz
@@ -277,6 +287,13 @@ async function route(req, res) {
   if (am && req.method === "GET") {
     const c = oruz.certificate(world, am[1]);
     return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa pieza de Ámbar no existe en este mundo" });
+  }
+
+  // Certificado de origen de una Perla de Lumar
+  const pm = /^\/api\/lumar\/perla\/(PRL-[0-9A-F]{8})$/.exec(url.pathname);
+  if (pm && req.method === "GET") {
+    const c = lumar.certificate(world, pm[1]);
+    return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa perla no existe en este mundo" });
   }
 
   // Panel del dueño: métricas y registro de ingresos reales (que financian a las IA).
