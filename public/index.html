@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Federación VITA</title>
+<meta name="description" content="Colonias digitales vivas, tokenizadas y gestionadas por IA. Adopta células, invierte en las IA y cuida tu salud para alimentar tu colonia.">
+<meta name="theme-color" content="#0A1519">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#0A1519;--surf:#11222A;--surf2:#172E38;--line:#24414D;--ink:#E4EEEF;--mute:#8AA4AD;--vit:#F0B03F;--life:#62D6B8;--warn:#F07A55;--bad:#E5484D;--rara:#6FA8F5;--epica:#C38BF2;
+--display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--body:"Figtree",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink);margin:0}
+body{font:15px/1.5 var(--body);padding-inline:16px;padding-block:calc(16px + env(safe-area-inset-top,0px)) 40px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font:800 clamp(28px,5vw,44px)/1 var(--display);margin:0;letter-spacing:-.02em}h1 span{color:var(--vit)}
+.sub{color:var(--mute);margin:6px 0 0;max-width:64ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font:600 11px var(--mono);padding:3px 9px;border-radius:99px;background:var(--surf2);color:var(--mute)}
+.pill.on{background:var(--vit);color:#1B1305}.pill.ok{color:var(--life)}
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;align-content:start;min-width:0}
+h2{font:700 13px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--mute);margin:0;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h3{margin:0;font:700 16px var(--display)}
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.grid,.grid2,.grid3{grid-template-columns:1fr}}
+.bar{height:5px;border-radius:3px;background:var(--surf2);overflow:hidden}.bar i{display:block;height:100%;background:var(--life);transition:width .4s}
+.v{display:grid;gap:4px;align-content:start}.v .k{font:600 11px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}.v .n{font:600 22px var(--mono);font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+button{font:600 14px var(--body);border-radius:9px;border:1px solid var(--line);background:var(--surf2);color:var(--ink);padding:9px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--mute)}button:focus-visible,input:focus-visible{outline:2px solid var(--vit);outline-offset:2px}
+button.primary{background:var(--vit);border-color:var(--vit);color:#1B1305}button.sm{font-size:12px;padding:5px 10px;border-radius:7px}button:disabled{opacity:.45;cursor:not-allowed}
+input{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fed{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.col{all:unset;cursor:pointer;display:grid;gap:6px;padding:12px;border-radius:12px;background:var(--surf2);border:1px solid transparent}
+.col.sel{border-color:var(--vit)}.col.dead{opacity:.55}.col:focus-visible{outline:2px solid var(--vit)}
+.col .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.col b{font:700 16px var(--display)}
+.col .m{font:12px var(--mono);color:var(--mute)}
+.stage{position:relative;border-radius:10px;overflow:hidden;background:#061014;aspect-ratio:16/9}
+#cv{display:block;width:100%;height:100%;cursor:crosshair}
+.overlay{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:rgba(6,16,20,.8);padding:16px;font:800 22px var(--display)}
+.alloc{display:grid;gap:8px}.alloc .r{display:grid;grid-template-columns:92px 1fr 40px;align-items:center;gap:10px;font-size:13px}.alloc b{font:600 13px var(--mono);text-align:right}.alloc .bar i{background:var(--vit)}
+.msg{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--surf2);border-left:3px solid var(--vit);min-height:44px}
+.log{font:12px/1.55 var(--mono);color:var(--mute);max-height:220px;overflow:auto;margin:0;padding:0;list-style:none;display:grid;gap:2px}.log b{color:var(--ink)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font:12px var(--mono);font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--mute);font-weight:600}.r{text-align:right}
+.rar{font:600 11px var(--mono);padding:2px 7px;border-radius:99px;border:1px solid currentColor}
+.r0{color:var(--mute)}.r1{color:var(--rara)}.r2{color:var(--epica)}.r3{color:var(--vit)}
+.item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--surf2)}
+.item p{margin:0;color:var(--mute);font-size:12px}.item>button,.item>.done{grid-row:1/span 2;grid-column:2}
+.done{color:var(--life);font:600 12px var(--mono)}
+.list{display:grid;gap:8px}
+.note{color:var(--mute);font-size:12px;margin:0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px)}
+.money{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:900px){.money{grid-template-columns:1fr 1fr}}@media(max-width:520px){.money{grid-template-columns:1fr}}
+.money div{background:var(--surf2);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start}.money p{margin:0;color:var(--mute);font-size:13px}
+@media(prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Federación <span>VITA</span></h1>
+      <p class="sub">Colonias digitales que viven 24/7 del clima y la hora reales. Cada célula es un token, cada colonia tiene su propia IA que se paga sola, y las colonias ricas fundan otras nuevas.</p>
+    </div>
+    <div class="chips" id="envChips"></div>
+  </header>
+
+  <section class="panel">
+    <div class="row" id="guest">
+      <label for="name" class="note">Tu nombre de jugador</label>
+      <input id="name" maxlength="24" placeholder="p. ej. Mateo">
+      <button class="primary" id="join">Entrar y recibir 20 VIT</button>
+    </div>
+    <div class="row" id="player" hidden>
+      <span class="pill on" id="wallet">0 VIT</span>
+      <span class="pill" id="streak"></span>
+      <span class="pill" id="myCells"></span>
+      <button class="sm" id="adBtn">Ver anuncio · +2 VIT</button>
+      <button class="sm" id="demoBuy" hidden>Comprar 50 VIT · 0,99 € (demo)</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Colonias de la federación <span class="pill" id="fedCount"></span></h2>
+    <div class="fed" id="fed"></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2><span id="cName">Colonia</span> <span class="pill" id="cGenome"></span></h2>
+      <div class="stage"><canvas id="cv" aria-label="Células de la colonia. Toca las esporas doradas para minar VIT."></canvas><div class="overlay" id="deadOv" hidden>Colonia extinta. La supervisora la hará renacer cuando otra colonia pueda donar células.</div></div>
+      <div class="stats">
+        <div class="v"><span class="k">Energía</span><span class="n" id="sE"></span><div class="bar"><i id="bE"></i></div></div>
+        <div class="v"><span class="k">Salud</span><span class="n" id="sS"></span><div class="bar"><i id="bS"></i></div></div>
+        <div class="v"><span class="k">Células</span><span class="n" id="sC"></span><div class="bar"><i id="bC"></i></div></div>
+        <div class="v"><span class="k">Tesoro</span><span class="n" id="sT" style="color:var(--vit)"></span><div class="bar"><i id="bT" style="background:var(--vit)"></i></div></div>
+      </div>
+      <div class="row" id="colActions"><button class="sm" id="feedBtn">Alimentar · 5 VIT</button></div>
+    </section>
+    <section class="panel">
+      <h2>IA de la colonia <span class="pill" id="planBy"></span></h2>
+      <div class="note" id="persona"></div>
+      <div class="alloc" id="alloc"></div>
+      <div class="msg" id="aiMsg"></div>
+      <h2>Bitácora</h2>
+      <ul class="log" id="cLog"></ul>
+    </section>
+  </div>
+
+  <div class="grid3">
+    <section class="panel">
+      <h2>Cartera de la IA <span class="pill" id="sp"></span></h2>
+      <p class="note">Confía VIT a la IA de esta colonia. Tu participación sube si su tesoro crece y baja si lo gasta. Retirar cuesta un 5%.</p>
+      <div class="row"><input id="invAmt" type="number" min="5" step="1" value="20" style="width:90px" aria-label="VIT a invertir"><button class="sm primary" id="invBtn">Invertir</button><button class="sm" id="wdBtn">Retirar todo</button></div>
+      <div class="list" id="positions"></div>
+    </section>
+    <section class="panel">
+      <h2>Salud real</h2>
+      <p class="note">Tus hábitos de hoy dan energía a la colonia que estás viendo y 3 VIT a ti.</p>
+      <div class="list" id="habits"></div>
+    </section>
+    <section class="panel">
+      <h2>Misiones de hoy</h2>
+      <div class="list" id="missions"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Células en adopción</h2>
+      <div class="scroll"><table><thead><tr><th>Token</th><th>Rareza</th><th>Ef·Res·Fer</th><th class="r">Precio</th><th></th></tr></thead><tbody id="market"></tbody></table></div>
+      <p class="note">Una célula adoptada acuña VIT para ti, y sus hijas también. El 10% se quema como comisión.</p>
+    </section>
+    <section class="panel">
+      <h2>Tus células</h2>
+      <div class="scroll"><table><thead><tr><th>Token</th><th>Colonia</th><th>Rareza</th><th class="r">Acuñado</th><th></th></tr></thead><tbody id="mine"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Mejoras de la colonia</h2>
+      <div class="list" id="shop"></div>
+    </section>
+    <section class="panel">
+      <h2>Ranking</h2>
+      <div class="scroll"><table><thead><tr><th>#</th><th>Jugador</th><th class="r">VIT</th><th class="r">Células</th></tr></thead><tbody id="rank"></tbody></table></div>
+      <h2>Supervisora IA</h2>
+      <div class="msg" id="report">La supervisora ajusta la dificultad y rescata colonias en apuros.</div>
+      <ul class="log" id="wLog"></ul>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Cadena de bloques <span class="pill" id="chainOk"></span></h2>
+    <div class="scroll"><table><thead><tr><th>#</th><th>Tipo</th><th>De → A</th><th class="r">Cantidad</th><th>Tokens</th><th>Hash</th></tr></thead><tbody id="chain"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Cómo se financia</h2>
+    <div class="money">
+      <div><h3>Anuncios con recompensa</h3><p>Ver un anuncio da VIT al jugador y paga al servidor.</p></div>
+      <div><h3>Paquetes de VIT</h3><p>Los jugadores compran VIT para adoptar, invertir y rescatar colonias.</p></div>
+      <div><h3>Mercado de células</h3><p>Cada adopción deja comisión; las células legendarias son las más buscadas.</p></div>
+      <div><h3>IA autofinanciada</h3><p>Una parte de los ingresos reales paga el cómputo de las IA; cada colonia paga su parte con su tesoro.</p></div>
+    </div>
+  </section>
+</div>
+<div id="toast" hidden></div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const RN = ["Común", "Rara", "Épica", "Legendaria"], RC = ["#8AA4AD", "#6FA8F5", "#C38BF2", "#F0B03F"];
+let token = null; try { token = localStorage.getItem("vita-token"); } catch {}
+let W = null, C = null, sel = null;
+try { sel = localStorage.getItem("vita-col"); } catch {}
+
+async function api(p, body) {
+  const r = await fetch(p, { method: body ? "POST" : "GET", headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({ ok: false, error: "Sin conexión con el servidor" }));
+  if (r.status === 401 && token && !body) { token = null; try { localStorage.removeItem("vita-token"); } catch {} }
+  return j;
+}
+let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2600); }
+async function act(body, okMsg) {
+  const r = await api("/api/action", body);
+  toast(r.ok ? (okMsg || "Hecho") : r.error || "No se pudo");
+  await refresh(); return r;
+}
+
+$("join").onclick = async () => {
+  const r = await api("/api/join", { name: $("name").value });
+  if (!r.ok) return toast(r.error);
+  token = r.token; try { localStorage.setItem("vita-token", token); } catch {}
+  toast("Bienvenido. Tienes 20 VIT para empezar"); refresh();
+};
+$("adBtn").onclick = () => act({ type: "ad" }, "Gracias por ver el anuncio: +2 VIT");
+$("demoBuy").onclick = () => act({ type: "buy_demo" }, "+50 VIT (compra de prueba)");
+$("feedBtn").onclick = () => act({ type: "feed", colony: sel }, "Colonia alimentada");
+$("invBtn").onclick = () => act({ type: "invest", colony: sel, amount: +$("invAmt").value }, "Inversión hecha");
+$("wdBtn").onclick = async () => {
+  const r = await api("/api/action", { type: "withdraw", colony: sel });
+  toast(r.ok ? `Retirados ${r.amount} VIT${r.partial ? "; el resto sigue invertido hasta que el tesoro se recupere" : ""}` : r.error || "No se pudo");
+  await refresh();
+};
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-a]"); if (!b) return;
+  const d = b.dataset;
+  if (d.a === "col") { sel = d.id; try { localStorage.setItem("vita-col", sel); } catch {} refreshColony(); renderWorld(); }
+  else if (d.a === "adopt") act({ type: "adopt", colony: sel, cell: d.id }, "Célula adoptada");
+  else if (d.a === "sell") act({ type: "sell", colony: d.col, cell: d.id }, "Célula devuelta al tesoro");
+  else if (d.a === "up") act({ type: "upgrade", colony: sel, key: d.id }, "Mejora pagada");
+  else if (d.a === "claim") act({ type: "claim", key: d.id }, "Misión cobrada");
+  else if (d.a === "habit") act({ type: "habit", key: d.id, colony: sel }, "Hábito registrado");
+});
+
+function hhmm(m) { return m == null ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
+function renderWorld() {
+  if (!W) return;
+  const me = W.me, wx = W.weather;
+  $("envChips").innerHTML = [
+    W.minuto != null ? `<span class="pill">${hhmm(W.minuto)}</span>` : `<span class="pill">modo rápido</span>`,
+    wx ? `<span class="pill" title="${wx.source === "simulado" ? "Open-Meteo no responde: clima de temporada simulado" : "Clima real de Open-Meteo"}">${esc(wx.desc)} · ${Math.round(wx.temp)} °C${wx.source === "simulado" ? " (simulado)" : ""}</span>` : `<span class="pill">clima neutro</span>`,
+    `<span class="pill">${W.online} en línea · ${W.players} jugadores</span>`,
+    `<span class="pill ${W.ai.enabled && W.ai.budgetOk ? "ok" : ""}">${W.ai.enabled ? (W.ai.budgetOk ? "IA Claude activa" : "IA sin presupuesto") : "IA en autopiloto"}</span>`,
+  ].join("");
+  $("guest").hidden = !!me; $("player").hidden = !me;
+  if (me) {
+    $("wallet").textContent = `${me.vit} VIT`; $("streak").textContent = `racha ${me.streak} día${me.streak === 1 ? "" : "s"}`;
+    $("myCells").textContent = `${me.cellCount} células tuyas · ${me.sporesLeft} esporas hoy`;
+    $("adBtn").disabled = me.adsLeft <= 0; $("adBtn").textContent = me.adsLeft > 0 ? `Ver anuncio · +2 VIT (${me.adsLeft})` : "Anuncios de hoy vistos";
+  }
+  $("demoBuy").hidden = !W.demoPurchases;
+  const cols = W.colonies;
+  if (!sel || !cols.find(c => c.id === sel)) sel = (cols.find(c => c.alive) || cols[0]).id;
+  $("fedCount").textContent = `${cols.filter(c => c.alive).length} vivas de ${cols.length}`;
+  $("fed").innerHTML = cols.map(c => `<button class="col ${c.id === sel ? "sel" : ""} ${c.alive ? "" : "dead"}" data-a="col" data-id="${c.id}">
+    <span class="t"><b>${esc(c.name)}</b><span class="m">gen ${c.gen}</span></span>
+    <span class="m">${c.alive ? `${c.cells}/${c.cap} células · salud ${c.salud}` : "extinta"}</span>
+    <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}</span>
+    <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}</span></button>`).join("");
+  $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
+  if (W.ai.report) $("report").textContent = W.ai.report;
+  $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");
+  $("chainOk").textContent = W.chainOk ? "verificada" : "alterada"; $("chainOk").className = "pill " + (W.chainOk ? "ok" : "");
+  $("chain").innerHTML = W.chain.map(b => `<tr><td>${b.n}</td><td>${esc(b.tipo)}</td><td>${esc(b.de)} → ${esc(b.a)}</td><td class="r">${b.cant} ${b.unit}</td><td>${(b.ids || []).join(", ")}</td><td>${b.hash.slice(0, 12)}</td></tr>`).join("");
+  // misiones, hábitos, posiciones, células propias
+  $("missions").innerHTML = me ? me.missions.map(m => `<div class="item"><span>${esc(m.t)} <span class="note">+${m.r} VIT · ${m.prog}/${m.goal}</span></span><div class="bar"><i style="width:${m.prog / m.goal * 100}%"></i></div>${m.claimed ? `<span class="done">Cobrada</span>` : `<button class="sm ${m.prog >= m.goal ? "primary" : ""}" data-a="claim" data-id="${m.k}" ${m.prog >= m.goal ? "" : "disabled"}>Cobrar</button>`}</div>`).join("") : `<p class="note">Entra para ver tus misiones.</p>`;
+  $("habits").innerHTML = Object.entries(W.habits).map(([k, h]) => { const done = me?.habits[k]; return `<div class="item"><span>${esc(h.name)}</span><p>+${h.energia} energía a la colonia</p>${done ? `<span class="done">Hecho hoy</span>` : `<button class="sm" data-a="habit" data-id="${k}" ${me ? "" : "disabled"}>Lo hice</button>`}</div>`; }).join("");
+  $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">No tienes inversiones todavía.</p>`;
+  $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
+  ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
+}
+function bar(id, p, c) { const e = $(id); e.style.width = Math.max(0, Math.min(100, p)) + "%"; if (c) e.style.background = c; }
+const tone = v => v > 60 ? "var(--life)" : v > 30 ? "var(--warn)" : "var(--bad)";
+function renderColony() {
+  if (!C) return;
+  const me = W?.me;
+  $("cName").textContent = C.name; $("cGenome").textContent = `${C.genome} · gen ${C.gen}`;
+  $("deadOv").hidden = C.alive;
+  $("sE").textContent = C.energia; bar("bE", C.energia / (150 + C.cells) * 100, tone(Math.min(100, C.energia)));
+  $("sS").textContent = C.salud; bar("bS", C.salud, tone(C.salud));
+  $("sC").textContent = `${C.cells}/${C.cap}`; bar("bC", C.cells / C.cap * 100);
+  $("sT").textContent = C.treasury; bar("bT", Math.min(100, C.treasury / 4));
+  $("planBy").textContent = C.plan > 0 ? `plan de ${C.planBy} · ${C.plan} ciclos` : "autopiloto"; $("planBy").className = "pill " + (C.plan > 0 ? "on" : "");
+  const p = C.persona;
+  $("persona").textContent = `Personalidad: riesgo ${p.riesgo} · codicia ${p.codicia} · cuidado ${p.cuidado}. Ha pagado ${C.aiSpentVit} VIT por ${C.aiCalls} consultas.`;
+  const N = { rec: "Recolectar", rep: "Reparar", repr: "Reproducir", res: "Acuñar VIT" };
+  $("alloc").innerHTML = Object.entries(N).map(([k, n]) => `<div class="r"><span>${n}</span><div class="bar"><i style="width:${C.alloc[k]}%"></i></div><b>${C.alloc[k]}%</b></div>`).join("");
+  $("aiMsg").textContent = C.message || "Todavía no ha pedido estrategia a Claude: usa su autopiloto con personalidad propia.";
+  $("cLog").innerHTML = C.log.map(l => `<li>${l}</li>`).join("");
+  $("sp").textContent = `1 participación = ${C.sharePrice} VIT · ${C.investors} inversores`;
+  $("market").innerHTML = C.market.map(c => `<tr><td>${c.id}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td>${c.g.ef}·${c.g.res}·${c.g.fer}</td><td class="r">${c.price}</td><td><button class="sm primary" data-a="adopt" data-id="${c.id}" ${me && me.vit >= c.price ? "" : "disabled"}>Adoptar</button></td></tr>`).join("") || `<tr><td colspan="5">No hay células libres.</td></tr>`;
+  $("shop").innerHTML = Object.entries(C.upgrades).map(([k, u]) => `<div class="item"><h3>${esc(u.name)} <span class="note">nivel ${u.level}/${u.cost.length}</span></h3><p>${esc(u.desc)}</p>${u.next == null ? `<span class="done">Máximo</span>` : `<button class="sm" data-a="up" data-id="${k}" ${me && me.vit >= u.next ? "" : "disabled"}>Pagar · ${u.next} VIT</button>`}</div>`).join("");
+}
+
+async function refresh() { W = await api("/api/world"); if (W && W.colonies) { renderWorld(); await refreshColony(); } }
+async function refreshColony() { if (!sel) return; const c = await api("/api/colony/" + sel); if (c && c.id) { C = c; renderColony(); } }
+
+// ---------- canvas ----------
+const cv = $("cv"), cx = cv.getContext("2d"); let w = 0, h = 0; const vis = new Map(); let spores = [];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function resize() { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; w = r.width; h = r.height; cv.width = w * d; cv.height = h * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+new ResizeObserver(resize).observe(cv); resize();
+cv.addEventListener("pointerdown", async e => {
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const i = spores.findIndex(s => Math.hypot(s.x - x, s.y - y) < 22);
+  if (i < 0) return;
+  spores.splice(i, 1);
+  if (!token) return toast("Entra con tu nombre para minar esporas");
+  act({ type: "spore" }, "Espora minada");
+});
+function draw(t) {
+  const g = cx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, Math.max(w, h) * .7);
+  const day = W?.minuto != null ? Math.max(0, Math.sin((W.minuto / 60 - 6) / 12 * Math.PI)) : .6;
+  g.addColorStop(0, `rgba(40,110,105,${0.15 + day * 0.4})`); g.addColorStop(1, "#061014");
+  cx.fillStyle = g; cx.fillRect(0, 0, w, h);
+  if (C) {
+    const live = new Set();
+    for (const [id, rar, fer, mine] of C.dots) {
+      live.add(id);
+      let p = vis.get(id);
+      if (!p) { p = { x: w / 2 + (Math.random() - .5) * 140, y: h / 2 + (Math.random() - .5) * 90, vx: 0, vy: 0, ph: Math.random() * 6 }; vis.set(id, p); }
+      if (!reduce) { p.vx = (p.vx + (w / 2 - p.x) * .00004 + (Math.random() - .5) * .06) * .99; p.vy = (p.vy + (h / 2 - p.y) * .00006 + (Math.random() - .5) * .06) * .99; p.x = Math.max(4, Math.min(w - 4, p.x + p.vx)); p.y = Math.max(4, Math.min(h - 4, p.y + p.vy)); }
+      const rad = (3 + rar * 1.3 + fer / 8) * (1 + Math.sin(t / 600 + p.ph) * .12);
+      cx.beginPath(); cx.arc(p.x, p.y, rad, 0, 6.283); cx.fillStyle = rar ? RC[rar] + "cc" : `hsla(${160 - (100 - C.salud) * 1.4},65%,50%,.75)`;
+      if (rar >= 2) { cx.shadowColor = RC[rar]; cx.shadowBlur = 10; } cx.fill(); cx.shadowBlur = 0;
+      if (mine) { cx.strokeStyle = "#F0B03F"; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(p.x, p.y, rad + 3, 0, 6.283); cx.stroke(); }
+    }
+    for (const k of vis.keys()) if (!live.has(k)) vis.delete(k);
+  }
+  for (const s of spores) { s.life--; cx.beginPath(); cx.arc(s.x, s.y + Math.sin(t / 400 + s.x) * 3, 7, 0, 6.283); cx.fillStyle = `rgba(240,176,63,${Math.min(1, s.life / 60)})`; cx.shadowColor = "#F0B03F"; cx.shadowBlur = 14; cx.fill(); cx.shadowBlur = 0; }
+  spores = spores.filter(s => s.life > 0);
+  if (C?.alive && spores.length < 2 && Math.random() < .004) spores.push({ x: 20 + Math.random() * (w - 40), y: 20 + Math.random() * (h - 40), life: 700 });
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 5000);
+})();
+</script>
+</body>
+</html>
