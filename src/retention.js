@@ -42,10 +42,15 @@ export function restoreSave(w, blob, key, now = Date.now()) {
   let s;
   try { s = JSON.parse(Buffer.from(data, "base64url").toString("utf8")); } catch { return err("Copia no válida"); }
   if (s?.v !== SAVE_VERSION || !s.user?.tokenHash) return err("Copia no válida");
-  if (Object.values(w.users).some(x => x.tokenHash === s.user.tokenHash)) return err("Tu cuenta ya está en este mundo");
+  // Una cuenta se identifica por su número y su fecha de alta, no por su clave: la clave cambia al usar
+  // el código de recuperación, y sin esto una copia vieja podría duplicar células y VIT.
+  // `origenes` guarda las cuentas de las que viene, para que ninguna copia vuelva dos veces.
+  const origenes = [...new Set([...(s.user.origenes || []), `${s.user.id}:${s.user.createdAt}`])];
+  const misma = x => x.tokenHash === s.user.tokenHash || (x.id === s.user.id && x.createdAt === s.user.createdAt) || x.origenes?.some(o => origenes.includes(o));
+  if (Object.values(w.users).some(misma)) return err("Tu cuenta ya está en este mundo");
   let n = Object.keys(w.users).length + 1, id;
   do id = "U" + String(n++).padStart(4, "0"); while (w.users[id]);
-  const u = { ...s.user, id, vit: 0, restoredAt: now };
+  const u = { ...s.user, id, vit: 0, restoredAt: now, origenes };
   u.daily ||= { date: "", prog: {}, claimed: {} };
   w.users[id] = u;
   // Sus células vuelven a una colonia viva con sitio (la del mismo nombre si existe).

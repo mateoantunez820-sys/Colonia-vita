@@ -40,6 +40,15 @@ test("la copia firmada devuelve la cuenta, sus células, sus fondos y su Ámbar 
   assert.deepEqual(oruz.amberOf(w2, u.id).map(p => p.id), [pieza.id], "el Ámbar conserva su código único");
   assert.equal(u.welcome.restaurada, true);
   assert.equal(ret.restoreSave(w2, save, KEY).ok, false, "la misma cuenta no se puede duplicar");
+  // El código de recuperación le da otra clave a la cuenta, pero la copia vieja sigue sin poder duplicarla
+  u.tokenHash = core.hash("token-nuevo");
+  assert.equal(ret.restoreSave(w2, save, KEY).ok, false, "tampoco después de recuperar la cuenta con otra clave");
+  ana.tokenHash = core.hash("token-nuevo-ana");
+  assert.equal(ret.restoreSave(w, save, KEY).ok, false, "en su propio mundo la cuenta sigue ahí");
+  const w3 = core.createWorld(); oruz.ensure(w3, "copia");
+  const r3 = ret.restoreSave(w3, ret.makeSave(w2, u, KEY), KEY);
+  assert.equal(r3.ok, true, r3.error);
+  assert.equal(ret.restoreSave(w3, save, KEY).ok, false, "una copia de su mundo de origen tampoco vuelve dos veces");
   assert.ok(core.verifyChain(w2));
 });
 
