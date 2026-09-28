@@ -55,6 +55,9 @@ async function save() {
   await writeFile(tmp, JSON.stringify(world));
   await rename(tmp, WORLD_FILE);
 }
+// Los guardados van en fila: dos a la vez escribirían el mismo world.json.tmp.
+let saving = Promise.resolve();
+const saveNow = () => (saving = saving.then(save, save));
 
 // ---------- entorno ----------
 // Fecha y hora locales del juego: { day: días desde 1970, minute: minuto del día }
@@ -257,7 +260,9 @@ async function route(req, res) {
     if (limited("pay:" + u.id, 10, 3600000)) return send(res, 429, { ok: false, error: "Demasiados intentos de pago; prueba en un rato" });
     const b = await readBody(req);
     if (b.acepto !== true) return send(res, 400, { ok: false, error: "Para comprar tienes que aceptar los términos" });
-    const r = await createCheckout(world, PAGOS, u, String(b.pack || ""), PUBLIC_URL || `https://${req.headers.host}`);
+    // La vuelta del pago nunca sale de la cabecera Host: la elige quien hace la petición.
+    if (!PUBLIC_URL) return send(res, 503, { ok: false, error: "Falta PUBLIC_URL en el servidor" });
+    const r = await createCheckout(world, PAGOS, u, String(b.pack || ""), PUBLIC_URL);
     dirty = true;
     return send(res, r.ok ? 200 : 400, r);
   }
@@ -267,6 +272,8 @@ async function route(req, res) {
     if (!verifySignature(raw, req.headers["stripe-signature"], PAGOS.hook)) return send(res, 400, { ok: false, error: "Firma no válida" });
     const r = handleEvent(world, PAGOS, JSON.parse(raw.toString("utf8")));
     dirty = true;
+    // Stripe no repite un aviso contestado con 200: se guarda antes de contestar (si falla, 500 y Stripe reintenta).
+    await saveNow();
     if (r.note === "entregado") console.log(`[pagos] ${r.user} recibe ${r.vit} VIT`);
     return send(res, 200, { ok: true });
   }
@@ -323,7 +330,7 @@ if (rangos.step(world)) dirty = true; // primer consejo de VITA si el mundo aún
 await refreshWeather();
 setInterval(refreshWeather, 15 * 60000).unref();
 setInterval(tick, TICK_MS);
-setInterval(() => save().catch(e => console.error("Guardado falló:", e.message)), 30000);
+setInterval(() => saveNow().catch(e => console.error("Guardado falló:", e.message)), 30000);
 const server = http.createServer((req, res) => route(req, res).catch(e => {
   if (e.message === "too_large") return send(res, 413, { ok: false, error: "Petición demasiado grande" });
   if (e instanceof SyntaxError) return send(res, 400, { ok: false, error: "JSON inválido" });
@@ -333,4 +340,4 @@ server.listen(PORT, () => console.log(`Colonia VITA en http://localhost:${PORT} 
   + ` · pagos ${PAGOS.enabled ? (PAGOS.live ? "reales" : "de prueba") : "apagados"} · anuncios ${ANUNCIOS.enabled ? (ANUNCIOS.test ? "AdSense de prueba" : "AdSense") : "de demostración"}`));
 if (!PAGOS.enabled && (PAGOS.key || PAGOS.hook)) console.warn(`Pagos apagados: falta ${PAGOS.missing.join(", ")}`);
 if (process.env.ADSENSE_CLIENT && !ANUNCIOS.enabled) console.warn("Anuncios apagados: ADSENSE_CLIENT debe tener la forma ca-pub-1234567890123456");
-for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => { dirty = true; await save().catch(() => {}); process.exit(0); });
+for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => { dirty = true; await saveNow().catch(() => {}); process.exit(0); });

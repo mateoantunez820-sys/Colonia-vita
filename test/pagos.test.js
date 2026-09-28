@@ -94,6 +94,41 @@ test("si se devuelve un pago o hay disputa se retira el VIT de esa compra sin de
   assert.equal(handleEvent(w, cfg, { type: "charge.refunded", data: { object: { payment_intent: "pi_otro", amount: 1, amount_refunded: 1 } } }).note, "sin compra asociada");
 });
 
+test("una devolución o una disputa también descuentan el dinero que financia a las IA", () => {
+  const w = core.createWorld(), u = core.createUser(w, "Noa", "h"), cfg = paymentsConfig(ENV);
+  const ev = paid(w, u, "p700"); handleEvent(w, cfg, ev);
+  const pi = ev.data.object.payment_intent, ref = n => ({ type: "charge.refunded", data: { object: { payment_intent: pi, amount: 999, amount_refunded: n } } });
+  handleEvent(w, cfg, ref(300));
+  assert.equal(w.pagos.ingresos.eur, 6.99); assert.ok(Math.abs(w.ai.revenueUsd - 6.99) < 1e-9);
+  handleEvent(w, cfg, ref(600)); handleEvent(w, cfg, ref(600));
+  assert.equal(w.pagos.ingresos.eur, 3.99, "la cantidad devuelta es acumulada y un aviso repetido no descuenta dos veces");
+  handleEvent(w, cfg, { type: "charge.dispute.created", data: { object: { payment_intent: pi } } });
+  assert.equal(w.pagos.ingresos.eur, 0); assert.ok(Math.abs(w.ai.revenueUsd) < 1e-9);
+});
+
+test("una devolución que llega antes que su compra se aplica al entregarla", () => {
+  const w = core.createWorld(), u = core.createUser(w, "Teo", "h"), cfg = paymentsConfig(ENV), vit0 = u.vit;
+  const ev = paid(w, u, "p700"), pi = ev.data.object.payment_intent;
+  assert.equal(handleEvent(w, cfg, { type: "charge.refunded", data: { object: { payment_intent: pi, amount: 999, amount_refunded: 999 } } }).note, "sin compra asociada");
+  assert.equal(handleEvent(w, cfg, ev).note, "entregado");
+  assert.equal(u.vit, vit0, "no se queda con el VIT de un pago devuelto");
+  assert.equal(w.pagos.ingresos.eur, 0);
+});
+
+test("con los precios adaptados de Stripe cuenta el importe de la tienda, no el del comprador", () => {
+  const w = core.createWorld(), u = core.createUser(w, "Ada", "h"), cfg = paymentsConfig(ENV), vit0 = u.vit;
+  const ev = paid(w, u, "p50", { currency: "usd", amount_total: 117, currency_conversion: { source_currency: "eur", amount_total: 99, amount_subtotal: 99, fx_rate: "1.18" } });
+  assert.equal(handleEvent(w, cfg, ev).note, "entregado");
+  assert.equal(u.vit, vit0 + 50); assert.equal(w.pagos.ingresos.eur, 0.99);
+});
+
+test("un paquete con nombre heredado no llega a Stripe", async () => {
+  const w = core.createWorld(), u = core.createUser(w, "Bea", "h"), cfg = paymentsConfig(ENV);
+  let calls = 0; const fake = async () => { calls++; return { ok: true, json: async () => ({}) }; };
+  for (const pack of ["constructor", "toString", "__proto__"]) assert.equal((await createCheckout(w, cfg, u, pack, "https://vita.example", fake)).ok, false);
+  assert.equal(calls, 0);
+});
+
 test("los anuncios reales solo pagan un vale propio, una vez y tras verlo entero", () => {
   assert.equal(adsConfig({}).enabled, false);
   assert.equal(adsConfig({ ADSENSE_CLIENT: "pub-123" }).enabled, false);

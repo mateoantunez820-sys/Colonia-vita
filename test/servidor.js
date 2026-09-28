@@ -38,6 +38,12 @@ export async function startServer(env = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: r.status, json, text };
   }
+  // Un cierre brusco (SIGKILL): el servidor no tiene ocasión de guardar nada.
+  async function crash() {
+    if (!proc || proc.exitCode !== null) return;
+    const done = new Promise(r => proc.once("exit", r));
+    proc.kill("SIGKILL"); await done;
+  }
   await start();
-  return { call, stop, restart: async () => { await stop(); await start(); }, close: async () => { await stop(); await rm(dir, { recursive: true, force: true }); } };
+  return { call, stop, restart: async () => { await stop(); await start(); }, crashRestart: async () => { await crash(); await start(); }, close: async () => { await stop(); await rm(dir, { recursive: true, force: true }); } };
 }

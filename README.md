@@ -83,6 +83,7 @@ Los pagos solo se encienden cuando están las cuatro variables: `STRIPE_SECRET_K
 2. En Stripe, en **Desarrolladores → Webhooks**, añade `https://TU-DOMINIO/api/pagos/webhook` con los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded` y `charge.dispute.created`. Copia su secreto (`whsec_...`) en `STRIPE_WEBHOOK_SECRET`.
 3. Copia tu clave secreta en `STRIPE_SECRET_KEY`. Si usas una clave restringida, necesita permiso de escritura en Checkout Sessions. Empieza con las claves de prueba (`sk_test_...`): la web dice «modo de prueba» y se paga con la tarjeta 4242 4242 4242 4242. Cuando todo funcione, cambia a las reales.
 4. `STRIPE_CURRENCY` es la moneda (`eur` por defecto).
+5. `PUBLIC_URL` es la dirección a la que Stripe devuelve al jugador (en Render, si falta, se usa la `.onrender.com`). Si usas un dominio propio, pon aquí ese dominio: la clave del jugador se guarda por dominio.
 
 El VIT llega cuando Stripe avisa por el webhook, una sola vez aunque el aviso se repita. Si devuelves un pago o te abren una disputa, se retira el VIT de esa compra (sin dejar a nadie en negativo). Los ingresos en euros o dólares financian a las IA igual que `/api/admin/revenue`. Cada servicio de Render es un mundo aparte: si usas dos con la misma cuenta de Stripe, cada uno necesita su webhook, y cada mundo ignora los pagos del otro.
 

@@ -40,6 +40,22 @@ test("un pago confirmado por Stripe llega al jugador una sola vez", async () => 
   assert.equal(m.ventas, 1); assert.equal(m.ingresos.eur, 0.99);
 });
 
+test("sin PUBLIC_URL no se abre la página de pago: la vuelta nunca sale de la cabecera Host", async () => {
+  const { token } = (await call("/api/join", { body: { name: "Sin dominio" } })).json;
+  const r = await call("/api/pagos/checkout", { token, body: { pack: "p50", acepto: true }, headers: { host: "malo.example" } });
+  assert.equal(r.status, 503);
+});
+
+test("un pago confirmado se guarda antes de contestar a Stripe, aunque el servidor caiga justo después", async () => {
+  const { token, id } = (await call("/api/join", { body: { name: "Caída" } })).json;
+  const vit0 = (await call("/api/world", { token })).json.me.vit;
+  const mundo = (await call("/api/admin/metrics", { headers: { authorization: "Bearer " + ADMIN } })).json.pagos.mundo;
+  const event = { type: "checkout.session.completed", data: { object: { id: "cs_test_caida", payment_status: "paid", amount_total: 499, currency: "eur", payment_intent: "pi_caida", metadata: { mundo, user: id, pack: "p300" } } } };
+  assert.equal((await call("/api/pagos/webhook", signed(event))).status, 200);
+  await srv.crashRestart();
+  assert.equal((await call("/api/world", { token })).json.me.vit, vit0 + 300);
+});
+
 test("los anuncios reales cargan AdSense y solo pagan un vale visto entero", async () => {
   const home = (await call("/")).text;
   assert.ok(home.includes('<meta name="google-adsense-account" content="ca-pub-1234567890123456">'));

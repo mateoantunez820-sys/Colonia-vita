@@ -272,7 +272,8 @@ async function realAd() {
   if (adBusy) return;
   if (typeof window.adBreak !== "function") return toast("Los anuncios aún no han cargado; prueba en unos segundos");
   adBusy = true;
-  const t = await api("/api/anuncio", {});
+  let t;
+  try { t = await api("/api/anuncio", {}); } catch { t = { ok: false, error: "Sin conexión con el servidor" }; }
   if (!t.ok) { adBusy = false; return toast(t.error || "No se pudo"); }
   let shown = false, answered = false;
   // Si Google no responde (por ejemplo, con un bloqueador de anuncios), se avisa en vez de no hacer nada.
