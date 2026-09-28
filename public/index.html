@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Federación VITA</title>
-<meta name="description" content="Colonias digitales vivas, tokenizadas y gestionadas por IA. Adopta células, invierte en las IA y cuida tu salud para alimentar tu colonia.">
+<meta name="description" content="Colonias digitales vivas, tokenizadas y gestionadas por IA. Adopta células, confía VIT a sus IA y cuida tus hábitos para alimentar tu colonia.">
 <meta name="theme-color" content="#0A1519">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
@@ -66,6 +66,9 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px)}
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:900px){.money{grid-template-columns:1fr 1fr}}@media(max-width:520px){.money{grid-template-columns:1fr}}
 .money div{background:var(--surf2);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start}.money p{margin:0;color:var(--mute);font-size:13px}
+a{color:var(--vit)}.full{flex-basis:100%}
+.code{font:600 clamp(18px,4.5vw,26px) var(--mono);letter-spacing:.06em;margin:0;overflow-wrap:anywhere;user-select:all}
+.foot{text-align:center;padding:8px 0}
 @media(prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
 </head>
@@ -84,6 +87,13 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
       <label for="name" class="note">Tu nombre de jugador</label>
       <input id="name" maxlength="24" placeholder="p. ej. Mateo">
       <button class="primary" id="join">Entrar y recibir 20 VIT</button>
+      <button class="sm" id="recOpen">Ya tengo cuenta</button>
+      <p class="note full">Al entrar aceptas los <a href="/terminos">términos de uso</a> y la <a href="/privacidad">privacidad</a>.</p>
+    </div>
+    <div class="row" id="recover" hidden>
+      <label for="recCode" class="note">Tu código de recuperación</label>
+      <input id="recCode" maxlength="40" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="primary" id="recGo">Recuperar mi cuenta</button>
     </div>
     <div class="row" id="player" hidden>
       <span class="pill on" id="wallet">0 VIT</span>
@@ -91,7 +101,15 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
       <span class="pill" id="myCells"></span>
       <button class="sm" id="adBtn">Ver anuncio · +2 VIT</button>
       <button class="sm" id="demoBuy" hidden>Comprar 50 VIT · 0,99 € (demo)</button>
+      <button class="sm" id="recNew">Código de recuperación</button>
     </div>
+  </section>
+
+  <section class="panel" id="recPanel" hidden>
+    <h2>Tu código de recuperación</h2>
+    <p class="code" id="recShow"></p>
+    <p class="note">Guárdalo en un sitio seguro, por ejemplo en tus notas o en una foto. Con él recuperas tu cuenta en otro dispositivo o si borras el navegador, y quien lo tenga puede entrar en ella. Si creas otro, este deja de valer.</p>
+    <div class="row"><button class="sm" id="recCopy">Copiar</button><button class="sm primary" id="recDone">Ya lo guardé</button></div>
   </section>
 
   <section class="panel">
@@ -134,13 +152,13 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
   <div class="grid3">
     <section class="panel">
       <h2>Cartera de la IA <span class="pill" id="sp"></span></h2>
-      <p class="note">Confía VIT a la IA de esta colonia. Tu participación sube si su tesoro crece y baja si lo gasta. Retirar cuesta un 5%.</p>
-      <div class="row"><input id="invAmt" type="number" min="5" step="1" value="20" style="width:90px" aria-label="VIT a invertir"><button class="sm primary" id="invBtn">Invertir</button><button class="sm" id="wdBtn">Retirar todo</button></div>
+      <p class="note">Confía VIT a la IA de esta colonia. Tu participación sube si su tesoro crece y baja si lo gasta. Retirar cuesta un 5%. Es parte del juego: se juega con VIT, no con dinero.</p>
+      <div class="row"><input id="invAmt" type="number" min="5" step="1" value="20" style="width:90px" aria-label="VIT a confiar"><button class="sm primary" id="invBtn">Confiar VIT</button><button class="sm" id="wdBtn">Retirar todo</button></div>
       <div class="list" id="positions"></div>
     </section>
     <section class="panel">
       <h2>Salud real</h2>
-      <p class="note">Tus hábitos de hoy dan energía a la colonia que estás viendo y 3 VIT a ti.</p>
+      <p class="note">Tus hábitos de hoy dan energía a la colonia que estás viendo y 3 VIT a ti. Los marcas tú: es un juego, no un consejo médico.</p>
       <div class="list" id="habits"></div>
     </section>
     <section class="panel">
@@ -184,11 +202,13 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
     <h2>Cómo se financia</h2>
     <div class="money">
       <div><h3>Anuncios con recompensa</h3><p>Ver un anuncio da VIT al jugador y paga al servidor.</p></div>
-      <div><h3>Paquetes de VIT</h3><p>Los jugadores compran VIT para adoptar, invertir y rescatar colonias.</p></div>
+      <div><h3>Paquetes de VIT</h3><p>Los jugadores compran VIT para adoptar células, confiarlo a las IA y rescatar colonias.</p></div>
       <div><h3>Mercado de células</h3><p>Cada adopción deja comisión; las células legendarias son las más buscadas.</p></div>
       <div><h3>IA autofinanciada</h3><p>Una parte de los ingresos reales paga el cómputo de las IA; cada colonia paga su parte con su tesoro.</p></div>
     </div>
   </section>
+
+  <footer class="note foot">VIT y CEL son monedas y fichas del juego: no son una inversión ni un producto financiero, no tienen valor económico y no se pueden cambiar por dinero. · <a href="/terminos">Términos de uso</a> · <a href="/privacidad">Privacidad</a></footer>
 </div>
 <div id="toast" hidden></div>
 
@@ -218,15 +238,32 @@ $("join").onclick = async () => {
   const r = await api("/api/join", { name: $("name").value });
   if (!r.ok) return toast(r.error);
   token = r.token; try { localStorage.setItem("vita-token", token); } catch {}
-  toast("Bienvenido. Tienes 20 VIT para empezar"); refresh();
+  toast("Bienvenido. Tienes 20 VIT para empezar"); showCode(r.recovery); refresh();
 };
+function showCode(code) { $("recShow").textContent = code; $("recPanel").hidden = false; $("recPanel").scrollIntoView({ behavior: "smooth", block: "center" }); }
+$("recOpen").onclick = () => { $("recover").hidden = !$("recover").hidden; if (!$("recover").hidden) $("recCode").focus(); };
+$("recGo").onclick = async () => {
+  const r = await api("/api/recover", { code: $("recCode").value });
+  if (!r.ok) return toast(r.error || "No se pudo");
+  token = r.token; try { localStorage.setItem("vita-token", token); } catch {}
+  $("recover").hidden = true; $("recCode").value = "";
+  toast(`Hola de nuevo, ${r.name}. Tu cuenta ya está en este dispositivo`); refresh();
+};
+$("recNew").onclick = async () => {
+  if (W?.me?.hasRecovery && !confirm("Se creará un código nuevo y el anterior dejará de valer. ¿Seguimos?")) return;
+  const r = await api("/api/account/recovery", {});
+  if (!r.ok) return toast(r.error || "No se pudo");
+  showCode(r.recovery); refresh();
+};
+$("recCopy").onclick = async () => { try { await navigator.clipboard.writeText($("recShow").textContent); toast("Código copiado"); } catch { toast("No se pudo copiar; apúntalo a mano"); } };
+$("recDone").onclick = () => { $("recPanel").hidden = true; };
 $("adBtn").onclick = () => act({ type: "ad" }, "Gracias por ver el anuncio: +2 VIT");
 $("demoBuy").onclick = () => act({ type: "buy_demo" }, "+50 VIT (compra de prueba)");
 $("feedBtn").onclick = () => act({ type: "feed", colony: sel }, "Colonia alimentada");
-$("invBtn").onclick = () => act({ type: "invest", colony: sel, amount: +$("invAmt").value }, "Inversión hecha");
+$("invBtn").onclick = () => act({ type: "invest", colony: sel, amount: +$("invAmt").value }, "VIT confiado a la IA");
 $("wdBtn").onclick = async () => {
   const r = await api("/api/action", { type: "withdraw", colony: sel });
-  toast(r.ok ? `Retirados ${r.amount} VIT${r.partial ? "; el resto sigue invertido hasta que el tesoro se recupere" : ""}` : r.error || "No se pudo");
+  toast(r.ok ? `Retirados ${r.amount} VIT${r.partial ? "; el resto sigue en la cartera hasta que el tesoro se recupere" : ""}` : r.error || "No se pudo");
   await refresh();
 };
 document.addEventListener("click", e => {
@@ -250,8 +287,10 @@ function renderWorld() {
     `<span class="pill">${W.online} en línea · ${W.players} jugadores</span>`,
     `<span class="pill ${W.ai.enabled && W.ai.budgetOk ? "ok" : ""}">${W.ai.enabled ? (W.ai.budgetOk ? "IA Claude activa" : "IA sin presupuesto") : "IA en autopiloto"}</span>`,
   ].join("");
-  $("guest").hidden = !!me; $("player").hidden = !me;
+  $("guest").hidden = !!me; $("player").hidden = !me; if (me) $("recover").hidden = true;
   if (me) {
+    $("recNew").className = me.hasRecovery ? "sm" : "sm primary";
+    $("recNew").textContent = me.hasRecovery ? "Código de recuperación" : "Guarda tu código de recuperación";
     $("wallet").textContent = `${me.vit} VIT`; $("streak").textContent = `racha ${me.streak} día${me.streak === 1 ? "" : "s"}`;
     $("myCells").textContent = `${me.cellCount} células tuyas · ${me.sporesLeft} esporas hoy`;
     $("adBtn").disabled = me.adsLeft <= 0; $("adBtn").textContent = me.adsLeft > 0 ? `Ver anuncio · +2 VIT (${me.adsLeft})` : "Anuncios de hoy vistos";
@@ -274,7 +313,7 @@ function renderWorld() {
   // misiones, hábitos, posiciones, células propias
   $("missions").innerHTML = me ? me.missions.map(m => `<div class="item"><span>${esc(m.t)} <span class="note">+${m.r} VIT · ${m.prog}/${m.goal}</span></span><div class="bar"><i style="width:${m.prog / m.goal * 100}%"></i></div>${m.claimed ? `<span class="done">Cobrada</span>` : `<button class="sm ${m.prog >= m.goal ? "primary" : ""}" data-a="claim" data-id="${m.k}" ${m.prog >= m.goal ? "" : "disabled"}>Cobrar</button>`}</div>`).join("") : `<p class="note">Entra para ver tus misiones.</p>`;
   $("habits").innerHTML = Object.entries(W.habits).map(([k, h]) => { const done = me?.habits[k]; return `<div class="item"><span>${esc(h.name)}</span><p>+${h.energia} energía a la colonia</p>${done ? `<span class="done">Hecho hoy</span>` : `<button class="sm" data-a="habit" data-id="${k}" ${me ? "" : "disabled"}>Lo hice</button>`}</div>`; }).join("");
-  $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">No tienes inversiones todavía.</p>`;
+  $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">Aún no has confiado VIT a ninguna IA.</p>`;
   $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
   ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
 }
@@ -323,12 +362,18 @@ function renderColony() {
   $("alloc").innerHTML = Object.entries(N).map(([k, n]) => `<div class="r"><span>${n}</span><div class="bar"><i style="width:${C.alloc[k]}%"></i></div><b>${C.alloc[k]}%</b></div>`).join("");
   $("aiMsg").textContent = C.message || "Todavía no ha pedido estrategia a Claude: usa su autopiloto con personalidad propia.";
   $("cLog").innerHTML = C.log.map(l => `<li>${l}</li>`).join("");
-  $("sp").textContent = `1 participación = ${C.sharePrice} VIT · ${C.investors} inversores`;
+  $("sp").textContent = `1 participación = ${C.sharePrice} VIT · ${C.investors} participantes`;
   $("market").innerHTML = C.market.map(c => `<tr><td>${c.id}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td>${c.g.ef}·${c.g.res}·${c.g.fer}</td><td class="r">${c.price}</td><td><button class="sm primary" data-a="adopt" data-id="${c.id}" ${me && me.vit >= c.price ? "" : "disabled"}>Adoptar</button></td></tr>`).join("") || `<tr><td colspan="5">No hay células libres.</td></tr>`;
   $("shop").innerHTML = Object.entries(C.upgrades).map(([k, u]) => `<div class="item"><h3>${esc(u.name)} <span class="note">nivel ${u.level}/${u.cost.length}</span></h3><p>${esc(u.desc)}</p>${u.next == null ? `<span class="done">Máximo</span>` : `<button class="sm" data-a="up" data-id="${k}" ${me && me.vit >= u.next ? "" : "disabled"}>Pagar · ${u.next} VIT</button>`}</div>`).join("");
 }
 
-async function refresh() { W = await api("/api/world"); if (W && W.colonies) { renderWorld(); await refreshColony(); } }
+async function refresh() {
+  W = await api("/api/world");
+  if (!W || !W.colonies) return;
+  // La clave ya no vale: la cuenta se recuperó en otro dispositivo o el mundo empezó de cero.
+  if (token && !W.me) { token = null; try { localStorage.removeItem("vita-token"); } catch {} toast("Tu cuenta ya no está abierta aquí. Si tienes tu código de recuperación, úsalo en «Ya tengo cuenta»"); }
+  renderWorld(); await refreshColony();
+}
 async function refreshColony() { if (!sel) return; const c = await api("/api/colony/" + sel); if (c && c.id) { C = c; renderColony(); } }
 
 // ---------- canvas ----------
