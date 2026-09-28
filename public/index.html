@@ -508,7 +508,8 @@ function renderWorld() {
     <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}</span>
     <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}${c.gratitudDias ? ` · agradecida, trabaja ×2 (${c.gratitudDias} d)` : ""}</span>${oruzTag(c.id)}</button>`).join("");
   $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
-  renderRangos(); renderCria();
+  renderRangos();
+  try { renderCria(); } catch (e) { console.error("[cría]", e); } // la cría nunca rompe el resto de la web
   if (W.ai.report) $("report").textContent = W.ai.report;
   $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");
   $("chainOk").textContent = W.chainOk ? "verificada" : "alterada"; $("chainOk").className = "pill " + (W.chainOk ? "ok" : "");

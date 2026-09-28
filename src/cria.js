@@ -270,7 +270,11 @@ function hacer(w, u, c, op, b, now, st, hoy) {
 }
 
 // Se llama cuando el jugador registra un hábito de «Salud real». Si la cría ya nació, lo siente y crece.
+// Un fallo aquí nunca estropea el hábito, que ya quedó registrado.
 export function habito(w, u, k, now = Date.now()) {
+  try { return sentir(w, u, k, now); } catch (e) { console.error("[cría]", e.message); return null; }
+}
+function sentir(w, u, k, now) {
   const c = u.cria, r = RASGOS[k];
   if (!c?.etapa || !r) return null;
   asentar(c, now);
@@ -284,8 +288,12 @@ export function habito(w, u, k, now = Date.now()) {
 }
 
 // ---------- vistas ----------
+// Va dentro de /api/world: si algo falla, el jugador se queda sin ver su cría, pero no sin ver el mundo.
 export function view(w, u, now = Date.now()) {
   if (!u) return null;
+  try { return vista(w, u, now); } catch (e) { console.error("[cría]", e.message); return null; }
+}
+function vista(w, u, now) {
   const c = u.cria;
   if (!c?.etapa) return { etapa: 0, etapaName: ETAPAS[0].name, calor: c?.calor || 0, calorMax: CRIA.CALOR, ap: c?.ap || apariencia(semilla(w, u)) };
   const n = necesidades(c, now), hoy = u.daily?.cria || {}, sig = ETAPAS[c.etapa + 1], h = hogarDe(w, u, c), ex = c.excursion;
