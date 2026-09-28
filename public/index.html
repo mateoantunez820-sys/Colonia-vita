@@ -38,6 +38,15 @@ input{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px 
 .col.sel{border-color:var(--vit)}.col.dead{opacity:.55}.col:focus-visible{outline:2px solid var(--vit)}
 .col .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.col b{font:700 16px var(--display)}
 .col .m{font:12px var(--mono);color:var(--mute)}
+.rk{font:600 11px var(--mono);padding:1px 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.rk-ambar{color:var(--vit)}.rk-oruz{color:var(--epica)}.rk-ciudadana{color:var(--mute)}
+.tiers{display:grid;gap:8px}
+.tier{display:grid;gap:6px;padding:10px 12px;border-radius:10px;background:var(--surf2);border-left:3px solid var(--line)}
+.tier.vita{border-color:var(--life)}.tier.ambar{border-color:var(--vit)}.tier.oruz{border-color:var(--epica)}
+.tier .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}.tier p{margin:0;color:var(--mute);font-size:13px}
+.who{display:flex;flex-wrap:wrap;gap:6px}
+.leyes summary{cursor:pointer;font:600 12px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+.leyes ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:13px}.leyes li span{color:var(--mute)}
 .stage{position:relative;border-radius:10px;overflow:hidden;background:#061014;aspect-ratio:16/9}
 #cv{display:block;width:100%;height:100%;cursor:crosshair}
 .overlay{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:rgba(6,16,20,.8);padding:16px;font:800 22px var(--display)}
@@ -57,15 +66,6 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px)}
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:900px){.money{grid-template-columns:1fr 1fr}}@media(max-width:520px){.money{grid-template-columns:1fr}}
 .money div{background:var(--surf2);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start}.money p{margin:0;color:var(--mute);font-size:13px}
-.rk{font:600 11px var(--mono);padding:1px 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
-.rk-ambar{color:var(--vit)}.rk-oruz{color:var(--epica)}.rk-ciudadana{color:var(--mute)}
-.tiers{display:grid;gap:8px}
-.tier{display:grid;gap:6px;padding:10px 12px;border-radius:10px;background:var(--surf2);border-left:3px solid var(--line)}
-.tier.vita{border-color:var(--life)}.tier.ambar{border-color:var(--vit)}.tier.oruz{border-color:var(--epica)}
-.tier .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}.tier p{margin:0;color:var(--mute);font-size:13px}
-.who{display:flex;flex-wrap:wrap;gap:6px}
-.leyes summary{cursor:pointer;font:600 12px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
-.leyes ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:13px}.leyes li span{color:var(--mute)}
 @media(prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
 </head>

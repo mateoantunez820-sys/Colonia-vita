@@ -37,7 +37,6 @@ async function load() {
   catch { world = core.createWorld(); console.log("Mundo nuevo creado"); dirty = true; }
   const fixed = core.migrateWorld(world);
   if (fixed) { console.log(`Reparadas ${fixed} personalidades de IA dañadas`); dirty = true; }
-  if (rangos.step(world)) dirty = true; // primer consejo de VITA si el mundo aún no tenía rangos
   for (const u of Object.values(world.users)) byToken.set(u.tokenHash, u);
 }
 async function save() {
@@ -136,11 +135,12 @@ function worldView(u) {
   return {
     tick: world.tick, mode: FAST ? "rápido" : "tiempo real", minuto: FAST ? null : realMinute(), weather: currentWeather(), stats: world.stats,
     colonies: Object.values(world.colonies).map(c => ({ ...core.colonySummary(world, c), rango: rangos.tag(world, c) })),
+    rangos: rangos.view(world),
     supply: roundSupply(), players: Object.keys(world.users).length, online: [...activity.values()].filter(t => Date.now() - t < 120000).length,
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? core.userView(world, u) : null,
-    habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES, rangos: rangos.view(world),
+    habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }
 
@@ -209,10 +209,10 @@ async function route(req, res) {
     if (url.pathname === "/api/admin/metrics") {
       const mem = process.memoryUsage();
       return send(res, 200, {
-        ai: world.ai, budgetLeftUsd: +budgetLeft(world).toFixed(4), supply: roundSupply(), stats: world.stats, players: Object.keys(world.users).length,
+        ai: world.ai, budgetLeftUsd: +budgetLeft(world).toFixed(4), supply: roundSupply(), stats: world.stats, rangos: world.rangos?.stats, players: Object.keys(world.users).length,
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
-        worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) }, rangos: world.rangos?.stats,
+        worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
       });
     }
     // Para calibrar TRUSTED_PROXY_HOPS tras desplegar: "ip" debe ser tu IP pública.
@@ -240,6 +240,7 @@ async function route(req, res) {
 
 // ---------- arranque ----------
 await load();
+if (rangos.step(world)) dirty = true; // primer consejo de VITA si el mundo aún no tenía rangos
 await refreshWeather();
 setInterval(refreshWeather, 15 * 60000).unref();
 setInterval(tick, TICK_MS);
