@@ -75,6 +75,10 @@ a{color:var(--vit)}.full{flex-basis:100%}
 .hx{cursor:pointer}.hx polygon{stroke:#24414D;stroke-width:1.5}.hx.sel polygon{stroke:var(--vit);stroke-width:3}.hx:focus{outline:none}.hx:focus-visible polygon{stroke:var(--ink)}
 .hx-n{font:700 11px var(--display);fill:var(--ink);text-anchor:middle}.hx-b{font:8.5px var(--mono);fill:#C9D8DB;text-anchor:middle}.hx-a{font:600 8.5px var(--mono);fill:var(--life);text-anchor:middle}.hx-f{font:15px var(--body);text-anchor:middle}
 .amb{fill:var(--vit)}.amb-glow{fill:var(--vit);opacity:.35}
+#lMap{display:block;width:100%;height:auto;background:radial-gradient(ellipse at 50% 40%,#0F2C47 0%,#06121F 75%);border-radius:10px;touch-action:manipulation}
+.luna{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--surf2)}.luna p{margin:2px 0 0}
+.prl{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 6px currentColor}
+.item.g{grid-template-columns:1fr}.item .gift{display:flex;flex-wrap:wrap;gap:6px}.nw{white-space:nowrap}
 .legend{display:flex;flex-wrap:wrap;gap:6px 12px;font:12px var(--mono);color:var(--mute)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .share{display:grid;grid-template-columns:1fr auto;gap:8px}.share input{font:13px var(--mono)}
 .icode{font:700 22px var(--mono);letter-spacing:.12em;color:var(--vit)}
@@ -161,6 +165,31 @@ a{color:var(--vit)}.full{flex-basis:100%}
       <div class="list"><h2>Escuela de Oruz</h2><div class="list" id="oEscuela"></div></div>
       <div class="list"><h2>Tu Ámbar</h2><p class="note">Cada pieza es única dentro de VITA y su origen queda en la cadena. Infundirla da energía y salud a la colonia que estás viendo.</p><div class="list" id="oMias"></div></div>
       <div class="list"><h2>Crónica de Oruz</h2><ul class="log" id="oCron"></ul></div>
+    </div>
+  </section>
+
+  <section class="panel" id="lumar" hidden>
+    <h2>Lumar · el mar de la luna <span class="pill" id="lCal"></span></h2>
+    <p class="note">El segundo ecomundo de VITA. Su luna es la que ves en tu cielo esta noche y su marea sube dos veces al día. Las ostras forman nácar y de él nacen las Perlas de Lumar, muchas más con luna llena. Una perla no es para quien la recoge: se regala.</p>
+    <div class="oruz-cols">
+      <div class="list">
+        <svg id="lMap" viewBox="-160 -140 320 280" role="group" aria-label="Mapa de Lumar. Toca una región para ver su ecosistema."></svg>
+        <div class="legend" id="lLegend"></div>
+        <p class="note" id="lFen"></p>
+      </div>
+      <div class="list">
+        <div class="luna" id="lLuna"></div>
+        <div id="lReg"></div>
+        <h2>Perlas en el mar <span class="pill" id="lHoy"></span></h2>
+        <div class="list" id="lLibres"></div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="list"><h2>Para regalar</h2><p class="note">La perla que recoges no la puedes usar tú. Regálala con el código de invitación de un amigo o dásela a quien la necesite: alguien con colonias en apuros.</p>
+        <div class="row" id="lGive" hidden><input id="lCode" maxlength="9" placeholder="Código de tu amigo" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de invitación de tu amigo"></div>
+        <div class="list" id="lRegalar"></div></div>
+      <div class="list"><h2>Te regalaron</h2><p class="note">Infundir una perla cura a la colonia que estás viendo y acorta su sequía, helada o plaga.</p><div class="list" id="lRecibidas"></div></div>
+      <div class="list"><h2>Crónica de Lumar</h2><ul class="log" id="lCron"></ul></div>
     </div>
   </section>
 
@@ -283,6 +312,14 @@ const REF = (new URLSearchParams(location.search).get("ref") || "").toUpperCase(
 const ROLN = { productora: "productora", polinizadora: "polinizadora", guardiana: "guardiana", recicladora: "recicladora" };
 const ROLC = { flora: "#9BCB5A", poli: "#F0B03F", depre: "#C38BF2", reci: "#6FA8F5" };
 const FXI = { tormenta: "☁", aurora: "✦", viento: "❄" };
+const ESPC = { flora: "#6FD39B", poli: "#E8DCC8", depre: "#F28C6B", reci: "#A48CF2" };
+const PERLC = { blanca: "#F4F1EA", crema: "#EFDDB4", rosa: "#F4B6C8", dorada: "#E9C25C", negra: "#6B6F86", azul: "#7FB2F5" };
+const FXL = { corriente: "≈", temporal: "☁", calor: "☀" };
+const MAREA = { alta: "Marea alta", baja: "Marea baja", subiendo: "La marea sube", bajando: "La marea baja" };
+// En el hemisferio sur la luna creciente se ilumina por la izquierda: se dibuja como la ven allí
+let SUR = false; try { SUR = /^(America\/(Argentina|Santiago|Punta_Arenas|Lima|La_Paz|Asuncion|Montevideo|Sao_Paulo)|Australia\/|Pacific\/Auckland|Africa\/Johannesburg)/.test(Intl.DateTimeFormat().resolvedOptions().timeZone || ""); } catch {}
+let selL = null, vistas = new Set();
+try { vistas = new Set(JSON.parse(localStorage.getItem("vita-perlas") || "[]")); } catch {}
 
 async function api(p, body) {
   const r = await fetch(p, { method: body ? "POST" : "GET", headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -367,8 +404,29 @@ document.addEventListener("click", e => {
   else if (d.a === "reg") { selReg = d.id; renderOruz(); }
   else if (d.a === "amb") act({ type: "amber_collect", id: d.id }, "Ámbar recogido: ya es tuyo");
   else if (d.a === "inf") act({ type: "amber_infuse", id: d.id, colony: sel }, "Ámbar infundido en la colonia");
+  else if (d.a === "lreg") { selL = d.id; renderLumar(); }
+  else if (d.a === "prl") act({ type: "pearl_collect", id: d.id }, "Perla recogida: ahora regálala");
+  else if (d.a === "give") {
+    const code = $("lCode").value.trim();
+    if (!code) { toast("Escribe el código de invitación de tu amigo"); $("lCode").focus(); }
+    else regalar({ type: "pearl_give", id: d.id, code });
+  }
+  else if (d.a === "azar") regalar({ type: "pearl_give", id: d.id, azar: true });
+  else if (d.a === "pinf") infundirPerla(d.id);
 });
-document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"]')) { e.preventDefault(); e.target.closest('[data-a="reg"]').dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+async function regalar(body) {
+  const r = await api("/api/action", body);
+  toast(r.ok ? `Regalaste la perla a ${r.to}` : r.error || "No se pudo");
+  if (r.ok) { lastSave = 0; $("lCode").value = ""; }
+  await refresh();
+}
+async function infundirPerla(id) {
+  const r = await api("/api/action", { type: "pearl_infuse", id, colony: sel });
+  toast(r.ok ? `+${r.salud} salud${r.termina ? ` y se acaba la ${r.termina}` : r.acorta ? ` y el evento dura ${r.acorta} ciclos menos` : ""}` : r.error || "No se pudo");
+  if (r.ok) lastSave = 0;
+  await refresh();
+}
 
 function hhmm(m) { return m == null ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
 function renderWorld() {
@@ -409,13 +467,14 @@ function renderWorld() {
   $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">Aún no has confiado VIT a ninguna IA.</p>`;
   $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
   ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
-  renderWelcome(); renderOruz(); renderLiga(); renderInvite();
+  renderWelcome(); renderOruz(); renderLumar(); renderLiga(); renderInvite();
 }
 function oruzTag(id) {
   const st = W?.oruz?.estado?.[id]; if (!st) return "";
   return `<span class="m" style="color:var(--life)">${st.estado === "aprendiz" ? "aprendiz en la escuela de Oruz" : `graduada en Oruz · nota ${st.nota} · ${ROLN[st.rol] || st.rol}`}</span>`;
 }
 const signed = n => (n > 0 ? "+" : "") + n;
+const enumera = l => { l = l.filter(Boolean); return l.length > 1 ? `${l.slice(0, -1).join(", ")} y ${l.at(-1)}` : l[0] || ""; };
 function renderWelcome() {
   const me = W?.me, r = me?.welcome, p = me?.premio;
   $("welcome").hidden = !(r || p);
@@ -423,13 +482,15 @@ function renderWelcome() {
   const lines = [];
   $("wHoras").textContent = r?.horas ? `${r.horas} h fuera` : "";
   if (p) lines.push(`<b>Quedaste ${p.pos}.º en la liga ${esc(p.week)}</b> y ganaste la célula ${esc(p.rareza.toLowerCase())} ${esc(p.cell || "")}.`);
-  if (r?.restaurada) lines.push(`El servidor se reinició y recuperamos tu cuenta: ${r.vit} VIT, ${r.celulas} células${r.ambar ? ` y ${r.ambar} piezas de Ámbar` : ""}. Las colonias vuelven a crecer desde cero.`);
+  if (r?.restaurada) lines.push(`El servidor se reinició y recuperamos tu cuenta: ${enumera([`${r.vit} VIT`, `${r.celulas} células`, r.ambar && `${r.ambar} piezas de Ámbar`, r.perlas && `${r.perlas} perla${r.perlas === 1 ? "" : "s"}`])}. Las colonias vuelven a crecer desde cero.`);
   else if (r) {
     lines.push(`Tus células acuñaron <b>${r.acunado} VIT</b> para ti. Ahora tienes ${r.vit} VIT y ${r.celulas} células (${signed(r.celulas - r.celulasAntes)}).`);
     for (const c of r.colonias) lines.push(`${esc(c.name)}: ${c.alive ? `salud ${c.salud}${c.evento ? `, ${esc(c.evento).toLowerCase()} en curso` : ""}, ${c.celulas} células tuyas` : "extinta; la supervisora intentará que renazca"}${c.oruz === "aprendiz" ? ", estudiando en Oruz" : ""}.`);
     if (r.nuevas.length) lines.push(`Nacieron colonias nuevas: ${r.nuevas.map(esc).join(", ")}.`);
     if (r.graduadas) lines.push(`${r.graduadas === 1 ? "Una aprendiz se graduó" : `${r.graduadas} aprendices se graduaron`} en la escuela de Oruz.`);
     if (r.ambarNuevo) lines.push(`Nacieron ${r.ambarNuevo} piezas de Ámbar${r.ambarLibre ? ` y ${r.ambarLibre} esperan dueño` : ""}.`);
+    if (r.regalos?.length) lines.push(`<b>${r.regalos.length === 1 ? `${esc(r.regalos[0].de)} te regaló una perla ${esc(r.regalos[0].color)}` : `Te regalaron ${r.regalos.length} perlas: ${r.regalos.map(p => `${esc(p.de)} (${esc(p.color)})`).join(", ")}`}</b>. Infúndela${r.regalos.length === 1 ? "" : "s"} en una colonia desde Lumar.`);
+    if (r.perlasNuevas) lines.push(`Nacieron ${r.perlasNuevas} perla${r.perlasNuevas === 1 ? "" : "s"} en Lumar${r.perlasLibres ? ` y ${r.perlasLibres} esperan en el mar` : ""}${r.luna ? ` (${esc(r.luna.toLowerCase())})` : ""}.`);
     lines.push(`Tu racha va por ${r.racha} día${r.racha === 1 ? "" : "s"}.`);
   }
   $("wBody").innerHTML = lines.map(l => `<p>${l}</p>`).join("");
@@ -470,6 +531,63 @@ function renderOruz() {
   $("oMias").innerHTML = O.mias.length ? O.mias.map(p => `<div class="item"><span><b>${p.id}</b> ${esc(p.tono)} · pureza ${p.pureza}</span><p>${esc(p.region)} · ${esc(p.estacion)} del año ${p.anio} · <a href="/api/oruz/ambar/${p.id}" target="_blank" rel="noopener" style="color:var(--vit)">certificado</a></p><button class="sm" data-a="inf" data-id="${p.id}">Infundir en ${esc(selName)}</button></div>`).join("")
     : `<p class="note">${me ? `Todavía no tienes Ámbar. Recoge piezas libres, hasta ${O.porDia} al día.` : "Entra para recoger Ámbar."}</p>`;
   $("oCron").innerHTML = O.cronica.map(l => `<li>${esc(l)}</li>`).join("");
+}
+// La parte iluminada: el borde de un lado y la línea de sombra, que se curva según la fase
+function moonSvg(fase, r) {
+  const k = Math.cos(2 * Math.PI * fase), rx = (Math.abs(k) * r).toFixed(2), crece = fase < 0.5;
+  const lit = `M0,${-r} A${r},${r} 0 0 ${crece ? 1 : 0} 0,${r} A${rx},${r} 0 0 ${crece === (k > 0) ? 0 : 1} 0,${-r}Z`;
+  return `<g transform="scale(${SUR ? -1 : 1},1)"><circle r="${r}" fill="#1B2B3A" stroke="#F3EFD8" stroke-opacity=".25"/><path d="${lit}" fill="#F3EFD8"/></g>`;
+}
+// Una hora de Lumar son 10 minutos reales
+const durL = h => W.mode === "rápido" ? `${h} ciclos` : h >= 6 ? `${Math.floor(h / 6)} h${h % 6 ? ` ${h % 6 * 10} min` : ""}` : `${h * 10} min`;
+const dias = d => d < 1 ? "menos de un día" : `${Math.round(d)} día${Math.round(d) === 1 ? "" : "s"}`;
+const prl = c => `<i class="prl" style="background:${PERLC[c] || "#fff"};color:${PERLC[c] || "#fff"}"></i>`;
+const certP = id => `<a href="/api/lumar/perla/${id}" target="_blank" rel="noopener">certificado</a>`;
+function renderLumar() {
+  const L = W?.lumar;
+  $("lumar").hidden = !L;
+  if (!L) return;
+  const S = 58, pos = R => [S * Math.sqrt(3) * (R.q + R.r / 2), S * 1.5 * R.r], c = L.cal, lu = L.luna, T = L.marea, me = W.me;
+  $("lCal").textContent = `día ${c.dia} · ${String(c.hora).padStart(2, "0")}:00 · ${lu.name.toLowerCase()}`;
+  if (!selL || !L.regions.some(R => R.id === selL)) selL = L.regions[0].id;
+  const free = {}; for (const p of L.libres) (free[p.regionId] ||= []).push(p);
+  $("lMap").innerHTML = L.regions.map(R => {
+    const [x, y] = pos(R), ps = free[R.id] || [];
+    return `<g class="hx ${R.id === selL ? "sel" : ""}" data-a="lreg" data-id="${R.id}" tabindex="0" role="button" aria-label="${esc(R.name)}, ${esc(R.biomaName)}">
+      <polygon points="${hexPts(x, y, S - 2)}" fill="${R.color}" fill-opacity="${(0.2 + 0.45 * R.eq).toFixed(2)}"/>
+      <text x="${x}" y="${y - 3}" class="hx-n">${esc(R.name)}</text><text x="${x}" y="${y + 11}" class="hx-b">${esc(R.biomaName)}</text>
+      ${ps.map((p, i) => { const px = x - (ps.length - 1) * 6 + i * 12, col = PERLC[p.color] || "#fff"; return `<circle cx="${px}" cy="${y + 29}" r="7" fill="${col}" opacity=".35"/><circle cx="${px}" cy="${y + 29}" r="4" fill="${col}"><title>${p.id} · perla ${esc(p.color)}</title></circle>`; }).join("")}
+      ${L.fenomeno.region === R.id ? `<text x="${x + 30}" y="${y - 18}" class="hx-f" fill="#E4EEEF"><title>${esc(L.fenomeno.name)}</title>${FXL[L.fenomeno.k] || "≈"}</text>` : ""}</g>`;
+  }).join("");
+  $("lLegend").innerHTML = Object.entries(L.especies).map(([k, e]) => `<span><i style="background:${ESPC[k]}"></i>${esc(e.name)} · ${esc(e.rol.toLowerCase())}</span>`).join("");
+  $("lFen").textContent = `${L.fenomeno.name} sobre ${(L.regions.find(R => R.id === L.fenomeno.region) || {}).name || ""}. Han nacido ${L.perlasTotal} perlas y se han regalado ${L.regaladasTotal}.`;
+  $("lLuna").innerHTML = `<svg viewBox="-26 -26 52 52" width="52" height="52" aria-hidden="true">${moonSvg(lu.fase, 22)}</svg>
+    <div><b>${esc(lu.name)}</b> <span class="note">${Math.round(lu.ilum * 100)}% iluminada, como en tu cielo</span>
+    <p class="note">${lu.desove ? "Desove del coral: el agua se llena de alimento y las perlas de estas noches salen con más brillo." : lu.k === "llena" ? "Luna llena: nacen muchas más perlas." : `Próxima luna llena en ${dias(lu.llenaEn)}: entonces nacen muchas más perlas.`}</p>
+    <p class="note">${MAREA[T.k] || ""}${T.viva ? " · mareas vivas" : ""} · nácar ×${lu.mult.toFixed(1).replace(".", ",")}</p></div>`;
+  const R = L.regions.find(x => x.id === selL);
+  $("lReg").innerHTML = `<h3>${esc(R.name)} <span class="note">${esc(R.biomaName)}</span></h3>
+    <p class="note">Luz ${R.clima.luz} · corrientes ${R.clima.agua} · estrés ${R.clima.frio} · fondo ${R.suelo}</p>
+    <div class="alloc">${Object.entries(L.especies).map(([k, e]) => `<div class="r"><span>${esc(e.name)}</span><div class="bar"><i style="width:${R.pops[k]}%;background:${ESPC[k]}"></i></div><b>${R.pops[k]}</b></div>`).join("")}</div>
+    <p class="note">Nácar ${Math.round(R.nacar * 100)}% · equilibrio ${Math.round(R.eq * 100)}% · ${R.perlas} perlas nacidas aquí</p>`;
+  const canTake = me && L.recogidasHoy < L.porDia;
+  $("lHoy").textContent = me ? `hoy ${L.recogidasHoy}/${L.porDia}` : "";
+  $("lLibres").innerHTML = L.libres.length ? L.libres.map(p => `<div class="item"><span><b class="nw">${prl(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>${esc(p.region)} · ${esc(p.luna.toLowerCase())}${p.desove ? " · desove" : ""} · se hunde en ${durL(p.expira)}</p><button class="sm primary" data-a="prl" data-id="${p.id}" ${canTake ? "" : "disabled"}>Recoger</button></div>`).join("")
+    : `<p class="note">No hay perlas en el mar ahora. Nacen donde las cuatro especies viven juntas, muchas más con luna llena.</p>`;
+  $("lGive").hidden = !L.paraRegalar.length;
+  $("lRegalar").innerHTML = L.paraRegalar.length ? L.paraRegalar.map(p => `<div class="item g"><span><b class="nw">${prl(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>${esc(p.region)} · ${certP(p.id)}</p><div class="gift"><button class="sm primary" data-a="give" data-id="${p.id}">Regalar con el código</button><button class="sm" data-a="azar" data-id="${p.id}">A quien la necesite</button></div></div>`).join("")
+    : `<p class="note">${me ? (L.recogidasHoy >= L.porDia ? "Ya recogiste tu perla de hoy. Mañana puedes recoger otra." : "Recoge una perla del mar, una al día, y regálala.") : "Entra para recoger perlas."}</p>`;
+  const selName = (W.colonies.find(x => x.id === sel) || {}).name || "la colonia", code = me?.invite?.code;
+  $("lRecibidas").innerHTML = L.recibidas.length ? L.recibidas.map(p => `<div class="item"><span><b class="nw">${prl(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>regalo de ${esc(p.de || "otro jugador")} · ${certP(p.id)}</p><button class="sm primary" data-a="pinf" data-id="${p.id}">Infundir en ${esc(selName)}</button></div>`).join("")
+    : `<p class="note">${me ? `Todavía no te han regalado ninguna.${code ? ` Para recibirlas, comparte tu código <b>${esc(code)}</b>.` : ""}` : "Entra para recibir perlas."}</p>`;
+  $("lCron").innerHTML = L.cronica.map(l => `<li>${esc(l)}</li>`).join("");
+  // Aviso de regalos nuevos, una vez por perla
+  const nuevas = me ? L.recibidas.filter(p => !vistas.has(p.id)) : [];
+  if (nuevas.length) {
+    for (const p of nuevas) vistas.add(p.id);
+    try { localStorage.setItem("vita-perlas", JSON.stringify([...vistas].slice(-50))); } catch {}
+    toast(nuevas.length > 1 ? `Te regalaron ${nuevas.length} perlas en Lumar` : `${nuevas[0].de || "Alguien"} te regaló una perla ${nuevas[0].color}`);
+  }
 }
 function renderLiga() {
   const L = W?.liga; if (!L) return;

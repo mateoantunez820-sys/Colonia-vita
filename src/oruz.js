@@ -3,7 +3,10 @@
 // polillas, sombras y hongos) se equilibran solos. Las colonias recién nacidas pasan por su
 // escuela antes de salir a la federación, y donde el ecosistema está sano nace el Ámbar de Oruz:
 // piezas únicas registradas en la cadena. Todo el estado vive en `world.oruz`; aquí no hay E/S.
-import { hash, block, clog, wlog, stepColony, avgGenes, verifyChain, migrateWorld } from "./core.js";
+// El mapa, las especies y las piezas usan el motor común de ecomundo.js, el mismo que Lumar.
+import { hash, block, clog, wlog, stepColony, avgGenes, migrateWorld } from "./core.js";
+import { rng, clamp, r3, ESPECIES, crearRegiones, regionDe, pasoPoblaciones, formacion, migrar, moverFenomeno, nuevaPieza, libres, limpiarPiezas, certificado } from "./ecomundo.js";
+export { rng };
 
 export const ORUZ = {
   DAY: 24,              // 1 ciclo de la federación = 1 hora de Oruz
@@ -41,7 +44,6 @@ export const ROLES = {
   depre: { name: "Sombras cazadoras", rol: "Depredadora", desc: "Caza polillas y mantiene el equilibrio." },
   reci: { name: "Hongos del suelo", rol: "Recicladora", desc: "Devuelve al suelo lo que muere." },
 };
-const POPS = Object.keys(ROLES);
 // El rol que aprende cada colonia en la escuela, según sus genes. Da una ventaja pequeña al graduarse.
 export const COLONY_ROLES = {
   productora: { name: "Productora", desc: "Capta un 6% más de luz.", eco: "flora" },
@@ -67,43 +69,17 @@ export const TEMAS = [
 ];
 const PLAN = [0, 1, 2, 3, 4, 5, 6, 7, 4, 1, 3, 2]; // los 8 temas y un repaso de los 4 más duros
 const TONOS = [[0.4, "miel"], [0.7, "dorado"], [0.85, "cobre"], [0.94, "rubí"], [0.985, "esmeralda"], [1, "azul abisal"]];
-const RING = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 const SYL = ["o", "ru", "za", "lu", "mi", "ka", "ne", "to", "vi", "sa", "re", "ya", "el", "an", "is", "ur", "qui", "dá"];
 
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const err = message => ({ ok: false, error: message });
-const r3 = x => Math.round(x * 1000) / 1000;
-
-// Generador pseudoaleatorio con semilla (mulberry32): el mismo mundo sale siempre igual
-export function rng(seed) {
-  let a = parseInt(hash(String(seed)).slice(0, 8), 16) >>> 0;
-  return () => {
-    a = (a + 0x6D2B79F5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function shuffle(a, r) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 // ---------- el mundo ----------
 export function createOruz(seed, tick = 0) {
-  const r = rng("oruz:" + seed), used = new Set();
-  const name = () => {
-    let n;
-    do n = Array.from({ length: r() < 0.4 ? 3 : 2 }, () => SYL[Math.floor(r() * SYL.length)]).join("");
-    while (used.has(n) || n.length < 4);
-    used.add(n);
-    return n[0].toUpperCase() + n.slice(1);
-  };
-  const kinds = shuffle(["pradera", "bosque", "desierto", "tundra", "pantano", "volcan"], r);
-  const regions = [{ id: "R0", name: name(), bioma: "nido", q: 0, r: 0 }, ...RING.map(([q, rr], i) => ({ id: "R" + (i + 1), name: name(), bioma: kinds[i], q, r: rr }))];
-  for (const [i, R] of regions.entries()) {
-    const B = BIOMES[R.bioma];
-    R.vecinos = i === 0 ? regions.slice(1).map(x => x.id) : ["R0", "R" + ((i + 4) % 6 + 1), "R" + (i % 6 + 1)];
-    Object.assign(R, { suelo: 55, flora: r3(45 * B.fert), poli: 20, depre: 6, reci: 15, resina: 0, eq: 0, ambar: 0, clima: { luz: B.luz, frio: B.frio, lluvia: B.lluvia } });
-  }
+  const r = rng("oruz:" + seed);
+  const regions = crearRegiones(r, {
+    centro: "nido", tipos: ["pradera", "bosque", "desierto", "tundra", "pantano", "volcan"], silabas: SYL, biomas: BIOMES,
+    inicio: (R, B) => ({ resina: 0, eq: 0, ambar: 0, clima: { luz: B.luz, frio: B.frio, lluvia: B.lluvia } }),
+  });
   return {
     v: 1, seed: String(seed), hora: 0, desde: tick, regions,
     fenomeno: { k: "tormenta", region: "R" + (1 + Math.floor(r() * 6)) },
@@ -117,7 +93,7 @@ export function ensure(w, seed) {
   }
   return w.oruz;
 }
-export const regionOf = (o, id) => o.regions.find(R => R.id === id) || o.regions[0];
+export const regionOf = regionDe;
 
 export function calendario(o) {
   const dia = Math.floor(o.hora / ORUZ.DAY), n = Math.floor(dia / ORUZ.SEASON_DAYS), s = SEASONS[n % 4];
@@ -138,57 +114,23 @@ function stepRegion(o, R, S, h, students) {
   const lluvia = clamp(B.lluvia * S.lluvia * 1.5 * (fx?.lluvia ?? 1), 0, 1);
   const frio = clamp(B.frio + S.frio * 0.6 + (fx?.frio ?? 0), 0, 1);
   R.clima = { luz: +luzBase.toFixed(2), frio: +frio.toFixed(2), lluvia: +lluvia.toFixed(2) };
-
-  let { flora: F, poli: P, depre: D, reci: X, suelo: N } = R;
-  // Flora: crece con luz, agua y suelo, y las polillas la ayudan
-  const gF = 0.1 * F * (1 - F / 100) * luz * (N / (N + 30)) * (0.35 + 0.65 * lluvia) * B.fert * (1 + 0.5 * P / 80) * (1 - 0.7 * frio);
-  const mF = F * 0.004 * (1 + 1.5 * frio);
-  // Polillas y sombras: presa y cazador, con ciclos que suben y bajan
-  const eat = 0.05 * P * D / (P + 20);
-  const gP = 0.06 * P * (F / (F + 40)) * (1 - P / 80), mP = P * 0.004 * (1 + frio);
-  const gD = 0.35 * eat, mD = D * 0.01 * (1 + 0.5 * frio);
-  // Lo que muere alimenta a los hongos, y los hongos devuelven nutrientes al suelo
-  const dead = mF + mP + mD + eat * 0.65;
-  const gX = 0.05 * X * (dead / (dead + 2)) * (1 - X / 60), mX = X * 0.006;
-  F += gF - mF; P += gP - mP - eat; D += gD - mD; X += gX - mX;
-  N += dead * 0.5 * (0.3 + X / 40) - gF - N * 0.003 + 0.03 * lluvia;
   // Las colonias aprendices también cumplen su rol en la región donde estudian
-  for (const col of students) {
-    const eco = COLONY_ROLES[col.oruz.rol]?.eco;
-    if (eco === "flora") F += 0.05; else if (eco === "poli") P += 0.04; else if (eco === "reci") X += 0.04; else if (eco === "depre") D -= 0.02;
-  }
-  Object.assign(R, { flora: r3(clamp(F, 0.5, 100)), poli: r3(clamp(P, 0.5, 100)), depre: r3(clamp(D, 0.5, 100)), reci: r3(clamp(X, 0.5, 100)), suelo: r3(clamp(N, 0, 100)) });
+  pasoPoblaciones(R, { luz, agua: lluvia, frio, fert: B.fert }, students.map(col => COLONY_ROLES[col.oruz.rol]?.eco));
   // La resina del Ámbar solo se forma donde los cuatro roles están presentes
-  R.eq = +Math.min(1, R.flora / 40, R.poli / 20, R.depre / 8, R.reci / 20).toFixed(3);
-  R.resina = r3(R.resina + 0.006 * (R.flora / 100) * (R.poli / 60) * S.resina * B.resina * R.eq);
+  R.resina = r3(R.resina + formacion(R) * S.resina * B.resina * R.eq);
 }
 
 export function stepEcosystem(o, studentsByRegion = {}) {
   const S = SEASONS[Math.floor(o.hora / ORUZ.DAY / ORUZ.SEASON_DAYS) % 4], h = o.hora % ORUZ.DAY;
   for (const R of o.regions) stepRegion(o, R, S, h, studentsByRegion[R.id] || []);
-  // Migración entre vecinas: ningún rol desaparece del todo y el mundo se mezcla despacio
-  const before = new Map(o.regions.map(R => [R.id, Object.fromEntries(POPS.map(k => [k, R[k]]))]));
-  for (const R of o.regions) for (const k of POPS) {
-    const avg = R.vecinos.reduce((s, id) => s + before.get(id)[k], 0) / R.vecinos.length;
-    R[k] = r3(clamp(R[k] + 0.003 * (avg - before.get(R.id)[k]), 0.5, 100));
-  }
+  migrar(o.regions);
 }
 
-function moveFenomeno(w, o, r) {
-  const f = o.fenomeno;
-  if (o.hora % (ORUZ.DAY * 2) === 0) {
-    const ks = Object.keys(FENOMENOS); f.k = ks[Math.floor(r() * ks.length)];
-    cronica(w, `${FENOMENOS[f.k].name} sobre ${regionOf(o, f.region).name}`, false);
-  }
-  if (o.hora % 12 === 0) { const R = regionOf(o, f.region); f.region = R.vecinos[Math.floor(r() * R.vecinos.length)]; }
-}
+const moveFenomeno = (w, o, r) => moverFenomeno(o, r, FENOMENOS, ORUZ.DAY * 2, f => cronica(w, `${FENOMENOS[f.k].name} sobre ${regionOf(o, f.region).name}`, false));
 
 // ---------- el Ámbar de Oruz: el producto propio e incopiable ----------
 function mintAmber(w, o, R) {
-  const cal = calendario(o), tip = w.chain.length ? w.chain[w.chain.length - 1].hash : "";
-  let n, h, id;
-  do { n = ++o.ambarSerial; h = hash(`${o.seed}:${n}:${R.id}:${o.hora}:${tip}`); id = "AMB-" + h.slice(0, 8).toUpperCase(); } while (o.ambar[id]);
-  const v = parseInt(h.slice(8, 12), 16) / 65536, tono = TONOS.find(([p]) => v < p)[1];
+  const cal = calendario(o), { id, n, tono } = nuevaPieza(w, o, { prefijo: "AMB-", serial: "ambarSerial", store: "ambar", tonos: TONOS }, R);
   const pureza = Math.round(clamp(30 + 45 * R.eq + 15 * Math.min(1, (R.flora + R.poli) / 120) + (cal.k === "resinas" ? 10 : 0), 1, 100));
   const p = { id, n, region: R.id, regionName: R.name, bioma: R.bioma, tono, pureza, estacion: cal.estacion, anio: cal.anio, hora: o.hora, owner: null, ownerName: "", estado: "libre", t: Date.now() };
   const b = block(w, "ámbar", "oruz:" + R.name, "libre", 1, "AMB", [id]);
@@ -197,12 +139,9 @@ function mintAmber(w, o, R) {
   cronica(w, `Nace el Ámbar ${id} (${tono}, pureza ${pureza}) en ${R.name}`);
   return p;
 }
-const freeAmber = o => Object.values(o.ambar).filter(p => p.estado === "libre");
-function tidyAmber(w, o) {
-  for (const p of freeAmber(o)) if (o.hora - p.hora > ORUZ.AMBER_TTL) { p.estado = "disuelta"; cronica(w, `${p.id} se disolvió sin que nadie lo recogiera`, false); }
-  const gone = Object.values(o.ambar).filter(p => p.estado === "disuelta" || p.estado === "infundida");
-  if (gone.length > ORUZ.AMBER_KEEP) for (const p of gone.sort((a, b) => a.n - b.n).slice(0, gone.length - ORUZ.AMBER_KEEP)) delete o.ambar[p.id];
-}
+const freeAmber = o => libres(o.ambar);
+const tidyAmber = (w, o) => limpiarPiezas(o, o.ambar, { ttl: ORUZ.AMBER_TTL, guardar: ORUZ.AMBER_KEEP, gastadas: ["disuelta", "infundida"] },
+  p => cronica(w, `${p.id} se disolvió sin que nadie lo recogiera`, false));
 export function pieceView(p) {
   return { id: p.id, tono: p.tono, pureza: p.pureza, region: p.regionName, regionId: p.region, bioma: BIOMES[p.bioma]?.name, estacion: p.estacion, anio: p.anio, estado: p.estado, owner: p.ownerName || null, bloque: p.bloque, hash: p.hash };
 }
@@ -232,9 +171,7 @@ export const amberOf = (w, uid) => Object.values(w.oruz?.ambar || {}).filter(p =
 // Certificado de origen: la pieza, su bloque de nacimiento y todos sus movimientos en la cadena
 export function certificate(w, id) {
   const p = w.oruz?.ambar[id];
-  if (!p) return null;
-  const moves = w.chain.filter(b => b.ids?.includes(id)).map(b => ({ n: b.n, tipo: b.tipo, de: b.de, a: b.a, hash: b.hash, t: b.t }));
-  return { ...pieceView(p), movimientos: moves, cadenaOk: verifyChain(w) };
+  return p ? certificado(w, p, pieceView) : null;
 }
 
 // ---------- la escuela de Oruz: colonias aprendices ----------
@@ -394,7 +331,7 @@ export function view(w, u) {
     cal: calendario(o), fenomeno: { k: o.fenomeno.k, ...FENOMENOS[o.fenomeno.k], region: o.fenomeno.region },
     regions: o.regions.map(R => ({
       id: R.id, name: R.name, bioma: R.bioma, biomaName: BIOMES[R.bioma].name, color: BIOMES[R.bioma].color, q: R.q, r: R.r,
-      pops: Object.fromEntries(POPS.map(k => [k, Math.round(R[k])])), suelo: Math.round(R.suelo), resina: +R.resina.toFixed(2), eq: R.eq, clima: R.clima, ambar: R.ambar, aprendices: where[R.id] || [],
+      pops: Object.fromEntries(ESPECIES.map(k => [k, Math.round(R[k])])), suelo: Math.round(R.suelo), resina: +R.resina.toFixed(2), eq: R.eq, clima: R.clima, ambar: R.ambar, aprendices: where[R.id] || [],
     })),
     escuela: Object.entries(o.escuela).map(([id, s]) => ({
       id, name: w.colonies[id]?.name, leccion: s.leccion, total: ORUZ.LESSONS, siguiente: TEMAS[PLAN[s.leccion % PLAN.length]].name,

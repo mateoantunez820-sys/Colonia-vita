@@ -1,5 +1,5 @@
 // Retención: que los jugadores vuelvan y que no pierdan lo que consiguieron.
-// - Copia firmada de la cuenta, que guarda el navegador y sobrevive a los reinicios del servidor.
+// - Copia firmada de la cuenta (con su Ámbar y sus perlas), que guarda el navegador y sobrevive a los reinicios del servidor.
 // - Informe "Mientras no estabas" al volver tras una hora o más.
 // - Liga semanal con premios en células raras, épicas y legendarias (no en VIT).
 // - Invitaciones que premian a los dos cuando el amigo juega 3 días distintos.
@@ -8,6 +8,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { hash, newCell, block, grant, cellPrice, positions, clog, wlog, cap, EVENTS, RARITY } from "./core.js";
 import { amberOf, ORUZ as ORUZ_CFG } from "./oruz.js";
+import { pearlsOf, LUMAR as LUMAR_CFG } from "./lumar.js";
 
 const err = message => ({ ok: false, error: message });
 const DAY = 86400000;
@@ -29,7 +30,8 @@ export function makeSave(w, u, key, now = Date.now()) {
   // Las participaciones en los fondos de las IA se guardan por su valor neto de retirada
   const fondos = Math.floor(positions(w, u).reduce((s, p) => s + p.value * 0.95, 0));
   const ambar = amberOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
-  const data = Buffer.from(JSON.stringify({ v: SAVE_VERSION, at: now, world: w.createdAt, user: u, names, cells, fondos, ambar })).toString("base64url");
+  const perlas = pearlsOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
+  const data = Buffer.from(JSON.stringify({ v: SAVE_VERSION, at: now, world: w.createdAt, user: u, names, cells, fondos, ambar, perlas })).toString("base64url");
   return `${data}.${sign(key, data)}`;
 }
 
@@ -71,11 +73,18 @@ export function restoreSave(w, blob, key, now = Date.now()) {
   const amb = [];
   if (w.oruz) for (const p of s.ambar || []) if (!w.oruz.ambar[p.id]) { w.oruz.ambar[p.id] = { ...p, owner: id, ownerName: u.name, estado: "guardada" }; amb.push(p.id); }
   if (amb.length) block(w, "restauración", "copia", id, amb.length, "AMB", amb.slice(0, 3));
-  u.welcome = { restaurada: true, at: now, vit, celulas: placed.length, ambar: amb.length, reembolso: refund };
+  // Las perlas vuelven como estaban: las recogidas, para regalar; las recibidas, para infundir
+  const prl = [];
+  if (w.lumar) for (const p of s.perlas || []) if (!w.lumar.perlas[p.id]) {
+    w.lumar.perlas[p.id] = { ...p, owner: id, ownerName: u.name, ...(p.estado === "guardada" ? { recolector: id, recolectorName: u.name } : {}) };
+    prl.push(p.id);
+  }
+  if (prl.length) block(w, "restauración", "copia", id, prl.length, "PRL", prl.slice(0, 3));
+  u.welcome = { restaurada: true, at: now, vit, celulas: placed.length, ambar: amb.length, perlas: prl.length, reembolso: refund };
   u.ret = { seen: now, snap: null };
   stats(w).restores++;
   wlog(w, `${u.name} recupera su cuenta tras un reinicio del servidor`);
-  return { ok: true, user: u, cells: placed.length, vit, amber: amb.length };
+  return { ok: true, user: u, cells: placed.length, vit, amber: amb.length, pearls: prl.length };
 }
 
 // ---------- "Mientras no estabas" ----------
@@ -86,7 +95,7 @@ function snapshot(w, u, now) {
     let n = 0; for (const c of col.cells) if (c.owner === u.id) n++;
     if (n) { cells += n; cols[col.id] = n; }
   }
-  return { at: now, tick: w.tick, mined: u.mined || 0, vit: Math.floor(u.vit), cells, cols, graduadas: w.oruz?.graduadas || 0, ambar: w.oruz?.ambarSerial || 0 };
+  return { at: now, tick: w.tick, mined: u.mined || 0, vit: Math.floor(u.vit), cells, cols, graduadas: w.oruz?.graduadas || 0, ambar: w.oruz?.ambarSerial || 0, perlas: w.lumar?.perlaSerial || 0 };
 }
 function report(w, u, snap, away, now) {
   const cur = snapshot(w, u, now);
@@ -101,6 +110,9 @@ function report(w, u, snap, away, now) {
     nuevas: Object.values(w.colonies).filter(c => c.createdTick > snap.tick).map(c => c.name),
     graduadas: Math.max(0, (w.oruz?.graduadas || 0) - snap.graduadas), ambarNuevo: Math.max(0, (w.oruz?.ambarSerial || 0) - snap.ambar),
     ambarLibre: Object.values(w.oruz?.ambar || {}).filter(p => p.estado === "libre").length, racha: u.streak,
+    // Una foto tomada antes de que existiera Lumar cuenta las perlas desde ahora
+    perlasNuevas: Math.max(0, (w.lumar?.perlaSerial || 0) - (snap.perlas ?? cur.perlas)), perlasLibres: Object.values(w.lumar?.perlas || {}).filter(p => p.estado === "libre").length,
+    regalos: pearlsOf(w, u.id, "regalada").filter(p => (p.regaladaEn || 0) > snap.at).map(p => ({ id: p.id, de: p.deName, color: p.color })).slice(0, 5), luna: w.lumar?.luna?.name || null,
   };
 }
 // Se llama en cada petición de un jugador con sesión
@@ -124,7 +136,7 @@ function markDay(w, u, now) {
 // ---------- liga semanal ----------
 export const LEAGUE = {
   cap: 60, // puntos máximos por día: premia volver cada día más que jugar sin parar
-  pts: { claim: 8, habit: 4, feed: 3, adopt: 5, upgrade: 5, invest: 2, ad: 1, spore: 1, amber_collect: 4, amber_infuse: 3, racha: 5, invite: 15 },
+  pts: { claim: 8, habit: 4, feed: 3, adopt: 5, upgrade: 5, invest: 2, ad: 1, spore: 1, amber_collect: 4, amber_infuse: 3, pearl_collect: 3, pearl_give: 5, pearl_infuse: 2, racha: 5, invite: 15 },
   prizes: [3, 2, 2, 1, 1, 1, 1, 1, 1, 1], // rareza de la célula de premio del 1.º al 10.º
 };
 const PRIZE_GENES = [null, { ef: 9, res: 9, fer: 9 }, { ef: 11, res: 11, fer: 11 }, { ef: 13, res: 13, fer: 13 }];
@@ -245,7 +257,7 @@ export function metrics(w, now = Date.now()) {
     const back = base.filter(u => u.days?.includes(dayStr(u.createdAt + k * DAY)));
     return { base: base.length, vuelven: back.length, pct: base.length ? Math.round(back.length / base.length * 100) : null };
   };
-  const o = w.oruz;
+  const o = w.oruz, m = w.lumar;
   return {
     jugadores: users.length,
     dau: users.filter(u => u.days?.includes(today)).length,
@@ -256,5 +268,6 @@ export function metrics(w, now = Date.now()) {
     liga: { semana: weekKey(now), jugadores: ranking(w, weekKey(now)).length },
     restauradas: stats(w).restores, informesDeRegreso: stats(w).welcomes,
     oruz: o ? { graduadas: o.graduadas, enEscuela: Object.keys(o.escuela).length, ambarNacido: o.ambarSerial, ambarRecogido: Object.values(o.ambar).filter(p => p.owner).length, porJugadorYDia: ORUZ_CFG.AMBER_PER_DAY } : null,
+    lumar: m ? { luna: m.luna.name, perlasNacidas: m.perlaSerial, recogidas: m.recogidas, regaladas: m.regaladas, infundidas: m.infundidas, porJugadorYDia: LUMAR_CFG.PER_DAY } : null,
   };
 }

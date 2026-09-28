@@ -72,6 +72,18 @@ test("al entrar se recibe un código de recuperación que devuelve la cuenta en 
   assert.equal(tras.status, 200); assert.equal(tras.json.name, "Ana");
 });
 
+test("Lumar se ve con la luna de hoy, sus perlas tienen certificado y no se regalan sin dueño", async () => {
+  const { token } = (await call("/api/join", { body: { name: "Mar" } })).json;
+  const L = (await call("/api/world", { token })).json.lumar;
+  assert.equal(L.regions.length, 7);
+  assert.ok(L.luna.name && L.marea.k && L.especies.poli.name === "Ostras perleras");
+  assert.deepEqual([L.paraRegalar, L.recibidas], [[], []]);
+  assert.equal((await call("/api/lumar/perla/PRL-00000000")).status, 404);
+  const give = await call("/api/action", { token, body: { type: "pearl_give", id: "PRL-00000000", code: "ABCDEF" } });
+  assert.equal(give.status, 400); assert.equal(give.json.ok, false);
+  assert.equal((await call("/api/action", { token, body: { type: "pearl_collect", id: "PRL-00000000" } })).status, 400);
+});
+
 test("los términos, la privacidad y el aviso de VIT están publicados", async () => {
   const t = await call("/terminos");
   assert.equal(t.status, 200);
