@@ -1,0 +1,34 @@
+# Despliegue en Render: New > Blueprint > elige este repositorio.
+services:
+  - type: web
+    name: colonia-vita
+    runtime: node
+    plan: starter            # el plan gratis se duerme; starter mantiene el servidor 24/7
+    buildCommand: npm install --omit=dev
+    startCommand: node src/server.js
+    healthCheckPath: /healthz
+    disk:
+      name: mundo
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: SIM_MODE
+        value: real
+      - key: DATA_DIR
+        value: /var/data
+      - key: GAME_TZ
+        value: Europe/Madrid
+      - key: AI_BUDGET_USD
+        value: "5"
+      - key: AI_REVENUE_SHARE
+        value: "0.3"
+      - key: AI_MIN_TICKS
+        value: "144"
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"           # compruébalo tras desplegar con /api/admin/whoami
+      - key: DEMO_PURCHASES
+        value: "0"
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false          # la pones tú en el panel de Render

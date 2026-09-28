@@ -1,0 +1,18 @@
+{
+  "name": "colonia-vita",
+  "version": "0.4.0",
+  "description": "Federación de colonias digitales tokenizadas, gestionadas por IA, que viven 24/7 de su entorno.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "SIM_MODE=fast node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
