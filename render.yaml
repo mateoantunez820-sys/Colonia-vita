@@ -1,32 +1,27 @@
-# Despliegue en Render: enlace de un clic o New > Blueprint > elige este repositorio.
-# Plan gratis: se duerme tras 15 minutos sin visitas y no tiene disco, así que el mundo
-# empieza de cero cada vez que se reinicia. Por eso usa el modo rápido (un día del juego
-# cada 5 minutos), para que se vea vivo durante una visita.
-# Para tenerlo 24/7 con el mundo guardado: plan starter (de pago), descomenta el disco,
-# pon SIM_MODE=real y DATA_DIR=/var/data.
+# Despliegue en Render: New > Blueprint > elige este repositorio.
 services:
   - type: web
     name: colonia-vita
     runtime: node
-    plan: free
+    plan: starter            # el plan gratis se duerme; starter mantiene el servidor 24/7
     buildCommand: npm install --omit=dev
     startCommand: node src/server.js
     healthCheckPath: /healthz
-    # disk:
-    #   name: mundo
-    #   mountPath: /var/data
-    #   sizeGB: 1
+    disk:
+      name: mundo
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: SIM_MODE
-        value: fast
+        value: real
+      - key: DATA_DIR
+        value: /var/data
       - key: GAME_TZ
         value: Europe/Madrid
       - key: AI_BUDGET_USD
         value: "5"
       - key: AI_REVENUE_SHARE
         value: "0.3"
-      - key: AI_DAILY_USD
-        value: "0.5"         # tope diario de gasto real de las IA
       - key: AI_MIN_TICKS
         value: "144"
       - key: TRUSTED_PROXY_HOPS
@@ -35,5 +30,5 @@ services:
         value: "0"
       - key: ADMIN_TOKEN
         generateValue: true
-      # ANTHROPIC_API_KEY no hace falta para arrancar: sin ella cada colonia usa su autopiloto.
-      # Cuando quieras que Claude gestione las colonias, añádela en Environment dentro de Render.
+      - key: ANTHROPIC_API_KEY
+        sync: false          # la pones tú en el panel de Render

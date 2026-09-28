@@ -42,12 +42,11 @@ npm test         # simulación de 45 días, economía, carteras, gratitud, anti-
 
 Abre http://localhost:3000.
 
-## Desplegar en Render
+## Desplegar 24/7 en Render
 
-1. Abre https://render.com/deploy?repo=https://github.com/mateoantunez820-sys/Colonia-vita (o **New → Blueprint** y elige este repositorio). `render.yaml` usa el plan gratis en modo rápido: se duerme tras 15 minutos sin visitas y, sin disco, el mundo empieza de cero al reiniciarse.
-2. Para tenerlo 24/7 con el mundo guardado, cambia a `starter` (de pago) siguiendo los comentarios de `render.yaml`.
-3. Copia el `ADMIN_TOKEN` generado. `ANTHROPIC_API_KEY` es opcional: añádela en Environment cuando quieras que Claude gestione las colonias.
-4. Abre `/api/admin/whoami` con tu `ADMIN_TOKEN`: si `ip` no es tu IP pública, cambia `TRUSTED_PROXY_HOPS` para que los límites por IP no se puedan saltar.
+1. En Render: **New → Blueprint** y elige este repositorio. `render.yaml` crea el servicio con un disco para guardar el mundo (plan `starter`, de pago; el plan gratis se duerme y no tiene disco, así que el mundo se reiniciaría).
+2. En el panel de Render, pon `ANTHROPIC_API_KEY` (opcional) y copia el `ADMIN_TOKEN` generado.
+3. Abre `/api/admin/whoami` con tu `ADMIN_TOKEN`: si `ip` no es tu IP pública, cambia `TRUSTED_PROXY_HOPS` para que los límites por IP no se puedan saltar.
 
 También funciona con Docker (`docker build -t vita . && docker run -p 3000:3000 -v vita:/var/data -e DATA_DIR=/var/data vita`).
 
