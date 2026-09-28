@@ -55,10 +55,10 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" https://TU-DOMINIO/api/admin/whoami
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -d '{"usd": 12.5}' https://TU-DOMINIO/api/admin/revenue
 ```
 
-## Pendiente antes de cobrar dinero real
+## Antes de cobrar dinero real
 
-- Pagos: conectar Stripe (checkout y webhook) en lugar de `buy_demo`.
-- Anuncios: conectar AdMob o AdSense con verificación del lado del servidor.
-- Salud: leer Google Fit o Apple Health en lugar de autodeclarar.
-- Cuentas: ahora el acceso es un token guardado en el navegador; hace falta recuperación de cuenta.
-- Legal: términos, privacidad y aviso de que VIT no es una inversión ni tiene valor económico.
+- [x] **Cuentas.** Al entrar, cada jugador recibe un código de recuperación de 20 caracteres (solo se guarda su hash). Con él recupera la cuenta en otro dispositivo, y la clave del dispositivo anterior deja de valer. Desde su cuenta puede crear otro código, y el anterior deja de valer.
+- [x] **Legal.** `/terminos` y `/privacidad`, con el aviso de que VIT no es una inversión ni tiene valor económico, que también está al pie de la web. Pon en Render `LEGAL_TITULAR` (tu nombre o el de tu empresa) y `LEGAL_CONTACTO` (un correo de contacto). Es un borrador razonable, no asesoría legal: revísalo con un abogado de tu país antes de cobrar.
+- [ ] **Pagos.** Conectar Stripe (checkout y webhook) en lugar de `buy_demo`. Necesita tu cuenta de Stripe y tus claves.
+- [ ] **Anuncios.** Conectar los anuncios con recompensa de AdSense para juegos web (H5 Games Ads). Necesita tu cuenta de AdSense. En la web no existe una verificación del servidor como la de AdMob en las apps de móvil, así que el servidor pone tope diario y espera entre anuncios.
+- **Salud.** Una web no puede leer Apple Health ni Google Fit. Apple Health solo lo leen las apps de iPhone, y Google cerró las altas en la API de Google Fit en mayo de 2024 y la retira en 2026 (su sustituto, Health Connect, solo funciona dentro de apps de Android). Los hábitos siguen autodeclarados, con tope diario, y la web avisa de que no son un consejo médico. Leerlos de verdad necesitaría una app de móvil.

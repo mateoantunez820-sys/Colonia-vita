@@ -8,6 +8,8 @@ import * as core from "./core.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
+import { newRecoveryCode, recoveryHash, validCode } from "./cuentas.js";
+import { legalInfo, legalPage } from "./legal.js";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.PORT || 3000);
@@ -28,6 +30,7 @@ const WEATHER_MAX_AGE_MS = 3600000;
 let world, dirty = false, realWeather = null, simWeather = null, aiBusy = false;
 const activity = new Map(); // uid -> último acceso
 const byToken = new Map();  // hash del token -> usuario
+const byRecovery = new Map(); // hash del código de recuperación -> usuario
 
 // ---------- persistencia ----------
 async function load() {
@@ -36,7 +39,7 @@ async function load() {
   catch { world = core.createWorld(); console.log("Mundo nuevo creado"); dirty = true; }
   const fixed = core.migrateWorld(world);
   if (fixed) { console.log(`Reparadas ${fixed} personalidades de IA dañadas`); dirty = true; }
-  for (const u of Object.values(world.users)) byToken.set(u.tokenHash, u);
+  for (const u of Object.values(world.users)) { byToken.set(u.tokenHash, u); if (u.recoveryHash) byRecovery.set(u.recoveryHash, u); }
 }
 async function save() {
   if (!dirty) return;
@@ -127,6 +130,13 @@ function userFrom(req) {
   if (u) { activity.set(u.id, Date.now()); core.checkDay(world, u); }
   return u || null;
 }
+// Da al jugador un código de recuperación nuevo; el anterior deja de valer.
+function newRecovery(u) {
+  if (u.recoveryHash) byRecovery.delete(u.recoveryHash);
+  const code = newRecoveryCode();
+  u.recoveryHash = recoveryHash(code); byRecovery.set(u.recoveryHash, u); dirty = true;
+  return code;
+}
 
 function roundSupply() { return Object.fromEntries(Object.entries(world.supply).map(([k, v]) => [k, Math.round(v)])); }
 function worldView(u) {
@@ -136,7 +146,7 @@ function worldView(u) {
     supply: roundSupply(), players: Object.keys(world.users).length, online: [...activity.values()].filter(t => Date.now() - t < 120000).length,
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
-    chain: world.chain.slice(-12).reverse(), me: u ? core.userView(world, u) : null,
+    chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash } : null,
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }
@@ -170,6 +180,8 @@ async function route(req, res) {
   if (url.pathname.startsWith("/api/") && limited("ip:" + ip, 240, 60000)) return send(res, 429, { ok: false, error: "Demasiadas peticiones" });
 
   if (url.pathname === "/healthz") return send(res, 200, { ok: true, tick: world.tick });
+  if ((url.pathname === "/terminos" || url.pathname === "/privacidad") && req.method === "GET")
+    return send(res, 200, legalPage(url.pathname.slice(1)), { "content-type": MIME[".html"], "cache-control": "public, max-age=300" });
 
   if (url.pathname === "/api/world" && req.method === "GET") return send(res, 200, worldView(userFrom(req)));
 
@@ -189,7 +201,27 @@ async function route(req, res) {
     const token = randomBytes(24).toString("hex");
     const u = core.createUser(world, name, core.hash(token));
     byToken.set(u.tokenHash, u); dirty = true;
-    return send(res, 200, { ok: true, token, id: u.id });
+    return send(res, 200, { ok: true, token, id: u.id, recovery: newRecovery(u) });
+  }
+
+  // Código de recuperación nuevo para la cuenta con la que se entra.
+  if (url.pathname === "/api/account/recovery" && req.method === "POST") {
+    const u = userFrom(req); if (!u) return send(res, 401, { ok: false, error: "Entra con tu nombre primero" });
+    if (limited("recnew:" + u.id, 5, 3600000)) return send(res, 429, { ok: false, error: "Ya creaste varios códigos; prueba en un rato" });
+    return send(res, 200, { ok: true, recovery: newRecovery(u) });
+  }
+
+  // Recuperar la cuenta en este dispositivo. La clave del dispositivo anterior deja de valer.
+  if (url.pathname === "/api/recover" && req.method === "POST") {
+    if (limited("rec:" + ip, 10, 3600000)) return send(res, 429, { ok: false, error: "Demasiados intentos; prueba en un rato" });
+    const b = await readBody(req);
+    if (!validCode(b.code)) return send(res, 400, { ok: false, error: "El código tiene 20 letras y números, en grupos de 5" });
+    const u = byRecovery.get(recoveryHash(b.code));
+    if (!u) return send(res, 404, { ok: false, error: "Ese código no corresponde a ninguna cuenta" });
+    byToken.delete(u.tokenHash);
+    const token = randomBytes(24).toString("hex");
+    u.tokenHash = core.hash(token); byToken.set(u.tokenHash, u); dirty = true;
+    return send(res, 200, { ok: true, token, id: u.id, name: u.name });
   }
 
   if (url.pathname === "/api/action" && req.method === "POST") {
@@ -210,6 +242,7 @@ async function route(req, res) {
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
         worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
+        legalCompleto: legalInfo().completo,
       });
     }
     // Para calibrar TRUSTED_PROXY_HOPS tras desplegar: "ip" debe ser tu IP pública.
