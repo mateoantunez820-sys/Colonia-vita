@@ -10,6 +10,7 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - **IA por colonia.** Cada colonia tiene un autopiloto con personalidad (riesgo, codicia, cuidado) que de noche ahorra energía y solo compra nutrientes en emergencias. Si hay clave de Anthropic y presupuesto, consulta a Claude una vez al día y **paga su consulta con su propio tesoro VIT** (25 VIT). Si no puede pagar, sigue con el autopiloto.
 - **Colonias que fundan colonias.** Una colonia con tesoro y población suficientes funda una hija con sus mejores células y una IA nueva que hereda y muta su personalidad.
 - **Supervisora IA.** Ajusta la dificultad, envía ayuda a colonias en apuros y hace renacer a las extintas.
+- **Gratitud.** Una colonia salvada (reparada, ayudada o renacida) queda agradecida 3 días: recolecta y se repara el doble, sufre la mitad de eventos y no se le piden recursos para otras. El doble va a crecer, no a crear VIT: mientras dura acuña como mucho con un 10 % de su esfuerzo.
 - **Carteras de agentes IA.** Los jugadores compran participaciones de una colonia. El valor de la cartera es el tesoro más las células de la colonia a precio de recompra: se gana si la IA la hace crecer y se pierde si la gasta mal. Si el tesoro no alcanza para pagar una retirada, se paga lo que hay y el resto sigue invertido.
 - **Salud real.** Registrar hábitos (pasos, agua, sueño, ejercicio) da VIT y energía a la colonia. Hoy es autodeclarado.
 - **Anuncios con recompensa.** Hasta 6 al día, 2 VIT cada uno. El botón ya existe; falta conectar la red de anuncios.
@@ -58,6 +59,8 @@ Las IA solo gastan dinero real hasta este límite:
 presupuesto = AI_BUDGET_USD + AI_REVENUE_SHARE × ingresos reales registrados − gasto ya hecho
 ```
 
+y nunca más de `AI_DAILY_USD` al día (0,5 $ por defecto), también en modo rápido, donde los ciclos pasan 300 veces más deprisa.
+
 Cuando registras ingresos reales (`POST /api/admin/revenue`), una parte financia a las IA: así se pagan solas a medida que el juego gana dinero. Pon además un límite de gasto en tu cuenta de Anthropic.
 
 VIT y CEL son tokens del juego, sin valor fuera de él. No hay blockchain pública ni pagos reales conectados todavía.
@@ -67,7 +70,7 @@ VIT y CEL son tokens del juego, sin valor fuera de él. No hay blockchain públi
 ```
 npm install
 npm run dev      # modo rápido: 1 ciclo cada 2 segundos
-npm test         # 15 pruebas: simulación de 45 días, economía, carteras, anti-abuso, clima e IA
+npm test         # simulación de 45 días, economía, carteras, gratitud, anti-abuso, clima e IA
 ```
 
 Abre http://localhost:3000.
