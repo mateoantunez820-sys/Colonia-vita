@@ -245,7 +245,7 @@ function renderWorld() {
     <span class="t"><b>${esc(c.name)}</b><span class="m">gen ${c.gen}</span></span>
     <span class="m">${c.alive ? `${c.cells}/${c.cap} células · salud ${c.salud}` : "extinta"}</span>
     <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}</span>
-    <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}</span></button>`).join("");
+    <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}${c.gratitudDias ? ` · agradecida, trabaja ×2 (${c.gratitudDias} d)` : ""}</span></button>`).join("");
   $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
   if (W.ai.report) $("report").textContent = W.ai.report;
   $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");

@@ -171,3 +171,51 @@ test("sin clave de Anthropic la consulta falla sin romper y devuelve la mitad de
   assert.equal(w.supply.burned, cost - refund);
   assert.equal(w.stats.aiConsults, 0);
 });
+
+test("una colonia salvada queda agradecida: trabaja el doble, acuña con tope y queda cuidada", () => {
+  const w = core.createWorld(); const g = Object.values(w.colonies)[0];
+  g.treasury = 500; for (let i = 0; i < 100; i++) g.cells.push(core.newCell(w, g, { ef: 8, res: 8, fer: 8 }, "colonia"));
+  const d = core.createColony(w, { name: "Caída", genes: { ef: 7, res: 6, fer: 6 }, met: 7, treasury: 0, parent: g.id });
+  d.alive = false; d.cells = [];
+  assert.equal(core.reseed(w, d), true);
+  assert.equal(d.gratitud, core.CONFIG.GRATITUDE_TICKS);
+  assert.equal(w.stats.gratitude, 1);
+  assert.ok(core.colonySummary(w, d).gratitudDias > 0);
+
+  // Misma colonia, mismo instante (mediodía): con gratitud gana el doble de lo que recolecta.
+  for (let i = 0; i < 60; i++) d.cells.push(core.newCell(w, d, { ef: 8, res: 8, fer: 8 }, "colonia"));
+  const twin = gr => { const c = structuredClone(d); c.gratitud = gr; c.plan = 99; c.energia = 100; c.salud = 50; c.mintBuf = {}; return c; };
+  const noon = { minuto: 720, weather: null, attention: 0, difficulty: 1 }, calm = () => 0.99;
+  const base = twin(0), grat = twin(100);
+  for (const c of [base, grat]) { c.alloc = { rec: 70, rep: 30, repr: 0, res: 0 }; core.stepColony(w, c, noon, calm); }
+  const gain = c => c.energia - 100;
+  assert.ok(gain(base) > 0 && gain(grat) > 1.8 * gain(base), `energía +${gain(grat).toFixed(1)} vs +${gain(base).toFixed(1)}`);
+  assert.ok(grat.salud > base.salud, "se repara más rápido");
+
+  // Con mucha energía y la IA pidiendo acuñar al 60 %, la agradecida no crea más VIT.
+  const rich = gr => { const c = twin(gr); c.energia = 150 + c.cells.length; c.salud = 100; c.alloc = { rec: 20, rep: 10, repr: 10, res: 60 }; return c; };
+  const b2 = rich(0), g2 = rich(100);
+  for (const c of [b2, g2]) core.stepColony(w, c, noon, calm);
+  const minted = c => Object.values(c.mintBuf).reduce((a, b) => a + b, 0);
+  assert.ok(minted(g2) < minted(b2), `acuña ${minted(g2)} vs ${minted(b2)}`);
+
+  // Cuidada: no se la usa como donante aunque sea la más rica.
+  d.treasury = 5000; for (let i = 0; i < 40; i++) d.cells.push(core.newCell(w, d, { ef: 8, res: 8, fer: 8 }, "colonia"));
+  const e = core.createColony(w, { name: "Otra", genes: { ef: 7, res: 6, fer: 6 }, met: 7, treasury: 0, parent: g.id });
+  e.alive = false; e.cells = [];
+  const dCells = d.cells.length;
+  assert.equal(core.reseed(w, e), true);
+  assert.equal(d.cells.length, dCells, "la agradecida no dona células");
+});
+
+test("otros módulos pueden engancharse al nacimiento de una colonia hija", () => {
+  const w = core.createWorld(); const g = Object.values(w.colonies)[0];
+  g.treasury = 1000; g.salud = 90;
+  for (let i = 0; i < 150; i++) g.cells.push(core.newCell(w, g, { ef: 8, res: 8, fer: 8 }, "colonia"));
+  const seen = [];
+  const off = core.onColonyBorn((world, child, parent) => seen.push([world === w, child.parent, parent.id]));
+  const hija = core.maybeFound(w, g);
+  off();
+  assert.deepEqual(seen, [[true, g.id, g.id]]);
+  assert.equal(hija.parent, g.id);
+});

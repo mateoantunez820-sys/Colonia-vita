@@ -71,9 +71,9 @@ async function refreshWeather() {
   try { realWeather = await fetchWeather(); }
   catch (e) { console.warn(`Clima real no disponible (${e.message}); uso el clima simulado de temporada`); }
 }
-// Clima real si es reciente. Si Open-Meteo falla (o en modo rápido), clima simulado de temporada.
+// Clima real si es reciente. Si Open-Meteo falla, clima simulado de temporada.
 function currentWeather() {
-  if (!FAST && realWeather && Date.now() - realWeather.at < WEATHER_MAX_AGE_MS) return realWeather;
+  if (realWeather && Date.now() - realWeather.at < WEATHER_MAX_AGE_MS) return realWeather;
   const t = FAST ? simClock() : realClock(), key = `${t.day}:${Math.floor(t.minute / 60)}`;
   if (simWeather?.key !== key) simWeather = { key, value: simulatedWeather(t.day, t.minute) };
   return simWeather.value;

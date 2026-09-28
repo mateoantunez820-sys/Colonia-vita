@@ -73,7 +73,7 @@ export async function consultColony(w, col, env) {
     reparto_actual: col.alloc, bitacora: col.log.slice(0, 8).map(x => x.replace(/<[^>]+>/g, "")),
   };
   const prompt = `Tu personalidad (0-1): ${JSON.stringify(col.ai.persona)}.
-Reglas: cada ciclo son 10 minutos; tu plan dura ${CONFIG.PLAN_TICKS} ciclos. Producción = 0.2*luz*(rec/100)*suma(1+eficiencia/20). Consumo = células*0.03*(1+metabolismo/30). "rep" repara salud. "repr" crea células si hay energía de sobra. "res" convierte energía en VIT para los dueños de las células. Quemar 1 VIT del tesoro da +8 energía. Cada consulta como esta cuesta ${CONFIG.AI_CALL_COST_VIT} VIT del tesoro. Con tesoro >= ${CONFIG.FOUND_TREASURY} y ${CONFIG.FOUND_CELLS} células la colonia funda una colonia hija con su propia IA.
+Reglas: cada ciclo son 10 minutos; tu plan dura ${CONFIG.PLAN_TICKS} ciclos. Producción = 0.2*luz*(rec/100)*suma(1+eficiencia/20). Consumo = células*0.03*(1+metabolismo/30). "rep" repara salud. "repr" crea células si hay energía de sobra. "res" convierte energía en VIT para los dueños de las células. Quemar 1 VIT del tesoro da +8 energía. Cada consulta como esta cuesta ${CONFIG.AI_CALL_COST_VIT} VIT del tesoro. Con tesoro >= ${CONFIG.FOUND_TREASURY} y ${CONFIG.FOUND_CELLS} células la colonia funda una colonia hija con su propia IA. Si "gratitudDias" > 0, la colonia fue salvada hace poco: recolecta y se repara el doble, pero acuña como mucho con res = ${CONFIG.GRATITUDE_RES_MAX}.
 Mejoras: ${Object.entries(UPGRADES).map(([k, u]) => `${k}: ${u.desc}`).join(" ")}
 Estado: ${JSON.stringify(estado)}
 Decide el reparto (rec+rep+repr+res = 100), cuántos VIT quemar (0-5), una mejora o "" y un mensaje de máximo 180 caracteres para los jugadores.`;
