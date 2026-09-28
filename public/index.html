@@ -69,6 +69,15 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
 a{color:var(--vit)}.full{flex-basis:100%}
 .code{font:600 clamp(18px,4.5vw,26px) var(--mono);letter-spacing:.06em;margin:0;overflow-wrap:anywhere;user-select:all}
 .foot{text-align:center;padding:8px 0}
+.welcome{border-color:var(--vit)}.welcome p{margin:0}
+.oruz{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start}@media(max-width:900px){.oruz{grid-template-columns:1fr}}
+#oMap{display:block;width:100%;height:auto;background:#061014;border-radius:10px;touch-action:manipulation}
+.hx{cursor:pointer}.hx polygon{stroke:#24414D;stroke-width:1.5}.hx.sel polygon{stroke:var(--vit);stroke-width:3}.hx:focus{outline:none}.hx:focus-visible polygon{stroke:var(--ink)}
+.hx-n{font:700 11px var(--display);fill:var(--ink);text-anchor:middle}.hx-b{font:8.5px var(--mono);fill:#C9D8DB;text-anchor:middle}.hx-a{font:600 8.5px var(--mono);fill:var(--life);text-anchor:middle}.hx-f{font:15px var(--body);text-anchor:middle}
+.amb{fill:var(--vit)}.amb-glow{fill:var(--vit);opacity:.35}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font:12px var(--mono);color:var(--mute)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.share{display:grid;grid-template-columns:1fr auto;gap:8px}.share input{font:13px var(--mono)}
+.icode{font:700 22px var(--mono);letter-spacing:.12em;color:var(--vit)}
 @media(prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
 </head>
@@ -88,6 +97,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
       <input id="name" maxlength="24" placeholder="p. ej. Mateo">
       <button class="primary" id="join">Entrar y recibir 20 VIT</button>
       <button class="sm" id="recOpen">Ya tengo cuenta</button>
+      <p class="note full" id="refNote" hidden></p>
       <p class="note full">Al entrar aceptas los <a href="/terminos">términos de uso</a> y la <a href="/privacidad">privacidad</a>.</p>
     </div>
     <div class="row" id="recover" hidden>
@@ -112,6 +122,12 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <div class="row"><button class="sm" id="recCopy">Copiar</button><button class="sm primary" id="recDone">Ya lo guardé</button></div>
   </section>
 
+  <section class="panel welcome" id="welcome" hidden>
+    <h2>Mientras no estabas <span class="pill" id="wHoras"></span></h2>
+    <div class="list" id="wBody"></div>
+    <div class="row"><button class="sm primary" id="wOk">Entendido</button></div>
+  </section>
+
   <section class="panel">
     <h2>Colonias de la federación <span class="pill" id="fedCount"></span></h2>
     <div class="fed" id="fed"></div>
@@ -124,6 +140,28 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <details class="leyes"><summary>Las 5 leyes de VITA</summary><ol id="leyes"></ol></details>
     <h2>Crónica del respeto</h2>
     <ul class="log" id="rLog"></ul>
+  </section>
+
+  <section class="panel" id="oruz" hidden>
+    <h2>Oruz · el mundo paralelo <span class="pill" id="oCal"></span></h2>
+    <p class="note">Un ecomundo aparte, con su mapa, sus estaciones y cuatro roles que se equilibran solos. Las colonias recién nacidas estudian aquí antes de salir a la federación, y donde el ecosistema está sano nace el Ámbar de Oruz.</p>
+    <div class="oruz">
+      <div class="list">
+        <svg id="oMap" viewBox="-160 -140 320 280" role="group" aria-label="Mapa de Oruz. Toca una región para ver su ecosistema."></svg>
+        <div class="legend" id="oLegend"></div>
+        <p class="note" id="oFen"></p>
+      </div>
+      <div class="list">
+        <div id="oReg"></div>
+        <h2>Ámbar libre <span class="pill" id="oHoy"></span></h2>
+        <div class="list" id="oLibres"></div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="list"><h2>Escuela de Oruz</h2><div class="list" id="oEscuela"></div></div>
+      <div class="list"><h2>Tu Ámbar</h2><p class="note">Cada pieza es única dentro de VITA y su origen queda en la cadena. Infundirla da energía y salud a la colonia que estás viendo.</p><div class="list" id="oMias"></div></div>
+      <div class="list"><h2>Crónica de Oruz</h2><ul class="log" id="oCron"></ul></div>
+    </div>
   </section>
 
   <div class="grid">
@@ -164,6 +202,27 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <section class="panel">
       <h2>Misiones de hoy</h2>
       <div class="list" id="missions"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Liga semanal <span class="pill" id="lWeek"></span></h2>
+      <p class="note" id="lMe"></p>
+      <div class="scroll"><table><thead><tr><th>#</th><th>Jugador</th><th class="r">Puntos</th><th>Premio</th></tr></thead><tbody id="lTop"></tbody></table></div>
+      <p class="note">Suman las misiones, los hábitos, alimentar, adoptar, mejorar, el Ámbar y cada día que vuelves, con un tope diario. Los 10 primeros ganan una célula rara, épica o legendaria.</p>
+      <p class="note" id="lPrev"></p>
+    </section>
+    <section class="panel">
+      <h2>Invita a un amigo</h2>
+      <div id="iGuest" class="note">Entra para conseguir tu código de invitación.</div>
+      <div class="list" id="iBox" hidden>
+        <div class="row"><span class="note">Tu código</span><span class="icode" id="iCode"></span></div>
+        <div class="share"><input id="iLink" readonly aria-label="Enlace de invitación"><button class="sm primary" id="iShare">Compartir</button></div>
+        <p class="note" id="iRule"></p>
+        <p class="note" id="iStats"></p>
+        <p class="note" id="iMia"></p>
+      </div>
     </section>
   </div>
 
@@ -218,8 +277,12 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const RN = ["Común", "Rara", "Épica", "Legendaria"], RC = ["#8AA4AD", "#6FA8F5", "#C38BF2", "#F0B03F"];
 let token = null; try { token = localStorage.getItem("vita-token"); } catch {}
-let W = null, C = null, sel = null;
+let W = null, C = null, sel = null, selReg = null, restoring = false, lastSave = 0;
 try { sel = localStorage.getItem("vita-col"); } catch {}
+const REF = (new URLSearchParams(location.search).get("ref") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+const ROLN = { productora: "productora", polinizadora: "polinizadora", guardiana: "guardiana", recicladora: "recicladora" };
+const ROLC = { flora: "#9BCB5A", poli: "#F0B03F", depre: "#C38BF2", reci: "#6FA8F5" };
+const FXI = { tormenta: "☁", aurora: "✦", viento: "❄" };
 
 async function api(p, body) {
   const r = await fetch(p, { method: body ? "POST" : "GET", headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -231,11 +294,29 @@ let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = 
 async function act(body, okMsg) {
   const r = await api("/api/action", body);
   toast(r.ok ? (okMsg || "Hecho") : r.error || "No se pudo");
+  if (r.ok) lastSave = 0;
   await refresh(); return r;
 }
+// Copia firmada de la cuenta: si el servidor se reinicia (plan gratis), la cuenta vuelve sola
+async function backup() {
+  if (!token || !W?.me?.saves || Date.now() - lastSave < 60000) return;
+  lastSave = Date.now();
+  const r = await api("/api/save");
+  if (r.ok && r.save) try { localStorage.setItem("vita-save", r.save); } catch {}
+}
+async function restore() {
+  let save = null; try { save = localStorage.getItem("vita-save"); } catch {}
+  if (!save) return false;
+  restoring = true; // un intento por visita
+  const r = await api("/api/restore", { save });
+  if (r.ok) { toast("Recuperamos tu cuenta tras un reinicio del servidor"); return true; }
+  if (!/ya está/.test(r.error || "")) toast(r.error || "No se pudo recuperar tu cuenta");
+  return false;
+}
 
+if (REF) { $("refNote").hidden = false; $("refNote").textContent = `Vienes invitado con el código ${REF}: si juegas 3 días distintos, los dos ganan VIT.`; }
 $("join").onclick = async () => {
-  const r = await api("/api/join", { name: $("name").value });
+  const r = await api("/api/join", { name: $("name").value, ref: REF });
   if (!r.ok) return toast(r.error);
   token = r.token; try { localStorage.setItem("vita-token", token); } catch {}
   toast("Bienvenido. Tienes 20 VIT para empezar"); showCode(r.recovery); refresh();
@@ -264,7 +345,15 @@ $("invBtn").onclick = () => act({ type: "invest", colony: sel, amount: +$("invAm
 $("wdBtn").onclick = async () => {
   const r = await api("/api/action", { type: "withdraw", colony: sel });
   toast(r.ok ? `Retirados ${r.amount} VIT${r.partial ? "; el resto sigue en la cartera hasta que el tesoro se recupere" : ""}` : r.error || "No se pudo");
+  if (r.ok) lastSave = 0;
   await refresh();
+};
+$("wOk").onclick = () => act({ type: "welcome_seen" }, "A seguir cuidando tus colonias");
+$("iShare").onclick = async () => {
+  const I = W?.me?.invite; if (!I) return;
+  const url = $("iLink").value, text = `Juega conmigo en Federación VITA, colonias vivas con su propia IA. Entra con mi código ${I.code} y ganamos VIT los dos.`;
+  if (navigator.share) { try { await navigator.share({ title: "Federación VITA", text, url }); } catch {} return; }
+  try { await navigator.clipboard.writeText(`${text} ${url}`); toast("Invitación copiada"); } catch { $("iLink").select(); }
 };
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-a]"); if (!b) return;
@@ -275,7 +364,11 @@ document.addEventListener("click", e => {
   else if (d.a === "up") act({ type: "upgrade", colony: sel, key: d.id }, "Mejora pagada");
   else if (d.a === "claim") act({ type: "claim", key: d.id }, "Misión cobrada");
   else if (d.a === "habit") act({ type: "habit", key: d.id, colony: sel }, "Hábito registrado");
+  else if (d.a === "reg") { selReg = d.id; renderOruz(); }
+  else if (d.a === "amb") act({ type: "amber_collect", id: d.id }, "Ámbar recogido: ya es tuyo");
+  else if (d.a === "inf") act({ type: "amber_infuse", id: d.id, colony: sel }, "Ámbar infundido en la colonia");
 });
+document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"]')) { e.preventDefault(); e.target.closest('[data-a="reg"]').dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 
 function hhmm(m) { return m == null ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
 function renderWorld() {
@@ -303,7 +396,7 @@ function renderWorld() {
     <span class="t"><b>${esc(c.name)}</b><span class="m">${c.rango && c.alive ? `<span class="rk rk-${c.rango.k}">${esc(c.rango.rango)} ${c.rango.respeto}</span> ` : ""}gen ${c.gen}</span></span>
     <span class="m">${c.alive ? `${c.cells}/${c.cap} células · salud ${c.salud}` : "extinta"}</span>
     <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}</span>
-    <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}</span></button>`).join("");
+    <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}</span>${oruzTag(c.id)}</button>`).join("");
   $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
   renderRangos();
   if (W.ai.report) $("report").textContent = W.ai.report;
@@ -316,6 +409,86 @@ function renderWorld() {
   $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">Aún no has confiado VIT a ninguna IA.</p>`;
   $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
   ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
+  renderWelcome(); renderOruz(); renderLiga(); renderInvite();
+}
+function oruzTag(id) {
+  const st = W?.oruz?.estado?.[id]; if (!st) return "";
+  return `<span class="m" style="color:var(--life)">${st.estado === "aprendiz" ? "aprendiz en la escuela de Oruz" : `graduada en Oruz · nota ${st.nota} · ${ROLN[st.rol] || st.rol}`}</span>`;
+}
+const signed = n => (n > 0 ? "+" : "") + n;
+function renderWelcome() {
+  const me = W?.me, r = me?.welcome, p = me?.premio;
+  $("welcome").hidden = !(r || p);
+  if (!(r || p)) return;
+  const lines = [];
+  $("wHoras").textContent = r?.horas ? `${r.horas} h fuera` : "";
+  if (p) lines.push(`<b>Quedaste ${p.pos}.º en la liga ${esc(p.week)}</b> y ganaste la célula ${esc(p.rareza.toLowerCase())} ${esc(p.cell || "")}.`);
+  if (r?.restaurada) lines.push(`El servidor se reinició y recuperamos tu cuenta: ${r.vit} VIT, ${r.celulas} células${r.ambar ? ` y ${r.ambar} piezas de Ámbar` : ""}. Las colonias vuelven a crecer desde cero.`);
+  else if (r) {
+    lines.push(`Tus células acuñaron <b>${r.acunado} VIT</b> para ti. Ahora tienes ${r.vit} VIT y ${r.celulas} células (${signed(r.celulas - r.celulasAntes)}).`);
+    for (const c of r.colonias) lines.push(`${esc(c.name)}: ${c.alive ? `salud ${c.salud}${c.evento ? `, ${esc(c.evento).toLowerCase()} en curso` : ""}, ${c.celulas} células tuyas` : "extinta; la supervisora intentará que renazca"}${c.oruz === "aprendiz" ? ", estudiando en Oruz" : ""}.`);
+    if (r.nuevas.length) lines.push(`Nacieron colonias nuevas: ${r.nuevas.map(esc).join(", ")}.`);
+    if (r.graduadas) lines.push(`${r.graduadas === 1 ? "Una aprendiz se graduó" : `${r.graduadas} aprendices se graduaron`} en la escuela de Oruz.`);
+    if (r.ambarNuevo) lines.push(`Nacieron ${r.ambarNuevo} piezas de Ámbar${r.ambarLibre ? ` y ${r.ambarLibre} esperan dueño` : ""}.`);
+    lines.push(`Tu racha va por ${r.racha} día${r.racha === 1 ? "" : "s"}.`);
+  }
+  $("wBody").innerHTML = lines.map(l => `<p>${l}</p>`).join("");
+}
+function hexPts(x, y, s) { return Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 180 * (60 * i - 30); return `${(x + s * Math.cos(a)).toFixed(1)},${(y + s * Math.sin(a)).toFixed(1)}`; }).join(" "); }
+function renderOruz() {
+  const O = W?.oruz;
+  $("oruz").hidden = !O;
+  if (!O) return;
+  const c = O.cal, S = 58, pos = R => [S * Math.sqrt(3) * (R.q + R.r / 2), S * 1.5 * R.r];
+  $("oCal").textContent = `año ${c.anio} · ${c.estacion} · día ${c.dia} · ${String(c.hora).padStart(2, "0")}:00`;
+  if (!selReg || !O.regions.some(R => R.id === selReg)) selReg = O.regions[0].id;
+  const free = {}; for (const p of O.libres) (free[p.regionId] ||= []).push(p);
+  $("oMap").innerHTML = O.regions.map(R => {
+    const [x, y] = pos(R), a = R.aprendices.length, amb = free[R.id] || [];
+    return `<g class="hx ${R.id === selReg ? "sel" : ""}" data-a="reg" data-id="${R.id}" tabindex="0" role="button" aria-label="${esc(R.name)}, ${esc(R.biomaName)}">
+      <polygon points="${hexPts(x, y, S - 2)}" fill="${R.color}" fill-opacity="${(0.2 + 0.45 * R.eq).toFixed(2)}"/>
+      <text x="${x}" y="${y - 3}" class="hx-n">${esc(R.name)}</text><text x="${x}" y="${y + 11}" class="hx-b">${esc(R.biomaName)}</text>
+      ${a ? `<text x="${x}" y="${y - 24}" class="hx-a">${a} aprendiz${a > 1 ? "es" : ""}</text>` : ""}
+      ${amb.map((p, i) => `<circle class="amb-glow" cx="${x - (amb.length - 1) * 6 + i * 12}" cy="${y + 29}" r="7"/><circle class="amb" cx="${x - (amb.length - 1) * 6 + i * 12}" cy="${y + 29}" r="4"><title>${p.id} · ${esc(p.tono)}</title></circle>`).join("")}
+      ${O.fenomeno.region === R.id ? `<text x="${x + 30}" y="${y - 18}" class="hx-f" fill="#E4EEEF"><title>${esc(O.fenomeno.name)}</title>${FXI[O.fenomeno.k] || "✦"}</text>` : ""}</g>`;
+  }).join("");
+  $("oLegend").innerHTML = Object.entries(O.roles).map(([k, r]) => `<span><i style="background:${ROLC[k]}"></i>${esc(r.name)} · ${esc(r.rol.toLowerCase())}</span>`).join("");
+  $("oFen").textContent = `${O.fenomeno.name} sobre ${(O.regions.find(R => R.id === O.fenomeno.region) || {}).name || ""}. Han nacido ${O.ambarTotal} piezas de Ámbar y se han graduado ${O.graduadasTotal} aprendices.`;
+  const R = O.regions.find(x => x.id === selReg);
+  $("oReg").innerHTML = `<h3>${esc(R.name)} <span class="note">${esc(R.biomaName)}</span></h3>
+    <p class="note">Luz ${R.clima.luz} · lluvia ${R.clima.lluvia} · frío ${R.clima.frio} · suelo ${R.suelo}</p>
+    <div class="alloc">${Object.entries(O.roles).map(([k, r]) => `<div class="r"><span>${esc(r.name)}</span><div class="bar"><i style="width:${R.pops[k]}%;background:${ROLC[k]}"></i></div><b>${R.pops[k]}</b></div>`).join("")}</div>
+    <p class="note">Resina de Ámbar ${Math.round(R.resina * 100)}% · equilibrio ${Math.round(R.eq * 100)}% · ${R.ambar} piezas nacidas aquí</p>`;
+  const me = W.me, canTake = me && O.recogidasHoy < O.porDia;
+  $("oHoy").textContent = me ? `hoy ${O.recogidasHoy}/${O.porDia}` : "";
+  $("oLibres").innerHTML = O.libres.length ? O.libres.map(p => `<div class="item"><span><b>${p.id}</b> ${esc(p.tono)} · pureza ${p.pureza}</span><p>${esc(p.region)} · se disuelve en ${p.expira} h de Oruz</p><button class="sm primary" data-a="amb" data-id="${p.id}" ${canTake ? "" : "disabled"}>Recoger</button></div>`).join("")
+    : `<p class="note">No hay Ámbar libre ahora. Nace donde los cuatro roles están en equilibrio, sobre todo en la estación de Resinas.</p>`;
+  $("oEscuela").innerHTML = (O.escuela.length ? O.escuela.map(s => `<div class="item"><span><b>${esc(s.name)}</b> <span class="note">aprendiz ${esc(ROLN[s.rol] || s.rol)} · ${esc(s.region)}</span></span><p>Lección ${s.leccion}/${s.total}${s.nota != null ? ` · última nota ${s.nota}` : ""} · ahora: ${esc(s.siguiente)} · la entrenan Vita y ${esc(s.mentor || "la federación")}</p><div class="bar"><i style="width:${s.leccion / s.total * 100}%"></i></div></div>`).join("")
+    : `<p class="note">No hay aprendices ahora. Cada colonia que nace estudia aquí 12 lecciones antes de salir a la federación.</p>`)
+    + O.graduadas.map(g => `<div class="item"><span>${esc(g.name)} <span class="note">${esc(ROLN[g.rol] || g.rol)}${g.alive ? "" : " · extinta"}</span></span><span class="done">nota ${g.nota}</span></div>`).join("");
+  const selName = (W.colonies.find(x => x.id === sel) || {}).name || "la colonia";
+  $("oMias").innerHTML = O.mias.length ? O.mias.map(p => `<div class="item"><span><b>${p.id}</b> ${esc(p.tono)} · pureza ${p.pureza}</span><p>${esc(p.region)} · ${esc(p.estacion)} del año ${p.anio} · <a href="/api/oruz/ambar/${p.id}" target="_blank" rel="noopener" style="color:var(--vit)">certificado</a></p><button class="sm" data-a="inf" data-id="${p.id}">Infundir en ${esc(selName)}</button></div>`).join("")
+    : `<p class="note">${me ? `Todavía no tienes Ámbar. Recoge piezas libres, hasta ${O.porDia} al día.` : "Entra para recoger Ámbar."}</p>`;
+  $("oCron").innerHTML = O.cronica.map(l => `<li>${esc(l)}</li>`).join("");
+}
+function renderLiga() {
+  const L = W?.liga; if (!L) return;
+  const h = Math.max(0, Math.floor(L.cierraEn / 3600000)), d = Math.floor(h / 24);
+  $("lWeek").textContent = `${L.week} · cierra en ${d ? `${d} d ` : ""}${h % 24} h`;
+  $("lMe").innerHTML = W.me && L.yo ? `Tienes <b>${L.yo.pts} puntos</b>${L.yo.pos ? ` y vas en el puesto ${L.yo.pos}` : ""}. Hoy llevas ${L.yo.hoy} de ${L.tope}.` : "Entra para competir en la liga.";
+  $("lTop").innerHTML = L.top.length ? L.top.map(x => `<tr><td>${x.pos}</td><td>${esc(x.name)}</td><td class="r">${x.pts}</td><td>${esc(L.premios[x.pos - 1] || "")}</td></tr>`).join("") : `<tr><td colspan="4">Nadie ha sumado puntos esta semana todavía.</td></tr>`;
+  const A = L.anterior?.top?.[0];
+  $("lPrev").textContent = A ? `La semana ${L.anterior.week} la ganó ${A.name} con ${A.pts} puntos.` : "";
+}
+function renderInvite() {
+  const I = W?.me?.invite;
+  $("iBox").hidden = !I?.code; $("iGuest").hidden = !!I?.code;
+  if (!I?.code) return;
+  $("iCode").textContent = I.code;
+  $("iLink").value = `${location.origin}/?ref=${I.code}`;
+  $("iRule").textContent = `Cuando tu amigo juegue ${I.dias} días distintos, tú ganas ${I.tu} VIT y tu amigo ${I.amigo} VIT (hasta ${I.max} amigos).`;
+  $("iStats").textContent = `${I.joined} ${I.joined === 1 ? "amigo se unió" : "amigos se unieron"} con tu código, ${I.ok} ya ${I.ok === 1 ? "cumplió" : "cumplieron"} y cobraste ${I.paid} de ${I.max}.`;
+  $("iMia").textContent = I.mia ? (I.mia.ok ? "Tu invitación ya se cumplió y cobraste tu bono." : `Te invitaron: llevas ${I.mia.dias} de ${I.dias} días para cobrar ${I.amigo} VIT.`) : "";
 }
 function renderRangos() {
   const R = W.rangos; if (!R) return;
@@ -370,9 +543,13 @@ function renderColony() {
 async function refresh() {
   W = await api("/api/world");
   if (!W || !W.colonies) return;
-  // La clave ya no vale: la cuenta se recuperó en otro dispositivo o el mundo empezó de cero.
-  if (token && !W.me) { token = null; try { localStorage.removeItem("vita-token"); } catch {} toast("Tu cuenta ya no está abierta aquí. Si tienes tu código de recuperación, úsalo en «Ya tengo cuenta»"); }
-  renderWorld(); await refreshColony();
+  // La clave ya no vale: el mundo empezó de cero o la cuenta se recuperó en otro dispositivo.
+  // Si el mundo es nuevo, la cuenta vuelve con la copia firmada; si no, hace falta el código de recuperación.
+  if (token && !W.me && !restoring) {
+    if (await restore()) W = await api("/api/world");
+    else { token = null; try { localStorage.removeItem("vita-token"); } catch {} toast("Tu cuenta ya no está abierta aquí. Si tienes tu código de recuperación, úsalo en «Ya tengo cuenta»"); }
+  }
+  renderWorld(); await refreshColony(); backup();
 }
 async function refreshColony() { if (!sel) return; const c = await api("/api/colony/" + sel); if (c && c.id) { C = c; renderColony(); } }
 

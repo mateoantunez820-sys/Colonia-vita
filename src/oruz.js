@@ -3,7 +3,7 @@
 // polillas, sombras y hongos) se equilibran solos. Las colonias recién nacidas pasan por su
 // escuela antes de salir a la federación, y donde el ecosistema está sano nace el Ámbar de Oruz:
 // piezas únicas registradas en la cadena. Todo el estado vive en `world.oruz`; aquí no hay E/S.
-import { hash, block, clog, wlog, stepColony, avgGenes, verifyChain } from "./core.js";
+import { hash, block, clog, wlog, stepColony, avgGenes, verifyChain, migrateWorld } from "./core.js";
 
 export const ORUZ = {
   DAY: 24,              // 1 ciclo de la federación = 1 hora de Oruz
@@ -204,7 +204,7 @@ function tidyAmber(w, o) {
   if (gone.length > ORUZ.AMBER_KEEP) for (const p of gone.sort((a, b) => a.n - b.n).slice(0, gone.length - ORUZ.AMBER_KEEP)) delete o.ambar[p.id];
 }
 export function pieceView(p) {
-  return { id: p.id, tono: p.tono, pureza: p.pureza, region: p.regionName, bioma: BIOMES[p.bioma]?.name, estacion: p.estacion, anio: p.anio, estado: p.estado, owner: p.ownerName || null, bloque: p.bloque, hash: p.hash };
+  return { id: p.id, tono: p.tono, pureza: p.pureza, region: p.regionName, regionId: p.region, bioma: BIOMES[p.bioma]?.name, estacion: p.estacion, anio: p.anio, estado: p.estado, owner: p.ownerName || null, bloque: p.bloque, hash: p.hash };
 }
 export function collectAmber(w, u, id) {
   const p = w.oruz?.ambar[id];
@@ -270,6 +270,7 @@ export function runLesson(col, persona, tema, seed, horizon = ORUZ.HORIZON) {
   c.ai.persona = persona;
   if (tema.treasury != null) c.treasury = tema.treasury;
   sw.colonies[c.id] = c;
+  migrateWorld(sw); // contadores de la copia; la personalidad ya viene saneada, así que no cambia
   const value = () => c.cells.length + 0.8 * c.treasury + 0.6 * c.salud, v0 = Math.max(1, value()), r = rng(seed);
   const hard = { weather: tema.weather || null, attention: 0, difficulty: 1 }, calm = { weather: null, attention: 0, difficulty: 1 };
   for (let i = 0; i < horizon && c.alive; i++) stepColony(sw, c, i < 72 ? hard : calm, r);
@@ -390,7 +391,7 @@ export function view(w, u) {
   const where = {};
   for (const c of cols) if (c.alive && c.oruz?.estado === "aprendiz") (where[c.oruz.region] ||= []).push(c.id);
   return {
-    cal: calendario(o), fenomeno: { ...FENOMENOS[o.fenomeno.k], region: o.fenomeno.region },
+    cal: calendario(o), fenomeno: { k: o.fenomeno.k, ...FENOMENOS[o.fenomeno.k], region: o.fenomeno.region },
     regions: o.regions.map(R => ({
       id: R.id, name: R.name, bioma: R.bioma, biomaName: BIOMES[R.bioma].name, color: BIOMES[R.bioma].color, q: R.q, r: R.r,
       pops: Object.fromEntries(POPS.map(k => [k, Math.round(R[k])])), suelo: Math.round(R.suelo), resina: +R.resina.toFixed(2), eq: R.eq, clima: R.clima, ambar: R.ambar, aprendices: where[R.id] || [],
