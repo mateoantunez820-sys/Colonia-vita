@@ -77,7 +77,7 @@ function privacidad(info) {
 <li>Una huella (hash) de tu clave de acceso y de tu código de recuperación. Ni la clave ni el código se guardan tal cual.</li>
 <li>Lo que haces en el juego: tu VIT, tus células, tus participaciones, las misiones, los hábitos que marcas, los anuncios que ves y los días que entras.</li>
 <li>Tu dirección IP se usa solo en la memoria del servidor para frenar abusos, como crear muchas cuentas desde la misma red, y no se guarda en el mundo del juego. El proveedor de alojamiento puede registrarla en sus registros técnicos.</li>
-<li>Tu navegador guarda tu clave de acceso y la última colonia que viste. El juego no usa cookies propias.</li>
+<li>Tu navegador guarda tu clave de acceso y la última colonia que viste. El juego no usa cookies propias; las de Google, si hay anuncios, se explican abajo.</li>
 </ul>
 
 <h2>Para qué</h2>
@@ -89,7 +89,8 @@ function privacidad(info) {
 <li><b>Inteligencia artificial:</b> cuando está activa, el estado de cada colonia se envía a Anthropic para decidir su estrategia. Puede incluir nombres de jugadores que aparecen en la bitácora de la colonia.</li>
 <li><b>Tipografías:</b> la página carga sus letras desde Google Fonts, así que tu navegador se conecta a Google.</li>
 <li><b>Clima:</b> el servidor consulta el tiempo a Open-Meteo para una ubicación fija, sin enviar datos tuyos.</li>
-<li><b>Pagos y anuncios:</b> si se activan, el pago lo procesa Stripe y los anuncios los sirve Google. Cada uno trata tus datos según su propia política.</li>
+<li><b>Pagos:</b> si se activan, el pago lo procesa Stripe en su propia página. El juego solo recibe el aviso de que pagaste y qué paquete compraste, nunca los datos de tu tarjeta.</li>
+<li><b>Anuncios:</b> si se activan, los anuncios los sirve Google, que puede usar cookies para mostrarlos y medirlos. Puedes ver cómo usa Google estos datos en <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.</li>
 </ul>
 
 <h2>Cuánto tiempo</h2>

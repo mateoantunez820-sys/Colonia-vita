@@ -71,6 +71,24 @@ curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -d '{"usd": 12.5}' https://
 
 - [x] **Cuentas.** Al entrar, cada jugador recibe un código de recuperación de 20 caracteres (solo se guarda su hash). Con él recupera la cuenta en otro dispositivo, y la clave del dispositivo anterior deja de valer. Desde su cuenta puede crear otro código, y el anterior deja de valer.
 - [x] **Legal.** `/terminos` y `/privacidad`, con el aviso de que VIT no es una inversión ni tiene valor económico, que también está al pie de la web. Pon en Render `LEGAL_TITULAR` (tu nombre o el de tu empresa) y `LEGAL_CONTACTO` (un correo de contacto). Es un borrador razonable, no asesoría legal: revísalo con un abogado de tu país antes de cobrar.
-- [ ] **Pagos.** Conectar Stripe (checkout y webhook) en lugar de `buy_demo`. Necesita tu cuenta de Stripe y tus claves.
-- [ ] **Anuncios.** Conectar los anuncios con recompensa de AdSense para juegos web (H5 Games Ads). Necesita tu cuenta de AdSense. En la web no existe una verificación del servidor como la de AdMob en las apps de móvil, así que el servidor pone tope diario y espera entre anuncios.
+- [x] **Pagos.** Stripe Checkout con webhook firmado, en lugar de `buy_demo`. Paquetes de 50, 300 y 700 VIT. Está apagado hasta que pongas tus claves (ver abajo).
+- [x] **Anuncios.** Anuncios con recompensa de AdSense para juegos web (H5 Games Ads). Está apagado hasta que pongas tu ID de AdSense (ver abajo). En la web no existe una verificación del servidor como la de AdMob en las apps de móvil: el servidor da un vale al empezar cada anuncio y solo paga si se canjea una vez, tras unos segundos y dentro del tope diario.
 - **Salud.** Una web no puede leer Apple Health ni Google Fit. Apple Health solo lo leen las apps de iPhone, y Google cerró las altas en la API de Google Fit en mayo de 2024 y la retira en 2026 (su sustituto, Health Connect, solo funciona dentro de apps de Android). Los hábitos siguen autodeclarados, con tope diario, y la web avisa de que no son un consejo médico. Leerlos de verdad necesitaría una app de móvil.
+
+## Activar los pagos
+
+Los pagos solo se encienden cuando están las cuatro variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `LEGAL_TITULAR` y `LEGAL_CONTACTO`.
+
+1. Crea tu cuenta de Stripe y completa tus datos para cobrar. Stripe no funciona en todos los países; compruébalo antes.
+2. En Stripe, en **Desarrolladores → Webhooks**, añade `https://TU-DOMINIO/api/pagos/webhook` con los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded` y `charge.dispute.created`. Copia su secreto (`whsec_...`) en `STRIPE_WEBHOOK_SECRET`.
+3. Copia tu clave secreta en `STRIPE_SECRET_KEY`. Si usas una clave restringida, necesita permiso de escritura en Checkout Sessions. Empieza con las claves de prueba (`sk_test_...`): la web dice «modo de prueba» y se paga con la tarjeta 4242 4242 4242 4242. Cuando todo funcione, cambia a las reales.
+4. `STRIPE_CURRENCY` es la moneda (`eur` por defecto).
+
+El VIT llega cuando Stripe avisa por el webhook, una sola vez aunque el aviso se repita. Si devuelves un pago o te abren una disputa, se retira el VIT de esa compra (sin dejar a nadie en negativo). Los ingresos en euros o dólares financian a las IA igual que `/api/admin/revenue`. Cada servicio de Render es un mundo aparte: si usas dos con la misma cuenta de Stripe, cada uno necesita su webhook, y cada mundo ignora los pagos del otro.
+
+## Activar los anuncios
+
+1. Pide AdSense para tu dominio y el programa de anuncios para juegos web (H5 Games Ads).
+2. Pon tu ID de editor en `ADSENSE_CLIENT` (`ca-pub-...`). La web añade sola la etiqueta de verificación, el script de anuncios y `/ads.txt`.
+3. Prueba primero con `ADSENSE_TEST=1`, que muestra anuncios de prueba, y quítalo después.
+4. Si tienes jugadores en Europa, activa en AdSense el mensaje de consentimiento de **Privacidad y mensajes**, porque Google lo exige allí.

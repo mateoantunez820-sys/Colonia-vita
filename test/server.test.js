@@ -1,47 +1,11 @@
 // Prueba de extremo a extremo: arranca el servidor de verdad con un mundo temporal.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { createServer } from "node:net";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { startServer } from "./servidor.js";
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-let dir, port, proc;
-
-const freePort = () => new Promise(ok => { const s = createServer().listen(0, () => { const p = s.address().port; s.close(() => ok(p)); }); });
-async function start() {
-  proc = spawn(process.execPath, ["src/server.js"], {
-    cwd: ROOT, stdio: "ignore",
-    env: { ...process.env, PORT: String(port), DATA_DIR: dir, SIM_MODE: "fast", TICK_MS: "3600000", ANTHROPIC_API_KEY: "", ANTHROPIC_AUTH_TOKEN: "",
-      WEATHER_LAT: "0", WEATHER_LON: "0", LEGAL_TITULAR: "Titular de prueba", LEGAL_CONTACTO: "contacto@example.com" },
-  });
-  for (let i = 0; i < 150; i++) {
-    try { if ((await fetch(`http://127.0.0.1:${port}/healthz`)).ok) return; } catch {}
-    await new Promise(r => setTimeout(r, 100));
-  }
-  throw new Error("el servidor no arrancó");
-}
-async function stop() {
-  if (!proc || proc.exitCode !== null) return;
-  const done = new Promise(r => proc.once("exit", r));
-  proc.kill("SIGTERM"); await done;
-}
-async function call(p, { token, body } = {}) {
-  const r = await fetch(`http://127.0.0.1:${port}${p}`, {
-    method: body ? "POST" : "GET",
-    headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await r.text();
-  let json = null; try { json = JSON.parse(text); } catch {}
-  return { status: r.status, json, text };
-}
-
-before(async () => { dir = await mkdtemp(path.join(tmpdir(), "vita-")); port = await freePort(); await start(); });
-after(async () => { await stop(); await rm(dir, { recursive: true, force: true }); });
+let srv, call;
+before(async () => { srv = await startServer({ LEGAL_TITULAR: "Titular de prueba", LEGAL_CONTACTO: "contacto@example.com" }); call = srv.call; });
+after(() => srv.close());
 
 test("al entrar se recibe un código de recuperación que devuelve la cuenta en otro dispositivo", async () => {
   const join = await call("/api/join", { body: { name: "Ana" } });
@@ -67,7 +31,7 @@ test("al entrar se recibe un código de recuperación que devuelve la cuenta en 
   assert.equal((await call("/api/account/recovery", { body: {} })).status, 401, "sin entrar no se crean códigos");
 
   // El código sobrevive a un reinicio del servidor.
-  await stop(); await start();
+  await srv.restart();
   const tras = await call("/api/recover", { body: { code: nuevo.json.recovery } });
   assert.equal(tras.status, 200); assert.equal(tras.json.name, "Ana");
 });
@@ -80,4 +44,12 @@ test("los términos, la privacidad y el aviso de VIT están publicados", async (
   assert.equal(p.status, 200); assert.ok(p.text.includes("Qué datos se guardan"));
   const home = await call("/");
   assert.ok(home.text.includes('href="/terminos"') && home.text.includes("no son una inversión"));
+});
+
+test("sin claves no hay pagos reales ni anuncios reales", async () => {
+  const w = (await call("/api/world")).json;
+  assert.equal(w.pagos.enabled, false); assert.equal(w.ads.real, false);
+  assert.equal((await call("/api/pagos/webhook", { raw: "{}" })).status, 404);
+  assert.equal((await call("/ads.txt")).status, 404);
+  assert.ok(!(await call("/")).text.includes("adsbygoogle"));
 });
