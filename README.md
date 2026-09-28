@@ -17,6 +17,8 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - Misiones diarias, racha de visitas, mercado de células, mejoras y ranking.
 - **Freno a la inflación.** El tesoro de cada colonia por encima de 600 VIT se quema a un 0,1 % por ciclo. En 40 simulaciones de 60 días se quema el 68 % de lo emitido.
 - **Rangos y respeto entre colonias.** La Ley VITA está por encima de todo, Oruz es el rango intermedio y gestor social, y Ámbar es la élite. Ver abajo.
+- **Oruz, el mundo paralelo.** Un ecomundo aparte con su escuela para las colonias recién nacidas y el Ámbar de Oruz, piezas únicas registradas en la cadena. Ver abajo.
+- **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta.
 
 ## Rangos: Ley VITA, Oruz y Ámbar
 
@@ -28,6 +30,15 @@ Cada hora se reúne el consejo de VITA (`src/rangos.js`):
 - **Oruz, el rango intermedio.** Organizan colectas para las colonias en apuros: ponen su parte y piden a las colonias ricas que den la suya. Cada colonia decide según su carácter si da o se niega. Negarse con más de 600 VIT en el tesoro se sanciona. También median cuando una colonia le guarda rencor a otra. Caben la mitad de las colonias vivas.
 - **Ámbar, la élite.** Hay un asiento por cada cuatro colonias vivas, para las que más suman entre respeto y mérito.
 - Las colectas solo pasan VIT de un tesoro a otro, sin acuñar ni quemar nada. Cada colecta, ascenso, descenso y sanción queda en la cadena.
+
+## Oruz: el mundo paralelo
+
+`src/oruz.js` avanza una hora de Oruz en cada ciclo de la federación:
+
+- **Mapa.** Siete regiones (nido, pradera, bosque, desierto, tundra, pantano y volcán) generadas desde una semilla, con estaciones de un día real (Brotes, Soles, Resinas y Brumas) y fenómenos que viajan entre regiones.
+- **Ecosistema.** Flora luminosa, polillas de néctar, sombras cazadoras y hongos del suelo dependen unas de otras y se equilibran solas.
+- **Escuela.** Cada colonia que nace estudia 12 lecciones. En cada una, su estrategia, la de su madre, el consejo de Vita y tres variaciones viven el mismo escenario durante tres días en copias aisladas, y se queda con la que más crece. Se gradúa con un rol (productora, polinizadora, guardiana o recicladora) que le da una ventaja pequeña. Las lecciones no tocan el mundo real ni crean VIT.
+- **Ámbar de Oruz.** Nace donde viven las cuatro especies, unas 2,5 piezas al día de media. Cada pieza tiene un código único, un tono y una pureza, y su nacimiento, su recolección y su infusión quedan en la cadena (`/api/oruz/ambar/AMB-XXXXXXXX` da su certificado). Cada jugador recoge 2 al día e infundirla da energía y salud a una colonia. No es dinero y no se vende por dinero real.
 
 ## El dinero real y las IA
 

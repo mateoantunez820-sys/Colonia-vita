@@ -381,7 +381,7 @@ export function stepColony(w, col, env, rnd = Math.random) {
     if (amt < 1) continue;
     const n = Math.floor(amt); col.mintBuf[owner] -= n; mint(w, n);
     if (owner === "colonia") col.treasury += n;
-    else if (w.users[owner]) w.users[owner].vit += n;
+    else if (w.users[owner]) { w.users[owner].vit += n; w.users[owner].mined = (w.users[owner].mined || 0) + n; }
     block(w, "acuñación", col.id, owner === "colonia" ? col.id : owner, n);
   }
   // Mantenimiento: el tesoro que pasa de UPKEEP_FREE se va quemando poco a poco.
