@@ -26,13 +26,13 @@ export function shuffle(a, r) { for (let i = a.length - 1; i > 0; i--) { const j
 
 // ---------- el mapa ----------
 // Una región en el centro y seis alrededor; cada una es vecina del centro y de sus dos lados.
-// `inicio(R)` añade los campos propios de cada mundo (su materia, su clima).
-export function crearRegiones(r, { centro, tipos, silabas, biomas, inicio }) {
+// `inicio(R)` añade los campos propios de cada mundo (su materia, su clima); `valido` descarta nombres feos.
+export function crearRegiones(r, { centro, tipos, silabas, biomas, inicio, valido = () => true }) {
   const used = new Set();
   const name = () => {
     let n;
     do n = Array.from({ length: r() < 0.4 ? 3 : 2 }, () => silabas[Math.floor(r() * silabas.length)]).join("");
-    while (used.has(n) || n.length < 4);
+    while (used.has(n) || n.length < 4 || !valido(n));
     used.add(n);
     return n[0].toUpperCase() + n.slice(1);
   };

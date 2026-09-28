@@ -55,7 +55,7 @@ export const BIOMAS = {
   laguna: { name: "Laguna de la Luna", luz: 1.0, agua: 0.6, frio: 0.05, fert: 1.1, nacar: 1.0, somero: 1, color: "#5FC9D3" },
   arrecife: { name: "Arrecife de Coral", luz: 1.15, agua: 0.55, frio: 0.05, fert: 1.0, nacar: 1.5, somero: 1, color: "#F2917F" },
   kelp: { name: "Bosque de Kelp", luz: 0.85, agua: 0.8, frio: 0.35, fert: 1.35, nacar: 0.9, somero: 0, color: "#4F8F5B" },
-  posidonia: { name: "Pradera de Posidonia", luz: 1.05, agua: 0.5, frio: 0.1, fert: 1.15, nacar: 1.0, somero: 1, color: "#86B86B" },
+  posidonia: { name: "Prado de Posidonia", luz: 1.05, agua: 0.5, frio: 0.1, fert: 1.15, nacar: 1.0, somero: 1, color: "#86B86B" },
   abismo: { name: "Abismo Azul", luz: 0.3, agua: 0.45, frio: 0.5, fert: 0.8, nacar: 0.8, somero: 0, color: "#3D6BB3" },
   fuentes: { name: "Fuentes Termales", luz: 0.2, termal: 0.95, agua: 0.7, frio: 0, fert: 0.9, nacar: 1.6, somero: 0, color: "#C0703A" },
   arena: { name: "Llanura de Arena", luz: 1.2, agua: 0.35, frio: 0.05, fert: 0.55, nacar: 0.6, somero: 1, color: "#E4CD8F" },
@@ -73,14 +73,16 @@ export const FENOMENOS = {
   calor: { name: "Ola de calor marina", luz: 1.2, agua: 0.7, frio: 0.35 },
 };
 const TONOS = [[0.35, "blanca"], [0.6, "crema"], [0.8, "rosa"], [0.92, "dorada"], [0.98, "negra"], [1, "azul"]];
-const SYL = ["lu", "ma", "ra", "na", "ne", "ri", "sa", "ta", "ol", "co", "pe", "la", "no", "va", "ha", "me", "li", "on", "ya", "mar"];
+const SYL = ["lu", "mi", "ri", "na", "sa", "ta", "ol", "ce", "pe", "la", "va", "me", "li", "on", "ya", "mar", "ur", "an", "el", "is"];
+// Nombres de al menos cinco letras (los de cuatro suelen ser palabras que ya existen) y sin sílabas repetidas seguidas
+const valido = n => n.length >= 5 && !/(.{2,3})\1/.test(n);
 const MALOS = ["sequia", "helada", "plaga"]; // eventos que una perla acorta; la floración no
 const err = message => ({ ok: false, error: message });
 
 export function createLumar(seed, tick = 0, now = Date.now()) {
   const r = rng("lumar:" + seed);
   const regions = crearRegiones(r, {
-    centro: "laguna", tipos: ["arrecife", "kelp", "posidonia", "abismo", "fuentes", "arena"], silabas: SYL, biomas: BIOMAS,
+    centro: "laguna", tipos: ["arrecife", "kelp", "posidonia", "abismo", "fuentes", "arena"], silabas: SYL, biomas: BIOMAS, valido,
     inicio: (R, B) => ({ nacar: 0, eq: 0, perlas: 0, clima: { luz: B.luz, agua: B.agua, frio: B.frio } }),
   });
   return {
