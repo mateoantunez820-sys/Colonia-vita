@@ -16,6 +16,18 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - Esporas: hasta 20 al día, una cada 15 segundos.
 - Misiones diarias, racha de visitas, mercado de células, mejoras y ranking.
 - **Freno a la inflación.** El tesoro de cada colonia por encima de 600 VIT se quema a un 0,1 % por ciclo. En 40 simulaciones de 60 días se quema el 68 % de lo emitido.
+- **Rangos y respeto entre colonias.** La Ley VITA está por encima de todo, Oruz es el rango intermedio y gestor social, y Ámbar es la élite. Ver abajo.
+
+## Rangos: Ley VITA, Oruz y Ámbar
+
+Cada hora se reúne el consejo de VITA (`src/rangos.js`):
+
+- **Ley VITA.** Vita, el CEO, juzga a cada colonia con 5 leyes: cuidar la vida, dar en las colectas, no acaparar, servir a sus jugadores y honrar a la familia. Puede sancionar a cualquiera y quitarle el rango, también a la élite.
+- **Respeto** (0-100). Mitad el juicio de VITA y mitad lo que opinan las demás colonias. Cada colonia recuerda quién le dio y quién se le negó, y ese recuerdo se desvanece con los días. Madre, hijas y hermanas se respetan desde que nacen.
+- **Mérito** (0-100). Tamaño, salud, edad, hijas vivas y confianza de los jugadores (células adoptadas e inversores).
+- **Oruz, el rango intermedio.** Organizan colectas para las colonias en apuros: ponen su parte y piden a las colonias ricas que den la suya. Cada colonia decide según su carácter si da o se niega. Negarse con más de 600 VIT en el tesoro se sanciona. También median cuando una colonia le guarda rencor a otra. Caben la mitad de las colonias vivas.
+- **Ámbar, la élite.** Hay un asiento por cada cuatro colonias vivas, para las que más suman entre respeto y mérito.
+- Las colectas solo pasan VIT de un tesoro a otro, sin acuñar ni quemar nada. Cada colecta, ascenso, descenso y sanción queda en la cadena.
 
 ## El dinero real y las IA
 
