@@ -38,6 +38,15 @@ input{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px 
 .col.sel{border-color:var(--vit)}.col.dead{opacity:.55}.col:focus-visible{outline:2px solid var(--vit)}
 .col .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.col b{font:700 16px var(--display)}
 .col .m{font:12px var(--mono);color:var(--mute)}
+.rk{font:600 11px var(--mono);padding:1px 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.rk-ambar{color:var(--vit)}.rk-oruz{color:var(--epica)}.rk-ciudadana{color:var(--mute)}
+.tiers{display:grid;gap:8px}
+.tier{display:grid;gap:6px;padding:10px 12px;border-radius:10px;background:var(--surf2);border-left:3px solid var(--line)}
+.tier.vita{border-color:var(--life)}.tier.ambar{border-color:var(--vit)}.tier.oruz{border-color:var(--epica)}
+.tier .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}.tier p{margin:0;color:var(--mute);font-size:13px}
+.who{display:flex;flex-wrap:wrap;gap:6px}
+.leyes summary{cursor:pointer;font:600 12px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+.leyes ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:13px}.leyes li span{color:var(--mute)}
 .stage{position:relative;border-radius:10px;overflow:hidden;background:#061014;aspect-ratio:16/9}
 #cv{display:block;width:100%;height:100%;cursor:crosshair}
 .overlay{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:rgba(6,16,20,.8);padding:16px;font:800 22px var(--display)}
@@ -90,6 +99,15 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
     <div class="fed" id="fed"></div>
   </section>
 
+  <section class="panel">
+    <h2>Rangos de la federación <span class="pill" id="rgInfo"></span></h2>
+    <div class="tiers" id="tiers"></div>
+    <p class="note">Cada colonia muestra su respeto y su mérito. Los asientos se ganan con la suma de los dos, y VITA puede quitarlos.</p>
+    <details class="leyes"><summary>Las 5 leyes de VITA</summary><ol id="leyes"></ol></details>
+    <h2>Crónica del respeto</h2>
+    <ul class="log" id="rLog"></ul>
+  </section>
+
   <div class="grid">
     <section class="panel">
       <h2><span id="cName">Colonia</span> <span class="pill" id="cGenome"></span></h2>
@@ -105,6 +123,7 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
     <section class="panel">
       <h2>IA de la colonia <span class="pill" id="planBy"></span></h2>
       <div class="note" id="persona"></div>
+      <div class="note" id="rankLine"></div>
       <div class="alloc" id="alloc"></div>
       <div class="msg" id="aiMsg"></div>
       <h2>Bitácora</h2>
@@ -242,11 +261,12 @@ function renderWorld() {
   if (!sel || !cols.find(c => c.id === sel)) sel = (cols.find(c => c.alive) || cols[0]).id;
   $("fedCount").textContent = `${cols.filter(c => c.alive).length} vivas de ${cols.length}`;
   $("fed").innerHTML = cols.map(c => `<button class="col ${c.id === sel ? "sel" : ""} ${c.alive ? "" : "dead"}" data-a="col" data-id="${c.id}">
-    <span class="t"><b>${esc(c.name)}</b><span class="m">gen ${c.gen}</span></span>
+    <span class="t"><b>${esc(c.name)}</b><span class="m">${c.rango && c.alive ? `<span class="rk rk-${c.rango.k}">${esc(c.rango.rango)} ${c.rango.respeto}</span> ` : ""}gen ${c.gen}</span></span>
     <span class="m">${c.alive ? `${c.cells}/${c.cap} células · salud ${c.salud}` : "extinta"}</span>
     <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}</span>
     <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}</span></button>`).join("");
   $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
+  renderRangos();
   if (W.ai.report) $("report").textContent = W.ai.report;
   $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");
   $("chainOk").textContent = W.chainOk ? "verificada" : "alterada"; $("chainOk").className = "pill " + (W.chainOk ? "ok" : "");
@@ -257,6 +277,32 @@ function renderWorld() {
   $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">No tienes inversiones todavía.</p>`;
   $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
   ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
+}
+function renderRangos() {
+  const R = W.rangos; if (!R) return;
+  const chip = c => `<button class="sm" data-a="col" data-id="${c.id}" title="respeto ${c.respeto} · mérito ${c.merito}">${esc(c.name)} · ${c.respeto} · ${c.merito}</button>`;
+  const tier = (cls, title, desc, list, seats) => `<div class="tier ${cls}"><div class="t"><b>${title}</b>${seats ? `<span class="note">${list.length} de ${seats} asiento${seats === 1 ? "" : "s"}</span>` : ""}</div><p>${esc(desc)}</p>${list ? `<div class="who">${list.map(chip).join("") || `<span class="note">Ninguna todavía</span>`}</div>` : ""}</div>`;
+  const by = k => R.colonias.filter(c => c.k === k);
+  $("rgInfo").textContent = `${R.consejos} consejos de VITA`;
+  $("tiers").innerHTML = [
+    tier("vita", `${esc(R.ley.name)} · la ley máxima`, R.ley.desc, null),
+    tier("ambar", `${esc(R.rangos.ambar.name)} · la élite`, R.rangos.ambar.desc, by("ambar"), R.asientos.ambar),
+    tier("oruz", `${esc(R.rangos.oruz.name)} · rango intermedio`, R.rangos.oruz.desc, by("oruz"), R.asientos.oruz),
+    tier("", `${esc(R.rangos.ciudadana.name)}s`, R.rangos.ciudadana.desc, by("ciudadana")),
+  ].join("");
+  $("leyes").innerHTML = R.leyes.map(l => `<li><b>${esc(l.t)}.</b> <span>${esc(l.d)}</span></li>`).join("");
+  $("rLog").innerHTML = R.cronica.map(x => `<li>${x.txt}</li>`).join("") || `<li>El primer consejo de VITA todavía no se ha reunido.</li>`;
+}
+const LEYN = { vida: "cuida la vida", ayuda: "da en las colectas", acaparar: "no acapara", servir: "tiene jugadores que confían en ella" };
+function rankText(r) {
+  if (!r) return "";
+  const s = r.siguiente, falta = s && [s.respeto ? `${s.respeto} de respeto` : "", s.merito ? `${s.merito} de mérito` : ""].filter(Boolean).join(" y ");
+  const rel = (l, sg) => l.map(x => `${esc(x.name)} ${sg}${Math.abs(x.v)}`).join(", ");
+  return `Rango <span class="rk rk-${r.k}">${esc(r.rango)}</span> · respeto ${r.respeto} (VITA ${r.vita}${r.pares != null ? `, colonias ${r.pares}` : ""}) · mérito ${r.merito}. `
+    + (s ? `Para ${esc(s.rango)} le falta${falta ? `n ${falta}` : " un asiento libre"}. ` : "Está en la élite. ")
+    + `Colectas: dio ${r.ayudas}, se negó ${r.negativas}, recibió ${r.recibidas}.`
+    + (r.leyes ? `<br>Ley VITA: ${Object.entries(r.leyes).map(([k, ok]) => `${ok ? "✓" : "✗"} ${LEYN[k]}`).join(" · ")}.` : "")
+    + (r.admiran.length ? ` La respetan ${rel(r.admiran, "+")}.` : "") + (r.resienten.length ? ` Le guardan rencor ${rel(r.resienten, "−")}.` : "");
 }
 function bar(id, p, c) { const e = $(id); e.style.width = Math.max(0, Math.min(100, p)) + "%"; if (c) e.style.background = c; }
 const tone = v => v > 60 ? "var(--life)" : v > 30 ? "var(--warn)" : "var(--bad)";
@@ -271,6 +317,7 @@ function renderColony() {
   $("sT").textContent = C.treasury; bar("bT", Math.min(100, C.treasury / 4));
   $("planBy").textContent = C.plan > 0 ? `plan de ${C.planBy} · ${C.plan} ciclos` : "autopiloto"; $("planBy").className = "pill " + (C.plan > 0 ? "on" : "");
   const p = C.persona;
+  $("rankLine").innerHTML = rankText(C.rango);
   $("persona").textContent = `Personalidad: riesgo ${p.riesgo} · codicia ${p.codicia} · cuidado ${p.cuidado}. Ha pagado ${C.aiSpentVit} VIT por ${C.aiCalls} consultas.`;
   const N = { rec: "Recolectar", rep: "Reparar", repr: "Reproducir", res: "Acuñar VIT" };
   $("alloc").innerHTML = Object.entries(N).map(([k, n]) => `<div class="r"><span>${n}</span><div class="bar"><i style="width:${C.alloc[k]}%"></i></div><b>${C.alloc[k]}%</b></div>`).join("");
