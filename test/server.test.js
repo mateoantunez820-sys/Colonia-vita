@@ -93,3 +93,9 @@ test("los términos, la privacidad y el aviso de VIT están publicados", async (
   const home = await call("/");
   assert.ok(home.text.includes('href="/terminos"') && home.text.includes("no son una inversión"));
 });
+
+test("la web ve la reserva de Vita, que alimenta sola con raciones de 15 VIT", async () => {
+  const v = (await call("/api/world")).json.vita;
+  assert.equal(v.racion, 15); assert.equal(v.energiaRacion, 120); assert.equal(v.diario, 240);
+  assert.ok(v.reserva >= 0 && v.hoy.raciones >= 0);
+});

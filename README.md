@@ -51,6 +51,17 @@ Cada hora se reúne el consejo de VITA (`src/rangos.js`):
 - **Perlas de Lumar.** Las ostras forman nácar donde viven las cuatro especies. Nacen unas 1,5 perlas al día de media: unas 3 con luna llena y 0,3 con luna nueva, y las de las noches de desove del coral, justo después de la luna llena, salen con más brillo. Cada perla tiene un código único, un color y un brillo, y su certificado está en `/api/lumar/perla/PRL-XXXXXXXX`.
 - **Se regalan.** Cada jugador recoge una perla al día, pero no la puede usar: solo puede regalarla, con el código de invitación de un amigo o "a quien la necesite" (primero quien tiene células en una colonia con sequía, helada o plaga). Quien la recibe la infunde en una colonia: la cura y acorta su sequía, helada o plaga. Recoger, regalar e infundir suman puntos en la liga. Las perlas no crean VIT y no se venden por dinero real.
 
+## Reserva de Vita: Vita alimenta sola a las colonias
+
+El dueño autorizó a Vita, la supervisora, a tener VIT del juego para alimentar a las colonias y cubrir sus gastos, sin que los jugadores tengan que hacer nada (`src/vita.js`). No es dinero real.
+
+- Cada día de juego (144 ciclos) la reserva recibe 240 VIT y nunca guarda más de 480.
+- Cuando a una colonia viva no le llega la energía para 2 horas, Vita le da una ración de 15 VIT, que se quema como nutrientes y da 120 de energía. Empieza por la que tiene menos energía para su tamaño, con una hora de espera entre raciones y 4 raciones al día como mucho por colonia.
+- Si el tesoro de una colonia baja de 10 VIT, Vita le cubre los gastos con 15 VIT una vez al día.
+- Todo queda en la cadena (`asignación`, `alimento`, `gastos`) y en la bitácora de cada colonia. La web lo muestra en «Colonias de la federación» y en la ficha de la colonia.
+
+En 12 simulaciones de 60 días, Vita da unas 9 raciones diarias (unos 134 VIT); la primera colonia hija llega antes (día 17 en vez de 19) y la parte del VIT emitido que se quema sigue en torno al 73 %.
+
 ## El dinero real y las IA
 
 Las IA solo gastan dinero real hasta este límite:
