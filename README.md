@@ -21,6 +21,7 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - **Oruz, el mundo paralelo.** Un ecomundo aparte con su escuela para las colonias recién nacidas y el Ámbar de Oruz, piezas únicas registradas en la cadena. Ver abajo.
 - **Lumar, el mar de la luna.** El segundo ecomundo: un mar que sigue la luna real, donde nacen las Perlas de Lumar. Una perla no la usa quien la recoge: se regala. Ver abajo.
 - **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta.
+- **Tu cría.** Cada jugador recibe un huevo único que se abre con su calor. La cría crece cuando su jugador se cuida. Ver abajo.
 
 ## Rangos: Ley VITA, Oruz y Ámbar
 
@@ -50,6 +51,18 @@ Cada hora se reúne el consejo de VITA (`src/rangos.js`):
 - **Mar.** Siete regiones (laguna, arrecife, kelp, posidonia, abismo, fuentes termales y arena) donde algas de luz, ostras perleras, estrellas de mar y pepinos de mar se equilibran solos. La marea alta trae alimento y la baja deja al aire los fondos someros; en las fuentes termales la energía sale del calor, no del sol.
 - **Perlas de Lumar.** Las ostras forman nácar donde viven las cuatro especies. Nacen unas 1,5 perlas al día de media: unas 3 con luna llena y 0,3 con luna nueva, y las de las noches de desove del coral, justo después de la luna llena, salen con más brillo. Cada perla tiene un código único, un color y un brillo, y su certificado está en `/api/lumar/perla/PRL-XXXXXXXX`.
 - **Se regalan.** Cada jugador recoge una perla al día, pero no la puede usar: solo puede regalarla, con el código de invitación de un amigo o "a quien la necesite" (primero quien tiene células en una colonia con sequía, helada o plaga). Quien la recibe la infunde en una colonia: la cura y acorta su sequía, helada o plaga. Recoger, regalar e infundir suman puntos en la liga. Las perlas no crean VIT y no se venden por dinero real.
+
+## La cría: el regalo de VITA para cada jugador
+
+Al entrar, cada jugador recibe un huevo (`src/cria.js`, dibujado por `public/cria-arte.js`). Su color, su forma, sus ojos y su nombre salen de la cuenta, así que no hay dos iguales. Se abre con tres toques de calor, y la primera cría que nace en el mundo lleva corona.
+
+- **Crece cuando su jugador se cuida.** Cada hábito de «Salud real» la hace crecer y entrena un rasgo: los pasos le dan agilidad (excursiones más cortas), el ejercicio fuerza, el sueño vitalidad y el agua brillo. Saludarla cada día, jugar con ella y darle de comer cuando tiene hambre también la hacen crecer.
+- **Etapas.** Chispa, Brote, Joven, Adulta y Sabia. Quien la cuida cada día llega a Sabia en unas tres o cuatro semanas. Cada etapa deja un regalo de 5, 10, 20 y 30 VIT.
+- **Tiempo real.** Gasta energía y ánimo con las horas. Nunca muere: si nadie la cuida, tiene hambre, se pone triste y deja de crecer. De noche duerme.
+- **Excursiones.** Hasta 3 al día a cualquier colonia viva. Vuelve contando lo que vio (eventos, rangos, las células del jugador) y trae de 1 a 3 VIT. Si la colonia está en apuros, le deja energía.
+- **Guardiana.** Desde Joven, cada vez que su jugador la saluda visita su colonia hogar y le lleva energía.
+- **Legado.** Al llegar a Sabia deja una célula con sus genes en su hogar. La célula es del jugador, y sus hijas también.
+- **Economía.** Darle de comer quema 2 VIT. Lo que regala está acotado: en un mes de cuidados al máximo, como mucho los 65 VIT de las etapas y 9 VIT al día de excursiones. En `/api/admin/metrics` se ve cuántas crías hay en cada etapa.
 
 ## El dinero real y las IA
 
