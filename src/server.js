@@ -9,6 +9,7 @@ import * as rangos from "./rangos.js";
 import * as oruz from "./oruz.js";
 import * as lumar from "./lumar.js";
 import * as ret from "./retention.js";
+import * as vita from "./vita.js";
 import * as cria from "./cria.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
@@ -54,6 +55,7 @@ async function load() {
   for (const u of Object.values(world.users)) { byToken.set(u.tokenHash, u); if (u.recoveryHash) byRecovery.set(u.recoveryHash, u); }
   if (!world.oruz) { oruz.ensure(world, ORUZ_SEED); dirty = true; }
   if (!world.lumar) { lumar.ensure(world, LUMAR_SEED, simNow()); dirty = true; }
+  if (!world.vita) { vita.ensure(world); dirty = true; }
 }
 async function save() {
   if (!dirty) return;
@@ -104,6 +106,7 @@ const tickMs = { last: 0, max: 0 };
 function tick() {
   const t0 = performance.now();
   core.stepWorld(world, envFor);
+  vita.step(world);
   oruz.step(world);
   lumar.step(world, simNow());
   rangos.step(world);
@@ -169,7 +172,7 @@ function worldView(u) {
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
-    oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
+    oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u), vita: vita.view(world),
     cria: cria.view(world, u),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
@@ -308,7 +311,7 @@ async function route(req, res) {
         ai: world.ai, budgetLeftUsd: +budgetLeft(world).toFixed(4), supply: roundSupply(), stats: world.stats, rangos: world.rangos?.stats, players: Object.keys(world.users).length,
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
-        worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
+        worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) }, vita: vita.view(world),
         legalCompleto: legalInfo().completo, retention: ret.metrics(world), saves: !!SAVE_KEY, crias: cria.metrics(world),
       });
     }

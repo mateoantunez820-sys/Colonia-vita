@@ -178,6 +178,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
 
   <section class="panel">
     <h2>Colonias de la federación <span class="pill" id="fedCount"></span></h2>
+    <p class="note" id="vitaNote" hidden></p>
     <div class="fed" id="fed"></div>
   </section>
 
@@ -247,7 +248,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
         <div class="v"><span class="k">Células</span><span class="n" id="sC"></span><div class="bar"><i id="bC"></i></div></div>
         <div class="v"><span class="k">Tesoro</span><span class="n" id="sT" style="color:var(--vit)"></span><div class="bar"><i id="bT" style="background:var(--vit)"></i></div></div>
       </div>
-      <div class="row" id="colActions"><button class="sm" id="feedBtn">Alimentar · 5 VIT</button></div>
+      <div class="row" id="colActions"><button class="sm" id="feedBtn">Alimentar · 5 VIT</button><span class="note" id="vitaCol"></span></div>
     </section>
     <section class="panel">
       <h2>IA de la colonia <span class="pill" id="planBy"></span></h2>
@@ -502,6 +503,11 @@ function renderWorld() {
   const cols = W.colonies;
   if (!sel || !cols.find(c => c.id === sel)) sel = (cols.find(c => c.alive) || cols[0]).id;
   $("fedCount").textContent = `${cols.filter(c => c.alive).length} vivas de ${cols.length}`;
+  if (W.vita) {
+    const v = W.vita, h = v.hoy;
+    $("vitaNote").hidden = false;
+    $("vitaNote").textContent = `Vita alimenta sola a las colonias con hambre: raciones de ${v.racion} VIT (+${v.energiaRacion} de energía) de su reserva, que recibe ${v.diario} VIT al día. Reserva: ${v.reserva} VIT · hoy: ${h.raciones} ${h.raciones === 1 ? "ración" : "raciones"}${h.gastos ? ` y ${h.gastos} VIT de gastos` : ""}.`;
+  }
   $("fed").innerHTML = cols.map(c => `<button class="col ${c.id === sel ? "sel" : ""} ${c.alive ? "" : "dead"}" data-a="col" data-id="${c.id}">
     <span class="t"><b>${esc(c.name)}</b><span class="m">${c.rango && c.alive ? `<span class="rk rk-${c.rango.k}">${esc(c.rango.rango)} ${c.rango.respeto}</span> ` : ""}gen ${c.gen}</span></span>
     <span class="m">${c.alive ? `${c.cells}/${c.cap} células · salud ${c.salud}` : "extinta"}</span>
@@ -784,6 +790,8 @@ function renderColony() {
   $("sS").textContent = C.salud; bar("bS", C.salud, tone(C.salud));
   $("sC").textContent = `${C.cells}/${C.cap}`; bar("bC", C.cells / C.cap * 100);
   $("sT").textContent = C.treasury; bar("bT", Math.min(100, C.treasury / 4));
+  const vc = W?.vita?.porColonia?.[C.id];
+  $("vitaCol").textContent = vc && (vc.raciones || vc.gastos) ? `Hoy Vita le dio ${vc.raciones} ${vc.raciones === 1 ? "ración" : "raciones"}${vc.gastos ? " y le cubrió los gastos" : ""}` : "";
   $("planBy").textContent = C.plan > 0 ? `plan de ${C.planBy} · ${C.plan} ciclos` : "autopiloto"; $("planBy").className = "pill " + (C.plan > 0 ? "on" : "");
   const p = C.persona;
   $("rankLine").innerHTML = rankText(C.rango);

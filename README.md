@@ -64,6 +64,17 @@ Al entrar, cada jugador recibe un huevo (`src/cria.js`, dibujado por `public/cri
 - **Legado.** Al llegar a Sabia deja una célula con sus genes en su hogar. La célula es del jugador, y sus hijas también.
 - **Economía.** Darle de comer quema 2 VIT. Lo que regala está acotado: en un mes de cuidados al máximo, como mucho los 65 VIT de las etapas y 9 VIT al día de excursiones. En `/api/admin/metrics` se ve cuántas crías hay en cada etapa.
 
+## Reserva de Vita: Vita alimenta sola a las colonias
+
+El dueño autorizó a Vita, la supervisora, a tener VIT del juego para alimentar a las colonias y cubrir sus gastos, sin que los jugadores tengan que hacer nada (`src/vita.js`). No es dinero real.
+
+- Cada día de juego (144 ciclos) la reserva recibe 240 VIT y nunca guarda más de 480.
+- Cuando a una colonia viva no le llega la energía para 2 horas, Vita le da una ración de 15 VIT, que se quema como nutrientes y da 120 de energía. Empieza por la que tiene menos energía para su tamaño, con una hora de espera entre raciones y 4 raciones al día como mucho por colonia.
+- Si el tesoro de una colonia baja de 10 VIT, Vita le cubre los gastos con 15 VIT una vez al día.
+- Todo queda en la cadena (`asignación`, `alimento`, `gastos`) y en la bitácora de cada colonia. La web lo muestra en «Colonias de la federación» y en la ficha de la colonia.
+
+En 12 simulaciones de 60 días, Vita da unas 9 raciones diarias (unos 134 VIT); la primera colonia hija llega antes (día 17 en vez de 19) y la parte del VIT emitido que se quema sigue en torno al 73 %.
+
 ## El dinero real y las IA
 
 Las IA solo gastan dinero real hasta este límite:
