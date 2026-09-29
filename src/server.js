@@ -10,7 +10,8 @@ import * as oruz from "./oruz.js";
 import * as lumar from "./lumar.js";
 import * as ret from "./retention.js";
 import * as cria from "./cria.js";
-import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
+import * as familia from "./familia.js";
+import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude, escribirDiario } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
 import { newRecoveryCode, recoveryHash, validCode } from "./cuentas.js";
@@ -83,6 +84,8 @@ function attention() {
   for (const [, t] of activity) if (now - t < 120000) n++;
   return Math.min(1, n / 5);
 }
+// Fecha, hora y cielo del juego para la familia: Vita escribe su diario a las 23:00
+function familiaCtx() { const t = FAST ? simClock() : realClock(); return { day: t.day, minute: t.minute, now: Date.now(), weather: currentWeather() }; }
 function envFor(col) {
   const env = { minuto: FAST ? undefined : realMinute(), weather: currentWeather(), attention: attention(), difficulty: world.ai.difficulty };
   return col ? oruz.envFor(world, col, env) : env;
@@ -107,15 +110,19 @@ function tick() {
   oruz.step(world);
   lumar.step(world, simNow());
   rangos.step(world);
+  familia.step(world, familiaCtx());
   ret.leagueTick(world);
   tickMs.last = performance.now() - t0; tickMs.max = Math.max(tickMs.max, tickMs.last);
   dirty = true;
   if (!aiBusy && aiEnabled()) {
     const col = Object.values(world.colonies).filter(c => canConsult(world, c)).sort((a, b) => a.salud - b.salud || a.ai.lastCallTick - b.ai.lastCallTick)[0];
     const sup = world.tick - world.ai.lastSupervisor >= SUPERVISOR_EVERY && budgetLeft(world) > 0.05;
-    if (col || sup) {
+    // La noche recién escrita: con la IA activa, Vita la pasa a limpio con Claude
+    const noche = budgetLeft(world) > 0.05 ? familia.pendiente(world) : null;
+    if (col || sup || noche) {
       aiBusy = true;
       (async () => {
+        if (noche) await escribirDiario(world, noche);
         if (col) await consultColony(world, col, envFor(col));
         if (sup) { world.ai.lastSupervisor = world.tick; await superviseWithClaude(world); }
       })().catch(e => console.error("[ai]", e.message)).finally(() => { aiBusy = false; dirty = true; });
@@ -170,7 +177,7 @@ function worldView(u) {
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
-    cria: cria.view(world, u),
+    cria: cria.view(world, u), cartas: familia.recientes(world),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }
@@ -263,9 +270,20 @@ async function route(req, res) {
     const u = userFrom(req); if (!u) return send(res, 401, { ok: false, error: "Entra con tu nombre primero" });
     if (limited("act:" + u.id, 60, 60000)) return send(res, 429, { ok: false, error: "Vas muy rápido" });
     const body = await readBody(req), r = await handleAction(u, body);
-    if (r.ok) ret.award(world, u, body.type);
+    if (r.ok) {
+      ret.award(world, u, body.type);
+      // La colonia que cuidó le escribe una carta (una vez al día)
+      const k = familia.accion(world, u, body);
+      if (k) r.carta = { id: k.id, de: k.deName, asunto: k.asunto };
+    }
     dirty = true;
     return send(res, r.ok ? 200 : 400, r);
+  }
+
+  // La familia VITA: el árbol, las cartas entre colonias, el buzón del jugador y el diario de Vita
+  if (url.pathname === "/api/familia" && req.method === "GET") {
+    const col = url.searchParams.get("col") || "";
+    return send(res, 200, familia.view(world, userFrom(req), /^COL-\d{3}$/.test(col) ? col : null));
   }
 
   // Copia firmada de la cuenta: el navegador la guarda y la devuelve si el servidor se reinició
@@ -305,7 +323,7 @@ async function route(req, res) {
     if (url.pathname === "/api/admin/metrics") {
       const mem = process.memoryUsage();
       return send(res, 200, {
-        ai: world.ai, budgetLeftUsd: +budgetLeft(world).toFixed(4), supply: roundSupply(), stats: world.stats, rangos: world.rangos?.stats, players: Object.keys(world.users).length,
+        ai: world.ai, budgetLeftUsd: +budgetLeft(world).toFixed(4), supply: roundSupply(), stats: world.stats, rangos: world.rangos?.stats, familia: world.familia?.stats, players: Object.keys(world.users).length,
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
         worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
@@ -339,6 +357,7 @@ async function route(req, res) {
 await load();
 if (rangos.step(world)) dirty = true; // primer consejo de VITA si el mundo aún no tenía rangos
 await refreshWeather();
+familia.step(world, familiaCtx()); dirty = true; // el prólogo del diario si la familia aún no existía
 setInterval(refreshWeather, 15 * 60000).unref();
 setInterval(tick, TICK_MS);
 setInterval(() => save().catch(e => console.error("Guardado falló:", e.message)), 30000);

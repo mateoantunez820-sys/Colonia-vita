@@ -114,3 +114,31 @@ test("los términos, la privacidad y el aviso de VIT están publicados", async (
   const home = await call("/");
   assert.ok(home.text.includes('href="/terminos"') && home.text.includes("no son una inversión"));
 });
+
+test("la familia VITA: el árbol, el anuncio y el prólogo de Vita; quien alimenta recibe una carta que solo ve él", async () => {
+  const f = (await call("/api/familia")).json;
+  assert.deepEqual(f.arbol.nodos.map(n => [n.name, n.gen]), [["Génesis", 1]]);
+  assert.equal(f.cartas[0].tipo, "anuncio");
+  assert.equal(f.diario[0].titulo, "Prólogo");
+  assert.equal(f.buzon, null, "sin entrar no hay buzón");
+  assert.equal(f.proxima.name, "Génesis");
+  assert.deepEqual((await call("/api/world")).json.cartas, [], "el anuncio a toda la familia no es una carta entre colonias");
+
+  const { token } = (await call("/api/join", { body: { name: "Leo" } })).json;
+  const col = f.arbol.nodos[0].id;
+  // El jugador nuevo recibe VIT de bienvenida; alimentar cuesta 5
+  const feed = await call("/api/action", { token, body: { type: "feed", colony: col } });
+  assert.equal(feed.status, 200);
+  assert.equal(feed.json.carta.de, "Génesis");
+  assert.equal(feed.json.carta.asunto, "Hoy comí gracias a ti");
+  const otra = await call("/api/action", { token, body: { type: "feed", colony: col } });
+  assert.equal(otra.json.carta, undefined, "una carta al día por colonia");
+
+  const mia = (await call(`/api/familia?col=${col}`, { token })).json;
+  assert.equal(mia.buzon.length, 1);
+  assert.match(mia.buzon[0].texto, /Gracias por alimentarme/);
+  assert.deepEqual([mia.colonia.id, mia.colonia.parientes, mia.colonia.cartas], [col, [], []], "Génesis aún no tiene familia ni cartas propias");
+  const { token: ajeno } = (await call("/api/join", { body: { name: "Sol" } })).json;
+  assert.deepEqual((await call("/api/familia", { token: ajeno })).json.buzon, [], "las cartas de otro no se ven");
+  assert.equal((await call("/api/familia?col=<script>")).json.colonia, null);
+});

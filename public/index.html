@@ -47,6 +47,27 @@ input{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px 
 .who{display:flex;flex-wrap:wrap;gap:6px}
 .leyes summary{cursor:pointer;font:600 12px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
 .leyes ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:13px}.leyes li span{color:var(--mute)}
+.tree{overflow-x:auto;border-radius:10px;background:radial-gradient(ellipse at 50% 0%,#12323A 0%,#061014 80%);-webkit-overflow-scrolling:touch}
+#fTree{display:block}
+.tn{cursor:pointer}.tn:focus{outline:none}.tn:focus-visible .tn-c{stroke:var(--ink);stroke-width:3}
+.tn-c{fill:rgba(98,214,184,.16);stroke:var(--life);stroke-width:2}.tn.dead .tn-c{fill:rgba(138,164,173,.06);stroke:var(--mute);stroke-dasharray:3 3}
+.tn-i{font:800 14px var(--display);fill:var(--life);text-anchor:middle;dominant-baseline:central}.tn.dead .tn-i{fill:var(--mute)}
+.tn-sel{fill:none;stroke:var(--vit);stroke-width:2.5}.tn-mia{fill:var(--vit)}
+.tn-n{font:700 11.5px var(--display);fill:var(--ink);text-anchor:middle}.tn.dead .tn-n{fill:var(--mute)}.tn-s{font:9.5px var(--mono);fill:var(--mute);text-anchor:middle}
+.tl{fill:none;stroke:rgba(98,214,184,.45);stroke-width:2}.tl.dead{stroke:var(--line)}.tl-m{fill:none;stroke:var(--epica);stroke-width:1.5;stroke-dasharray:4 4;opacity:.85}
+.fam-sel,.prox{display:grid;gap:8px;padding:10px 12px;border-radius:10px;background:var(--surf2)}.fam-sel p,.prox p{margin:0}.prox{border-left:3px solid var(--vit)}
+.prox .r{display:grid;grid-template-columns:62px 1fr auto;gap:10px;align-items:center;font-size:13px}.prox .r b{font:600 12px var(--mono);font-variant-numeric:tabular-nums}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.badge{display:inline-grid;place-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:4px;border-radius:99px;background:var(--vit);color:#1B1305;font:700 11px var(--mono)}
+.carta{border-radius:10px;background:var(--surf2);border-left:3px solid var(--line)}
+.carta summary{cursor:pointer;list-style:none;display:grid;gap:2px;padding:10px 12px}.carta summary::-webkit-details-marker,.noche summary::-webkit-details-marker{display:none}
+.carta summary b{font:700 15px var(--display)}.k-q{font:12px var(--mono);color:var(--mute);display:flex;justify-content:space-between;gap:4px 10px;flex-wrap:wrap}
+.k-b{padding:0 12px 12px;display:grid;gap:8px;font-size:14px;line-height:1.6}.k-b p{margin:0}.k-f{white-space:pre-line;color:var(--mute);font-style:italic}
+.k-vit{justify-self:start;font:600 12px var(--mono);color:var(--vit)}
+.c-life{border-color:var(--life)}.c-vit{border-color:var(--vit)}.c-epica{border-color:var(--epica)}.c-rara{border-color:var(--rara)}.c-warn{border-color:var(--warn)}.c-mute{border-color:var(--mute)}
+.noche{display:grid;gap:8px;padding:12px 14px;border-radius:10px;background:var(--surf2)}.noche p{margin:0;font-size:14px;line-height:1.65}
+.noche summary{cursor:pointer;list-style:none}.n-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.n-h b{font:700 17px var(--display)}
+.noche .firma{color:var(--mute);font-style:italic;text-align:right}
 .stage{position:relative;border-radius:10px;overflow:hidden;background:#061014;aspect-ratio:16/9}
 #cv{display:block;width:100%;height:100%;cursor:crosshair}
 .overlay{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:rgba(6,16,20,.8);padding:16px;font:800 22px var(--display)}
@@ -180,6 +201,27 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <h2>Colonias de la federación <span class="pill" id="fedCount"></span></h2>
     <div class="fed" id="fed"></div>
   </section>
+
+  <section class="panel" id="familia" hidden>
+    <h2>La familia VITA <span class="pill" id="fInfo"></span></h2>
+    <p class="note">Quién nació de quién, generación tras generación. Toca una colonia para ver su familia.</p>
+    <div class="tree"><svg id="fTree" role="group" aria-label="Árbol genealógico de las colonias. Toca una colonia para ver su familia."></svg></div>
+    <div class="legend"><span><i style="background:var(--life)"></i>viva</span><span><i style="background:none;border:1px dashed var(--mute)"></i>apagada</span><span><i style="background:none;border-top:2px dashed var(--epica);height:0;width:14px;vertical-align:3px"></i>madrina: le dio células para renacer</span><span><i style="background:var(--vit);border-radius:50%"></i>tienes células ahí</span></div>
+    <div class="fam-sel" id="fSel"></div>
+    <div class="prox" id="fProx" hidden></div>
+  </section>
+
+  <div class="grid2" id="famGrid" hidden>
+    <section class="panel">
+      <h2>Cartas de la familia <span class="pill" id="kInfo"></span></h2>
+      <div class="tabs" role="tablist" aria-label="Qué cartas ver" id="kTabs"></div>
+      <div class="list" id="kList"></div>
+    </section>
+    <section class="panel">
+      <h2>Diario de Vita <span class="pill" id="dInfo"></span></h2>
+      <div class="list" id="dList"></div>
+    </section>
+  </div>
 
   <section class="panel">
     <h2>Rangos de la federación <span class="pill" id="rgInfo"></span></h2>
@@ -364,6 +406,9 @@ const MAREA = { alta: "Marea alta", baja: "Marea baja", subiendo: "La marea sube
 // En el hemisferio sur la luna creciente se ilumina por la izquierda: se dibuja como la ven allí
 let SUR = false; try { SUR = /^(America\/(Argentina|Santiago|Punta_Arenas|Lima|La_Paz|Asuncion|Montevideo|Sao_Paulo)|Australia\/|Pacific\/Auckland|Africa\/Johannesburg)/.test(Intl.DateTimeFormat().resolvedOptions().timeZone || ""); } catch {}
 let selL = null, vistas = new Set();
+let FA = null, famAt = 0, famQuien = null, famTab = "todas", kMas = false, kVisto = 0;
+const abiertas = new Set(), cerradas = new Set(); // cartas y noches que el jugador abrió o cerró
+try { kVisto = +localStorage.getItem("vita-cartas") || 0; } catch {}
 try { vistas = new Set(JSON.parse(localStorage.getItem("vita-perlas") || "[]")); } catch {}
 
 async function api(p, body) {
@@ -373,9 +418,11 @@ async function api(p, body) {
   return j;
 }
 let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2600); }
+// Si la colonia que cuidaste te escribió, se avisa y el buzón se pone al día
+const conCarta = (r, m) => { if (!r.carta) return m; famAt = 0; return `${m}${/[.!?]$/.test(m) ? "" : "."} ${r.carta.de} te escribió una carta`; };
 async function act(body, okMsg) {
   const r = await api("/api/action", body);
-  toast(r.ok ? (okMsg || "Hecho") : r.error || "No se pudo");
+  toast(r.ok ? conCarta(r, okMsg || "Hecho") : r.error || "No se pudo");
   if (r.ok) lastSave = 0;
   await refresh(); return r;
 }
@@ -440,7 +487,9 @@ $("iShare").onclick = async () => {
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-a]"); if (!b) return;
   const d = b.dataset;
-  if (d.a === "col") { sel = d.id; try { localStorage.setItem("vita-col", sel); } catch {} refreshColony(); renderWorld(); }
+  if (d.a === "col" || d.a === "fcol") { sel = d.id; try { localStorage.setItem("vita-col", sel); } catch {} refreshColony(); renderWorld(); refreshFamilia(); }
+  else if (d.a === "ktab") { famTab = d.id; kMas = false; renderCartas(); }
+  else if (d.a === "kmas") { kMas = !kMas; renderCartas(); }
   else if (d.a === "adopt") act({ type: "adopt", colony: sel, cell: d.id }, "Célula adoptada");
   else if (d.a === "sell") act({ type: "sell", colony: d.col, cell: d.id }, "Célula devuelta al tesoro");
   else if (d.a === "up") act({ type: "upgrade", colony: sel, key: d.id }, "Mejora pagada");
@@ -460,7 +509,13 @@ document.addEventListener("click", e => {
   else if (d.a === "azar") regalar({ type: "pearl_give", id: d.id, azar: true });
   else if (d.a === "pinf") infundirPerla(d.id);
 });
-document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+// Recordar qué cartas y noches abrió o cerró el jugador, para que sigan así al refrescar
+document.addEventListener("click", e => {
+  const sm = e.target.closest("details[data-k] > summary"); if (!sm) return;
+  const k = sm.parentNode.dataset.k;
+  if (sm.parentNode.open) { abiertas.delete(k); cerradas.add(k); } else { abiertas.add(k); cerradas.delete(k); }
+});
+document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"],[data-a="fcol"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 async function regalar(body) {
   const r = await api("/api/action", body);
   toast(r.ok ? `Regalaste la perla a ${r.to}` : r.error || "No se pudo");
@@ -469,13 +524,13 @@ async function regalar(body) {
 }
 async function infundirPerla(id) {
   const r = await api("/api/action", { type: "pearl_infuse", id, colony: sel });
-  toast(r.ok ? `+${r.salud} salud${r.termina ? ` y se acaba la ${r.termina}` : r.acorta ? ` y el evento dura ${r.acorta} ciclos menos` : ""}` : r.error || "No se pudo");
+  toast(r.ok ? conCarta(r, `+${r.salud} salud${r.termina ? ` y se acaba la ${r.termina}` : r.acorta ? ` y el evento dura ${r.acorta} ciclos menos` : ""}`) : r.error || "No se pudo");
   if (r.ok) lastSave = 0;
   await refresh();
 }
 async function habito(k) {
   const r = await api("/api/action", { type: "habit", key: k, colony: sel });
-  toast(!r.ok ? r.error || "No se pudo" : !r.cria ? "Hábito registrado" : r.cria.sube ? `Hábito registrado. ¡Tu cría sube su ${r.cria.rasgo.toLowerCase()} a ${r.cria.nivel}!` : "Hábito registrado. Tu cría también lo siente");
+  toast(!r.ok ? r.error || "No se pudo" : conCarta(r, !r.cria ? "Hábito registrado" : r.cria.sube ? `Hábito registrado. ¡Tu cría sube su ${r.cria.rasgo.toLowerCase()} a ${r.cria.nivel}!` : "Hábito registrado. Tu cría también lo siente"));
   if (r.ok) lastSave = 0;
   await refresh();
 }
@@ -520,7 +575,7 @@ function renderWorld() {
   $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">Aún no has confiado VIT a ninguna IA.</p>`;
   $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
   ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
-  renderWelcome(); renderOruz(); renderLumar(); renderLiga(); renderInvite();
+  renderWelcome(); renderOruz(); renderLumar(); renderLiga(); renderInvite(); renderFamilia();
 }
 function oruzTag(id) {
   const st = W?.oruz?.estado?.[id]; if (!st) return "";
@@ -807,8 +862,146 @@ async function refresh() {
     else { token = null; try { localStorage.removeItem("vita-token"); } catch {} toast("Tu cuenta ya no está abierta aquí. Si tienes tu código de recuperación, úsalo en «Ya tengo cuenta»"); }
   }
   renderWorld(); await refreshColony(); backup();
+  const quien = W.me?.id || ""; if (quien !== famQuien) { famQuien = quien; famAt = 0; }
+  if (Date.now() - famAt > 30000) refreshFamilia();
 }
 async function refreshColony() { if (!sel) return; const c = await api("/api/colony/" + sel); if (c && c.id) { C = c; renderColony(); } }
+
+// ---------- la familia VITA: árbol, cartas y diario ----------
+let famReq = 0;
+async function refreshFamilia() {
+  famAt = Date.now();
+  const n = ++famReq, f = await api("/api/familia" + (sel ? "?col=" + encodeURIComponent(sel) : ""));
+  if (n === famReq && f && f.arbol) { FA = f; renderFamilia(); } // una respuesta vieja no pisa a la nueva
+}
+// Solo se toca el DOM si cambió: así no parpadea ni se cierra lo que el jugador abrió
+function put(id, html) { const e = $(id); if (e._h !== html) { e.innerHTML = html; e._h = html; } }
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+function hace(at) {
+  const s = Math.max(0, (Date.now() - at) / 1000);
+  return s < 60 ? "ahora" : s < 3600 ? `hace ${Math.floor(s / 60)} min` : s < 86400 ? `hace ${Math.floor(s / 3600)} h` : `hace ${plural(Math.floor(s / 86400), "día", "días")}`;
+}
+function renderFamilia() {
+  if (!FA || !W) return;
+  $("familia").hidden = false; $("famGrid").hidden = false;
+  const a = FA.arbol;
+  $("fInfo").textContent = `${plural(a.vivas, "viva", "vivas")} · ${plural(a.generaciones, "generación", "generaciones")}`;
+  renderArbol(); renderFamSel(); renderProx(); renderCartas(); renderDiario();
+}
+function renderArbol() {
+  const svg = $("fTree"), by = new Map(FA.arbol.nodos.map(n => [n.id, { ...n, kids: [] }])), raices = [], orden = [], hecho = new Set();
+  for (const n of by.values()) (n.madre && by.has(n.madre) ? by.get(n.madre).kids : raices).push(n);
+  // Cada hija junto a su madre; la madre, en medio de sus hijas
+  let hojas = 0;
+  const colocar = (n, d) => {
+    if (hecho.has(n.id)) return; hecho.add(n.id); n.d = d; orden.push(n);
+    n.kids.forEach(k => colocar(k, d + 1));
+    const ks = n.kids.filter(k => k.d === d + 1 && k.x != null);
+    n.x = ks.length ? (ks[0].x + ks.at(-1).x) / 2 : hojas++;
+  };
+  raices.forEach(r => colocar(r, 0));
+  const R = 16, filas = Math.max(1, ...orden.map(n => n.d + 1)), caja = svg.parentNode.clientWidth || 320;
+  // De arriba abajo si cabe; si no (en el celular), de izquierda a derecha: las generaciones crecen despacio y las hermanas se apilan.
+  // El nombre va siempre debajo de cada colonia y los hilos salen por donde no lo tapan.
+  const vertical = hojas * 86 + 60 <= caja;
+  let ancho, alto, X, Y;
+  if (vertical) {
+    ancho = caja; alto = 30 + (filas - 1) * 104 + R + 36;
+    const off = (ancho - hojas * 86) / 2; X = n => off + (n.x + .5) * 86; Y = n => 30 + n.d * 104;
+  } else {
+    ancho = Math.max(caja, 44 + (filas - 1) * 100 + 52); alto = 22 + (hojas - 1) * 62 + R + 34;
+    X = n => 44 + n.d * 100; Y = n => 22 + n.x * 62;
+  }
+  const lineas = [];
+  for (const n of orden) for (const k of n.kids) if (k.x != null && k.d === n.d + 1) {
+    const x1 = X(n), y1 = Y(n), x2 = X(k), y2 = Y(k);
+    lineas.push(`<path class="tl ${k.alive ? "" : "dead"}" d="${vertical
+      ? `M${x1},${y1 + R + 36} C${x1},${(y1 + R + 36 + y2 - R) / 2} ${x2},${(y1 + R + 36 + y2 - R) / 2} ${x2},${y2 - R}`
+      : `M${x1 + R},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2 - R},${y2}`}"/>`);
+  }
+  // La madrina (quien le dio células para renacer), con un hilo discontinuo
+  for (const n of orden) for (const id of n.madrinas || []) {
+    const m = by.get(id); if (!m || m.x == null) continue;
+    const x1 = X(m), y1 = Y(m), x2 = X(n), y2 = Y(n), dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy) || 1, s = vertical ? 30 : -30;
+    lineas.push(`<path class="tl-m" d="M${x1},${y1} Q${(x1 + x2) / 2 + dy / l * s},${(y1 + y2) / 2 - dx / l * s} ${x2},${y2}"/>`);
+  }
+  const nodos = orden.map(n => {
+    const x = X(n), y = Y(n), madre = by.get(n.madre);
+    const lab = `${n.name}, ${madre ? "hija de " + madre.name : "fundadora"}, ${n.alive ? `viva, ${plural(n.dias, "día", "días")}` : "apagada"}${n.mia ? ", tienes células aquí" : ""}`;
+    const sub = n.alive ? `${n.dias} d${n.vidas > 1 ? ` · vida ${n.vidas}` : ""}` : "apagada";
+    const [ny, sy] = [y + R + 14, y + R + 27];
+    return `<g class="tn ${n.alive ? "" : "dead"}" data-a="fcol" data-id="${n.id}" tabindex="0" role="button" aria-label="${esc(lab)}">`
+      + (n.id === sel ? `<circle class="tn-sel" cx="${x}" cy="${y}" r="${R + 5}"/>` : "")
+      + `<circle class="tn-c" cx="${x}" cy="${y}" r="${R}"/><text class="tn-i" x="${x}" y="${y}">${esc([...n.name][0] || "?")}</text>`
+      + (n.mia ? `<circle class="tn-mia" cx="${x + R - 3}" cy="${y - R + 3}" r="4.5"/>` : "")
+      + `<text class="tn-n" x="${x}" y="${ny}">${esc(n.name)}</text><text class="tn-s" x="${x}" y="${sy}">${sub}</text></g>`;
+  });
+  svg.setAttribute("viewBox", `0 0 ${ancho} ${alto}`); svg.setAttribute("width", ancho); svg.setAttribute("height", alto);
+  put("fTree", lineas.join("") + nodos.join(""));
+}
+function renderFamSel() {
+  const n = FA.arbol.nodos.find(x => x.id === sel);
+  if (!n) return put("fSel", "");
+  const datos = [
+    n.alive ? (n.dias ? `${plural(n.dias, "día", "días")} de vida` : "nació hoy") : "apagada", `generación ${n.gen}`,
+    n.hijas ? plural(n.hijas, "hija", "hijas") : "", n.descendientes > n.hijas ? `${n.descendientes} descendientes` : "", n.vidas > 1 ? `vida número ${n.vidas}` : "",
+  ].filter(Boolean).join(" · ");
+  const col = FA.colonia?.id === sel ? FA.colonia : null, ps = col?.parientes || [];
+  const quienes = !col ? `<p class="note">Buscando a su familia…</p>`
+    : ps.length ? `<div class="who">${ps.map(p => `<button class="sm" data-a="col" data-id="${p.id}">${esc(p.name)} · ${esc(p.rel)}${p.alive ? "" : " (apagada)"}</button>`).join("")}</div>`
+    : `<p class="note">${n.alive ? `${esc(n.name)} todavía no tiene familia. Cuando junte ${FA.proxima?.tesoroMeta || 400} VIT y ${FA.proxima?.celulasMeta || 150} células fundará a su primera hija.` : "No le quedan parientes."}</p>`;
+  put("fSel", `<h3>La familia de ${esc(n.name)}</h3><p class="note">${datos}</p>${quienes}`);
+}
+function renderProx() {
+  const p = FA.proxima;
+  $("fProx").hidden = !p;
+  if (!p) return;
+  if (p.lleno) return put("fProx", `<p><b>La federación está completa:</b> ${p.max} colonias vivas. Nacerán más hijas cuando haya sitio.</p>`);
+  const fila = (k, v, meta, u) => `<div class="r"><span>${k}</span><div class="bar"><i style="width:${Math.min(100, v / meta * 100)}%;background:${v >= meta ? "var(--life)" : "var(--vit)"}"></i></div><b>${v}/${meta}${u}</b></div>`;
+  put("fProx", `<h3>Camino a la ${p.hijas ? "próxima" : "primera"} hija de ${esc(p.name)} <span class="note">${p.pct} %</span></h3>`
+    + fila("Tesoro", p.tesoro, p.tesoroMeta, " VIT") + fila("Células", p.celulas, p.celulasMeta, "") + fila("Salud", p.salud, p.saludMeta, "")
+    + `<p class="note">Con las tres barras llenas nace una colonia nueva, con su propia IA, y su madre le escribe su primera carta.</p>`);
+}
+// Color de cada carta según lo que cuenta
+const KCOL = { bienvenida: "life", hermana: "life", orgullo: "life", graduacion: "life", cumple: "rara", espera: "rara", gracias: "vit", respuesta: "vit", jugador: "vit", vita: "vit", anuncio: "vit", pedido: "warn", regreso: "epica", despedida: "mute" };
+function cartaHtml(k, i) {
+  const open = abiertas.has(k.id) || (i === 0 && !cerradas.has(k.id));
+  return `<details class="carta c-${KCOL[k.tipo] || "mute"}" data-k="${k.id}" ${open ? "open" : ""}>`
+    + `<summary><span class="k-q"><span>${esc(k.deName)} → ${esc(k.aName)}</span><span>${hace(k.at)}</span></span><b>${esc(k.asunto)}</b></summary>`
+    + `<div class="k-b"><p>${esc(k.saludo)}</p><p>${esc(k.texto)}</p>${k.vit ? `<span class="k-vit">+${k.vit} VIT de su tesoro</span>` : ""}<p class="k-f">${esc(k.firma)}</p></div></details>`;
+}
+function renderCartas() {
+  if (!FA) return;
+  const col = FA.colonia?.id === sel ? FA.colonia : null, name = W?.colonies?.find(c => c.id === sel)?.name || "esta colonia";
+  const buzon = FA.buzon, nuevas = (buzon || []).filter(k => k.n > kVisto).length;
+  if (famTab === "tuyas" && nuevas) { kVisto = Math.max(...buzon.map(k => k.n)); try { localStorage.setItem("vita-cartas", kVisto); } catch {} }
+  const tabs = [["todas", "Todas"], ["colonia", `De ${esc(name)}`], ["tuyas", `Para ti${nuevas && famTab !== "tuyas" ? `<span class="badge">${nuevas}</span>` : ""}`]];
+  put("kTabs", tabs.map(([k, t]) => `<button class="sm" role="tab" aria-selected="${famTab === k}" data-a="ktab" data-id="${k}">${t}</button>`).join(""));
+  const l = famTab === "tuyas" ? buzon : famTab === "colonia" ? col?.cartas : FA.cartas;
+  const vacio = famTab === "tuyas" ? (buzon ? "Cuando alimentes, adoptes o cuides a una colonia, te escribirá para darte las gracias (una vez al día)." : "Entra con tu nombre: las colonias que cuides te escribirán.")
+    : famTab === "colonia" ? (col ? `${esc(name)} todavía no escribió ni recibió cartas.` : "Buscando sus cartas…") : "Todavía no hay cartas.";
+  const mas = l?.length > 6 ? `<button class="sm" data-a="kmas">${kMas ? "Ver menos" : `Ver ${plural(l.length - 6, "carta más", "cartas más")}`}</button>` : "";
+  put("kList", l?.length ? (kMas ? l : l.slice(0, 6)).map(cartaHtml).join("") + mas : `<p class="note">${vacio}</p>`);
+  $("kInfo").textContent = plural(FA.stats.cartas, "carta", "cartas");
+}
+function nocheHtml(e, i) {
+  const h = e.hechos || {}, key = `N${e.n}-${e.t}`;
+  const chips = [
+    h.colonias != null ? plural(h.colonias, "colonia viva", "colonias vivas") : "", h.hijas ? plural(h.hijas, "hija nueva", "hijas nuevas") : "",
+    h.nacidas ? `+${h.nacidas} células` : "", h.apagadas ? `${h.apagadas} se apagaron` : "", h.acunado ? `${h.acunado} VIT acuñados` : "", h.cartas ? plural(h.cartas, "carta", "cartas") : "",
+  ].filter(Boolean).map(t => `<span class="pill">${t}</span>`).join("");
+  const top = e.destacada ? `<button class="sm" data-a="col" data-id="${e.destacada.id}">Colonia del día: ${esc(e.destacada.name)}</button>` : "";
+  const cab = `<span class="n-h"><b>${esc(e.titulo)}</b><span class="note">${esc(e.fecha || "")}</span></span>`;
+  const cuerpo = e.parrafos.map(p => `<p>${esc(p)}</p>`).join("") + (chips || top ? `<div class="chips">${chips}${top}</div>` : "")
+    + `<p class="firma">${esc(e.firma || "Vita")}${e.pluma === "claude" ? " · escrito con Claude" : ""}</p>`;
+  if (i === 0) return `<article class="noche">${cab}${cuerpo}</article>`;
+  return `<details class="noche" data-k="${key}" ${abiertas.has(key) ? "open" : ""}><summary>${cab}</summary>${cuerpo}</details>`;
+}
+function renderDiario() {
+  $("dInfo").textContent = `${FA.noches ? plural(FA.noches, "noche", "noches") + " · " : ""}escribe a las 23:00`;
+  put("dList", FA.diario?.length ? FA.diario.map(nocheHtml).join("") : `<p class="note">Esta noche, a las 23:00, Vita escribirá su primera entrada.</p>`);
+}
+new ResizeObserver(() => { if (FA) renderArbol(); }).observe($("fTree").parentNode);
 
 // ---------- canvas ----------
 const cv = $("cv"), cx = cv.getContext("2d"); let w = 0, h = 0; const vis = new Map(); let spores = [];

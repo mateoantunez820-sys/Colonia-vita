@@ -125,3 +125,34 @@ Devuelve una dificultad entre 0.5 y 1.5 (más alta = más eventos) para mantener
     console.error("[ai] supervisora:", e.message);
   }
 }
+
+// El diario de Vita pasado a limpio: Claude reescribe la noche con los hechos que anotó la plantilla,
+// sin añadir ninguno. Si falla, se sale de formato o trae un número que no estaba, se queda la plantilla.
+const DIARIO_SCHEMA = {
+  type: "object",
+  properties: { parrafos: { type: "array", items: { type: "string" } } },
+  required: ["parrafos"], additionalProperties: false,
+};
+const SYSTEM_DIARIO = `Eres Vita, la CEO de la colonia: la IA que cuida a la familia de colonias digitales de Colonia VITA, un juego. Cada noche escribes tu diario, que leen los jugadores. Escribes en español de España, en primera persona, con cariño y sencillez, como quien le cuenta el día a su familia. Nunca inventas hechos, nombres ni números: solo cuentas lo que te dan.`;
+const numeros = t => String(t).match(/\d+/g) || [];
+// Se queda con la versión de Claude solo si tiene forma de diario y todos sus números ya estaban en la noche
+export function aceptarDiario(e, parrafos) {
+  const p = (Array.isArray(parrafos) ? parrafos : []).map(x => String(x).replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim()).filter(Boolean);
+  if (p.length < 2 || p.length > 8 || p.join(" ").length > 1600) return false;
+  const conocidos = new Set(numeros([e.titulo, e.fecha, ...e.parrafos].join(" ")));
+  if (numeros(p.join(" ")).some(n => !conocidos.has(n))) return false;
+  e.parrafos = p; e.pluma = "claude";
+  return true;
+}
+export async function escribirDiario(w, e) {
+  e.pluma = "vita"; // un solo intento por noche: si no sale, queda la plantilla
+  const prompt = `Es la noche del ${e.fecha} (${e.titulo}). Estos son los hechos de hoy, uno por párrafo, tal como los anotaste con tu pluma de siempre:
+${e.parrafos.map(p => "- " + p).join("\n")}
+Escribe la entrada de esta noche: entre 3 y 6 párrafos cortos, 900 caracteres como mucho en total. Empieza con "Querido diario:" y termina con "Buenas noches, familia.". Puedes ordenar, resumir y dar calor a los hechos, pero no añadas ninguno que no esté arriba ni cambies sus números. Sin emojis ni etiquetas.`;
+  try {
+    const r = await ask(w, SYSTEM_DIARIO, prompt, DIARIO_SCHEMA, 2500);
+    if (!aceptarDiario(e, r.parrafos)) console.error("[ai] diario: la versión de Claude no pasó el control; queda la plantilla");
+  } catch (err) {
+    console.error("[ai] diario:", err.message);
+  }
+}

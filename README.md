@@ -22,6 +22,7 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - **Lumar, el mar de la luna.** El segundo ecomundo: un mar que sigue la luna real, donde nacen las Perlas de Lumar. Una perla no la usa quien la recoge: se regala. Ver abajo.
 - **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta.
 - **Tu cría.** Cada jugador recibe un huevo único que se abre con su calor. La cría crece cuando su jugador se cuida. Ver abajo.
+- **La familia VITA.** El árbol genealógico de las colonias, las cartas que se escriben (y te escriben a ti cuando las cuidas) y el diario que Vita escribe cada noche. Ver abajo.
 
 ## Rangos: Ley VITA, Oruz y Ámbar
 
@@ -63,6 +64,17 @@ Al entrar, cada jugador recibe un huevo (`src/cria.js`, dibujado por `public/cri
 - **Guardiana.** Desde Joven, cada vez que su jugador la saluda visita su colonia hogar y le lleva energía.
 - **Legado.** Al llegar a Sabia deja una célula con sus genes en su hogar. La célula es del jugador, y sus hijas también.
 - **Economía.** Darle de comer quema 2 VIT. Lo que regala está acotado: en un mes de cuidados al máximo, como mucho los 65 VIT de las etapas y 9 VIT al día de excursiones. En `/api/admin/metrics` se ve cuántas crías hay en cada etapa.
+
+## La familia VITA: árbol, cartas y diario
+
+`src/familia.js` convierte a las colonias en una familia. Lee en la cadena lo que pasó (fundaciones, rescates, ayudas, colectas, rangos y graduaciones), no acuña ni quema VIT y guarda todo en `world.familia`:
+
+- **Árbol genealógico.** Quién nació de quién, generación tras generación, cuántas hijas y descendientes tiene cada colonia, cuántas vidas lleva y quién es su madrina (la colonia que le dio células para renacer). Sabe el parentesco entre dos colonias cualesquiera: madre, hija, hermana, abuela, nieta, tía, sobrina, prima... En la web se dibuja de arriba abajo en la pantalla grande y de izquierda a derecha en el celular.
+- **Cartas entre colonias.** Se escriben cuando nace una hija (la bienvenida de su madre y la de su hermana mayor), cuando alguien las ayuda, cuando una se apaga o renace, en los cumpleaños, cuando se gradúan en Oruz y cuando el consejo las asciende o sanciona (esas las firma Vita). Antes de fundar, una colonia escribe a la primera hija que va a tener y la carta le llega el día que nace. Cada una escribe con el carácter de su IA: tierna, práctica, audaz o serena.
+- **La familia se ayuda.** Si una colonia pasa apuros (salud baja, o el tesoro vacío en plena sequía, helada o plaga), le pide ayuda a su madre, a su hija, a su hermana o a su madrina, y la que puede le manda entre 5 y 25 VIT de su tesoro con una carta. Solo mueve VIT de un tesoro a otro; queda en la cadena como "ayuda familiar".
+- **Cartas al jugador.** Cuando un jugador alimenta, adopta, invierte, mejora, registra un hábito o infunde Ámbar o una perla, la colonia le escribe una carta privada, una vez al día. Solo la ve ese jugador y se borra a la semana.
+- **El diario de Vita.** Cada noche, a las 23:00 del juego, Vita escribe lo que vivió la familia ese día: quién nació, quién se apagó, quién ayudó a quién, los cumpleaños, los números del día, el cielo de esa noche, Oruz y Lumar, los jugadores que las cuidaron y la colonia del día. Guarda las últimas 45 noches. Si la IA está activa y queda presupuesto, Claude pasa la noche a limpio (unos céntimos al día, dentro del tope diario); si su versión trae algún número que no estaba en los hechos, se queda la de la plantilla.
+- **API.** `GET /api/familia?col=COL-001` devuelve el árbol, la colonia más cerca de fundar, las últimas cartas, el buzón de quien la pide, el diario y los parientes y cartas de la colonia elegida.
 
 ## El dinero real y las IA
 
