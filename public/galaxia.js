@@ -204,7 +204,8 @@ const TONO_AMBAR = { miel: "#E9B45A", dorado: "#F0B03F", cobre: "#D98A4E", "rub�
 const PERLA = { blanca: "#F4F1EA", crema: "#EFDDB4", rosa: "#F4B6C8", dorada: "#E9C25C", negra: "#6B6F86", azul: "#7FB2F5" };
 
 function galaxia(cv, o = {}) {
-  let W = null, sel = null, fondo = null, lay = null, tipK = null, hover = false;
+  let W = null, sel = null, fondo = null, lay = null, tipK = null, hover = false, tAhora = 0, criaPos = null;
+  let cartas = [], cartasVistas = null; // sobres en viaje y las cartas que ya se vieron
   const cuerpos = new Map(), titilan = [];
   let fugaz = null, proximaFugaz = 4000;
   const tip = o.tip;
@@ -291,6 +292,7 @@ function galaxia(cv, o = {}) {
   const radio = b => (b.L.alive ? 9 + 7 * Math.sqrt(clamp(b.c.cells / (b.c.cap || 300), 0, 1)) : 7.5) * lay.k * (b.g === "escuela" ? .8 : 1);
 
   function cuadro(t, dt) {
+    tAhora = t;
     if (!lay || !s.w) return;
     const ctx = s.ctx, { w, h, cx, cy, k } = lay;
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
@@ -306,16 +308,20 @@ function galaxia(cv, o = {}) {
       if (b.x == null || !dt) { b.x = d.x; b.y = d.y; } else { b.x += (d.x - b.x) * suave; b.y += (d.y - b.y) * suave; }
       b.z = d.z; b.mira = d.mira; b.r = radio(b) * (1 + .14 * d.z);
     }
+    criaPos = posCria(t);
     orbitas(ctx);
     rutas(ctx, t);
     hilos(ctx, t);
+    viajeCria(ctx, t);
     // de atrás hacia adelante: lo que está más arriba en la pantalla queda detrás
     const capas = [{ y: cy, f: () => estrella(ctx, t) }];
     const M = lay.mundos;
     if (W.oruz?.regions?.length) capas.push({ y: M.oruz.y, f: () => oruz(ctx, t) }, ...ambarEnOrbita(ctx, t));
     if (W.lumar?.regions?.length) capas.push({ y: M.lumar.y, f: () => lumar(ctx, t) }, ...perlasEnOrbita(ctx, t));
     for (const b of cuerpos.values()) capas.push({ y: b.y, f: () => colonia(ctx, b, t) });
+    if (criaPos) capas.push({ y: criaPos.y, f: () => pintarCria(ctx, criaPos) });
     capas.sort((a, b) => a.y - b.y).forEach(c => c.f());
+    sobres(ctx, t);
     etiquetas(ctx, t);
     if (tipK) moverTip();
   }
@@ -349,13 +355,17 @@ function galaxia(cv, o = {}) {
       ctx.strokeStyle = rgba(col, .45); ctx.lineWidth = 1.2; ctx.setLineDash([2 * k, 8 * k]); ctx.lineDashOffset = REDUCE ? 0 : -t / 45; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
     }
   }
+  // La curva entre dos cuerpos: la del hilo de luz de madre a hija, y la que siguen las cartas
+  function curva(m, b) {
+    const dx = b.x - m.x, dy = b.y - m.y, d = Math.hypot(dx, dy) || 1, k = (b.L.seed % 2 ? 1 : -1) * Math.min(.3 * d, 60 * lay.k);
+    return [(m.x + b.x) / 2 - dy / d * k, (m.y + b.y) / 2 + dx / d * k];
+  }
   // Hilos de luz: de cada madre a cada hija, con un pulso de luz que viaja hacia la hija
   function hilos(ctx, t) {
     ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
     for (const b of cuerpos.values()) {
       const m = b.c.parent && cuerpos.get(b.c.parent); if (!m) continue;
-      const vivo = b.L.alive && m.L.alive, dx = b.x - m.x, dy = b.y - m.y, d = Math.hypot(dx, dy) || 1, curva = (b.L.seed % 2 ? 1 : -1) * Math.min(.3 * d, 60 * lay.k);
-      const qx = (m.x + b.x) / 2 - dy / d * curva, qy = (m.y + b.y) / 2 + dx / d * curva;
+      const vivo = b.L.alive && m.L.alive, [qx, qy] = curva(m, b);
       const gr = ctx.createLinearGradient(m.x, m.y, b.x, b.y);
       gr.addColorStop(0, hsl(m.L.hue, 85, 72, vivo ? .75 : .2)); gr.addColorStop(1, hsl(b.L.hue, 85, 72, vivo ? .75 : .2));
       ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.quadraticCurveTo(qx, qy, b.x, b.y);
@@ -501,6 +511,75 @@ function galaxia(cv, o = {}) {
       ctx.beginPath(); ctx.arc(b.x, b.y, r * 1.85 + Math.sin(t / 400) * 1.5, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
     }
   }
+
+  // ---------- la cría del jugador ----------
+  // Gira alrededor de su colonia hogar y, si salió de excursión, alrededor de la colonia que visita
+  function posCria(t) {
+    const K = W.cria; if (!K?.etapa) return null;
+    const fuera = !!(K.excursion && K.excursion.vuelveEn > 0);
+    const host = fuera ? [...cuerpos.values()].find(b => b.c.name === K.excursion.name) : K.hogar && cuerpos.get(K.hogar.id);
+    const img = host && imagenCria(K, false, () => loop.ahora()); if (!img) return null;
+    const a = REDUCE ? 2.4 : t / 6500 * TAU, rr = host.r + 15 * lay.k;
+    return { x: host.x + Math.cos(a) * rr, y: host.y + Math.sin(a) * rr * .5, S: 40 * lay.k * (1 + .1 * Math.sin(a)), img, host, fuera, hue: K.ap?.hue ?? 160 };
+  }
+  function pintarCria(ctx, p) {
+    ctx.save(); ctx.globalCompositeOperation = "lighter"; luz(ctx, luzHue(p.hue, 90, 72), p.x, p.y, p.S * .42, .6); ctx.restore();
+    ctx.drawImage(p.img, p.x - p.S / 2, p.y - p.S * .57, p.S, p.S);
+  }
+  // De excursión: una línea de puntos une su hogar con la colonia que visita
+  function viajeCria(ctx, t) {
+    const p = criaPos, casa = p?.fuera && W.cria.hogar && cuerpos.get(W.cria.hogar.id);
+    if (!casa || casa === p.host) return;
+    ctx.save(); ctx.strokeStyle = hsl(p.hue, 90, 75, .6); ctx.lineWidth = 1.3; ctx.lineCap = "round";
+    ctx.setLineDash([.5, 6 * lay.k]); ctx.lineDashOffset = REDUCE ? 0 : -t / 70;
+    ctx.beginPath(); ctx.moveTo(casa.x, casa.y); ctx.lineTo(p.host.x, p.host.y); ctx.stroke(); ctx.restore();
+  }
+
+  // ---------- cartas de la familia ----------
+  // Cada carta viaja como un sobre de luz desde quien la escribe (VITA o una colonia) hasta la colonia que la recibe;
+  // entre madre e hija va por su hilo. Al abrir la página se ven llegar las tres últimas y después cada carta nueva.
+  function nuevasCartas() {
+    if (!Array.isArray(W.cartas)) return;
+    const primera = !cartasVistas, vistas = cartasVistas || new Set();
+    const nuevas = W.cartas.filter(k => k?.id && !vistas.has(k.id) && cuerpos.has(k.a) && (k.de === "VITA" || cuerpos.has(k.de)));
+    cartasVistas = new Set(W.cartas.map(k => k?.id));
+    if (REDUCE) return;
+    nuevas.slice(0, primera ? 3 : 6).reverse().forEach((k, i) => cartas.push({ de: k.de, a: k.a, t0: tAhora + 700 + i * 1500 }));
+  }
+  function sobres(ctx, t) {
+    for (const c of cartas) {
+      if (t < c.t0) continue;
+      const A = c.de === "VITA" ? { x: lay.cx, y: lay.cy } : cuerpos.get(c.de), B = cuerpos.get(c.a);
+      if (!A || !B || A === B) { c.fin = true; continue; }
+      c.dur ||= 2400 + Math.hypot(B.x - A.x, B.y - A.y) * 7;
+      const p = (t - c.t0) / c.dur, hue = A.L ? A.L.hue : null, col = hue == null ? "#F0B03F" : hsl(hue, 85, 70), img = hue == null ? luzHex("#F0B03F") : luzHue(hue, 90, 75);
+      if (p >= 1) { // llegó: un anillo de luz en la colonia que la recibe
+        const q = (t - c.t0 - c.dur) / 900; if (q >= 1) { c.fin = true; continue; }
+        ctx.strokeStyle = col; ctx.globalAlpha = (1 - q) * .8; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(B.x, B.y, B.r * (1.2 + 1.4 * q), 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+        continue;
+      }
+      // de hija a madre, el sobre recorre el mismo hilo al revés
+      const inv = A.c?.parent === B.id, [qx, qy] = inv ? curva(B, A) : curva(A, B), P0 = inv ? B : A, P2 = inv ? A : B;
+      const en = u => { const v = 1 - u; return [v * v * P0.x + 2 * v * u * qx + u * u * P2.x, v * v * P0.y + 2 * v * u * qy + u * u * P2.y]; };
+      const e = p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2, a = Math.min(1, p * 8, (1 - p) * 8);
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      for (let j = 1; j <= 4; j++) { const u = Math.max(0, e - j * .025), [x, y] = en(inv ? 1 - u : u); luz(ctx, img, x, y, (5 - j) * 1.6 * lay.k, a * (.5 - j * .1)); }
+      const [x, y] = en(inv ? 1 - e : e);
+      luz(ctx, img, x, y, 12 * lay.k, a * .7); ctx.restore();
+      sobre(ctx, x, y + Math.sin(t / 260) * 1.2, 7 * lay.k, col, a);
+    }
+    cartas = cartas.filter(c => !c.fin);
+  }
+  function sobre(ctx, x, y, s, col, a) {
+    const w = s * 1.5, h = s;
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y);
+    ctx.fillStyle = "#FFF6E2"; ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(0, h * .12); ctx.lineTo(w / 2, -h / 2); ctx.stroke();
+    ctx.restore();
+  }
+
   function texto(ctx, str, x, y, font, color, align = "center") {
     ctx.font = font; ctx.textAlign = align; ctx.textBaseline = "top";
     ctx.lineWidth = 3; ctx.strokeStyle = "rgba(3,8,16,.85)"; ctx.lineJoin = "round"; ctx.strokeText(str, x, y);
@@ -533,6 +612,7 @@ function galaxia(cv, o = {}) {
     let best = null, bd = Infinity;
     const probar = (k, id, px, py, r) => { const d = Math.hypot(px - x, py - y); if (d < r && d < bd) { bd = d; best = { k, id }; } };
     for (const b of cuerpos.values()) probar("colonia", b.id, b.x, b.y, b.r + 12);
+    if (criaPos) probar("cria", null, criaPos.x, criaPos.y, criaPos.S * .3 + 6);
     if (!lay) return best;
     probar("vita", null, lay.cx, lay.cy, lay.R * 1.6);
     for (const m of mundosActivos()) probar(m, null, lay.mundos[m].x, lay.mundos[m].y, lay.P * 1.25);
@@ -569,6 +649,10 @@ function galaxia(cv, o = {}) {
       const L = W.lumar, lu = L.luna;
       const n = (L.libres || []).length;
       html = `<div><b>Lumar</b> <span class="note">el mar de la luna</span></div><p>${lu ? `${esc(lu.name)}, ${Math.round(lu.ilum * 100)}% iluminada. ` : ""}${n ? `${n} perla${n > 1 ? "s esperan" : " espera"} en el mar.` : "No hay perlas libres ahora."}</p><button class="sm" data-ir="lumar">Ir a Lumar</button>`;
+    } else if (tipK.k === "cria") {
+      const K = W.cria; if (!K?.etapa) return cerrarTip();
+      const fuera = K.excursion && K.excursion.vuelveEn > 0;
+      html = `<div><b>${esc(K.nombre)}</b> <span class="note">tu cría · ${esc(String(K.etapaName || "").toLowerCase())}</span></div><p>${fuera ? `Está de excursión en ${esc(K.excursion.name)}.` : K.hogar ? `Vive en ${esc(K.hogar.name)}.` : ""}</p><button class="sm primary" data-ir="cria">Ver tu cría</button>`;
     }
     tip.innerHTML = html; tip.hidden = false; moverTip();
   }
@@ -577,6 +661,7 @@ function galaxia(cv, o = {}) {
     let x, y, r;
     if (tipK.k === "colonia") { const b = cuerpos.get(tipK.id); if (!b) return cerrarTip(); x = b.x; y = b.y; r = b.r * 1.9; }
     else if (tipK.k === "vita") { x = lay.cx; y = lay.cy; r = lay.R * 1.4; }
+    else if (tipK.k === "cria") { if (!criaPos) return cerrarTip(); x = criaPos.x; y = criaPos.y; r = criaPos.S * .35; }
     else { const p = lay.mundos[tipK.k]; x = p.x; y = p.y; r = lay.P * 1.2; }
     const tw = tip.offsetWidth, th = tip.offsetHeight, abajo = y + r + th + 8 < s.h;
     const left = clamp(x - tw / 2, 8, s.w - tw - 8), top = abajo ? y + r + 6 : Math.max(8, y - r - th - 6);
@@ -598,11 +683,33 @@ function galaxia(cv, o = {}) {
     datos(w, s2) {
       W = w; sel = s2;
       if (!W?.colonies) return;
-      asignar(); describir();
+      asignar(); describir(); nuevasCartas();
       if (tipK) pintarTip();
       loop.ahora(); loop.pedir();
     },
   };
+}
+
+// ---------- la cría del jugador, dibujada por public/cria-arte.js ----------
+// Su SVG se convierte en imagen una vez por aspecto. Sin CriaArte (o si falla) no se dibuja y nada más cambia.
+const criaImgs = new Map();
+function imagenCria(K, dormida, listo) {
+  const arte = window.CriaArte; if (!arte?.cria || !K?.etapa) return null;
+  const key = JSON.stringify([K.ap, K.etapa, K.rasgos, K.primera, K.humor, !!dormida]);
+  let e = criaImgs.get(key);
+  if (!e) {
+    if (criaImgs.size > 8) criaImgs.clear();
+    e = { img: new Image(), ok: false, avisar: new Set() };
+    criaImgs.set(key, e);
+    e.img.onload = () => { e.ok = true; for (const f of e.avisar) f(); e.avisar.clear(); };
+    e.img.onerror = () => { e.fallo = true; e.avisar.clear(); };
+    try { // sin su sombra: en la galaxia flota y en el mini mundo se pinta aparte
+      const svg = arte.cria(K, { anim: false, dormida: !!dormida, label: "Cría de VITA" }).replace(/<ellipse class="cr-sombra"[^>]*\/>/, "");
+      e.img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    } catch (err) { console.error("[galaxia] cría", err); }
+  }
+  if (!e.ok && !e.fallo && listo && e.avisar.size < 4) e.avisar.add(listo);
+  return e.ok ? e.img : null;
 }
 
 // ---------- el mini mundo de una colonia ----------
@@ -614,6 +721,7 @@ function mundoColonia(cv, o = {}) {
   let C = null, W = null, L = null, lookKey = "", spr = null, estrellas = [], nubes = [];
   const bichos = new Map();
   let esporas = [], chispas = [], gotas = [], proxima = 2500;
+  let criaP = null, criaSalto = -1e9, corazones = [], tAhora = 0;
   const s = lienzo(cv, () => { preparar(true); loop.ahora(); });
   const loop = bucle(cv, cuadro);
 
@@ -628,6 +736,7 @@ function mundoColonia(cv, o = {}) {
   const suelo = () => { const R = s.w * 1.15; return { R, x: s.w / 2, y: s.h * .66 + R }; };
 
   function cuadro(t, dt) {
+    tAhora = t;
     if (!s.w) return;
     const ctx = s.ctx, { w, h } = s, hora = minuto() / 60, noche = oscuridad(hora), cl = clima(), muerta = C && C.alive === false;
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
@@ -640,11 +749,14 @@ function mundoColonia(cv, o = {}) {
     const g = suelo();
     terreno(ctx, g, t, muerta);
     if (!muerta) criaturasEnSuelo(ctx, g, t, dt, noche);
+    criaP = muerta ? null : criaEnSuelo(ctx, g, t);
     if (L.event === "helada" || (cl.nieve && !muerta)) copos(ctx, t);
     if (L.event === "plaga" && !muerta) motas(ctx, g, t);
     if (!muerta) esporasDoradas(ctx, g, t, dt);
     for (const c of chispas) { c.vida += dt; const u = c.vida / 700; ctx.globalAlpha = Math.max(0, 1 - u); ctx.fillStyle = "#FFD978"; ctx.beginPath(); ctx.arc(c.x + c.vx * u * 30, c.y + c.vy * u * 30, 2.2 * (1 - u) + .4, 0, TAU); ctx.fill(); }
     ctx.globalAlpha = 1; chispas = chispas.filter(c => c.vida < 700);
+    for (const c of corazones) { c.vida += dt; if (c.vida < 0) continue; const u = c.vida / 1100; ctx.globalAlpha = Math.max(0, 1 - u); corazon(ctx, c.x + Math.sin(u * 6 + c.ph) * 5, c.y - u * 34, c.s, "#F47A9B"); }
+    ctx.globalAlpha = 1; corazones = corazones.filter(c => c.vida < 1100);
   }
   const minuto = () => C?.minuto ?? W?.minuto ?? ((480 + (W?.tick || 0) * 10) % 1440);
   const oscuridad = hr => { const sol = Math.sin((hr - 6) / 12 * Math.PI); return clamp(.55 - sol * 1.6, 0, 1); };
@@ -807,6 +919,27 @@ function mundoColonia(cv, o = {}) {
       if (duerme && zz < 3 && b.d > .6 && Math.abs(b.a) < .3 && (b.ph * 10 | 0) % 3 === 0) { zz++; ctx.font = `600 ${Math.round(sz * .7)}px ${FONT.m}`; ctx.fillStyle = `rgba(220,230,255,${.5 + .3 * Math.sin(t / 800 + b.ph)})`; ctx.textAlign = "left"; ctx.fillText("z", x + sz * .6, y - sz * 1.7 - (t / 60 % 8)); }
     }
   }
+  // La cría del jugador pasea por su colonia hogar, o por la que visita de excursión. Duerme de 23 a 7, como en su panel.
+  function criaEnSuelo(ctx, g, t) {
+    const K = W?.cria; if (!K?.etapa || !C) return null;
+    const fuera = !!(K.excursion && K.excursion.vuelveEn > 0);
+    if (fuera ? K.excursion.name !== C.name : K.hogar?.id !== C.id) return null;
+    const hr = new Date().getHours(), duerme = !fuera && (hr >= 23 || hr < 7);
+    const img = imagenCria(K, duerme, () => loop.ahora()); if (!img) return null;
+    const E = clamp(.48 + .1 * K.etapa, .6, 1), S = base() * 6, fase = REDUCE ? .6 : t / 16000 * TAU;
+    const x = duerme ? g.x - s.w * .14 : g.x + Math.sin(fase) * s.w * .27, suelo = g.y - Math.sqrt(Math.max(0, g.R * g.R - (x - g.x) ** 2));
+    const salto = t - criaSalto < 650 ? Math.sin((t - criaSalto) / 650 * Math.PI) * S * .3 : 0;
+    const y = suelo - salto - (duerme || REDUCE ? 0 : Math.abs(Math.sin(t / 320)) * S * .025), izq = !duerme && Math.cos(fase) < 0;
+    ctx.fillStyle = "rgba(4,10,14,.35)"; ctx.beginPath(); ctx.ellipse(x, suelo + 1, S * .2 * E * (1 - salto / S), S * .035, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(x, y); if (izq) ctx.scale(-1, 1);
+    ctx.drawImage(img, -S / 2, -S * (.61 + .2 * E), S, S); // los pies de su cuerpo sobre el suelo
+    ctx.restore();
+    const top = y - S * (.5 * E + .1) - 4, fs = Math.round(clamp(S * .16, 10, 13));
+    ctx.font = `700 ${fs}px ${FONT.t}`; ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.lineJoin = "round";
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(3,8,16,.8)"; ctx.strokeText(K.nombre, x, top); ctx.fillStyle = "#FFFFFF"; ctx.fillText(K.nombre, x, top);
+    if (duerme && !REDUCE) { ctx.font = `600 ${fs}px ${FONT.m}`; ctx.fillStyle = `rgba(220,230,255,${.55 + .3 * Math.sin(t / 700)})`; ctx.textAlign = "left"; ctx.fillText("z", x + S * .22, top - (t / 70 % 9)); }
+    return { x, y: y - S * .25 * E, r: S * .25 * E };
+  }
   // Esporas doradas: bajan flotando; si llegan al suelo se apagan
   function esporasDoradas(ctx, g, t, dt) {
     if (!REDUCE && t > proxima && esporas.length < 2 && C?.alive) { esporas.push({ x: s.w * (.1 + Math.random() * .8), y: -12, ph: Math.random() * TAU, v: 14 + Math.random() * 10, vida: 0 }); proxima = t + 3500 + Math.random() * 5000; }
@@ -824,6 +957,10 @@ function mundoColonia(cv, o = {}) {
   }
   cv.addEventListener("pointerdown", e => {
     const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (criaP && !REDUCE && Math.hypot(criaP.x - x, criaP.y - y) < criaP.r + 10) { // la cría salta y suelta corazones
+      criaSalto = tAhora; for (let k = 0; k < 3; k++) corazones.push({ x: criaP.x + (k - 1) * 10, y: criaP.y - criaP.r, s: 3.2 + k % 2, ph: k * 2, vida: -k * 140 });
+      loop.ahora(); return;
+    }
     const i = esporas.findIndex(sp => Math.hypot(sp.px - x, sp.y - y) < 28);
     if (i < 0) return;
     const sp = esporas.splice(i, 1)[0];
