@@ -11,7 +11,12 @@
 :root{color-scheme:dark;--bg:#0A1519;--surf:#11222A;--surf2:#172E38;--line:#24414D;--ink:#E4EEEF;--mute:#8AA4AD;--vit:#F0B03F;--life:#62D6B8;--warn:#F07A55;--bad:#E5484D;--rara:#6FA8F5;--epica:#C38BF2;
 --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--body:"Figtree",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}[hidden]{display:none!important}
-html,body{background:var(--bg);color:var(--ink);margin:0}
+html{background:var(--bg)}html,body{color:var(--ink);margin:0}
+/* El cielo de la galaxia detrás de toda la página: estrellas fijas, nebulosas y otras que titilan */
+body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+body::before{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Ccircle cx='15.8' cy='273.9' r='0.36' fill='%23fff' fill-opacity='0.65'/%3E%3Ccircle cx='314.9' cy='311.3' r='0.40' fill='%23FFE2B4' fill-opacity='0.18'/%3E%3Ccircle cx='248.8' cy='249.5' r='0.51' fill='%23fff' fill-opacity='0.40'/%3E%3Ccircle cx='154.1' cy='29.4' r='0.43' fill='%23fff' fill-opacity='0.41'/%3E%3Ccircle cx='314.2' cy='39.1' r='0.81' fill='%23C4DCFF' fill-opacity='0.61'/%3E%3Ccircle cx='36.5' cy='198.9' r='0.45' fill='%23FFE2B4' fill-opacity='0.40'/%3E%3Ccircle cx='85.0' cy='189.0' r='0.86' fill='%23fff' fill-opacity='0.20'/%3E%3Ccircle cx='99.1' cy='50.6' r='0.40' fill='%23fff' fill-opacity='0.32'/%3E%3Ccircle cx='155.1' cy='57.0' r='1.08' fill='%23fff' fill-opacity='0.49'/%3E%3Ccircle cx='56.0' cy='138.9' r='0.37' fill='%23fff' fill-opacity='0.66'/%3E%3Ccircle cx='46.3' cy='173.8' r='0.36' fill='%23fff' fill-opacity='0.15'/%3E%3Ccircle cx='204.3' cy='265.2' r='0.80' fill='%23fff' fill-opacity='0.64'/%3E%3Ccircle cx='103.8' cy='283.1' r='0.49' fill='%23fff' fill-opacity='0.41'/%3E%3Ccircle cx='66.8' cy='16.7' r='0.36' fill='%23fff' fill-opacity='0.30'/%3E%3Ccircle cx='163.0' cy='242.0' r='0.38' fill='%23C4DCFF' fill-opacity='0.60'/%3E%3Ccircle cx='278.7' cy='65.4' r='0.43' fill='%23C4DCFF' fill-opacity='0.33'/%3E%3Ccircle cx='167.6' cy='107.8' r='0.69' fill='%23C4DCFF' fill-opacity='0.53'/%3E%3Ccircle cx='275.7' cy='247.6' r='0.35' fill='%23fff' fill-opacity='0.36'/%3E%3Ccircle cx='237.6' cy='263.3' r='0.36' fill='%23C4DCFF' fill-opacity='0.53'/%3E%3Ccircle cx='239.0' cy='139.4' r='0.55' fill='%23FFE2B4' fill-opacity='0.62'/%3E%3Ccircle cx='271.3' cy='259.8' r='1.43' fill='%23C4DCFF' fill-opacity='0.65'/%3E%3Ccircle cx='282.8' cy='76.3' r='1.40' fill='%23FFE2B4' fill-opacity='0.67'/%3E%3Ccircle cx='207.3' cy='180.0' r='1.39' fill='%23fff' fill-opacity='0.28'/%3E%3Ccircle cx='3.1' cy='43.2' r='0.41' fill='%23FFE2B4' fill-opacity='0.25'/%3E%3Ccircle cx='317.6' cy='60.5' r='0.84' fill='%23fff' fill-opacity='0.20'/%3E%3Ccircle cx='18.7' cy='216.6' r='0.54' fill='%23fff' fill-opacity='0.43'/%3E%3Ccircle cx='239.5' cy='138.1' r='0.36' fill='%23fff' fill-opacity='0.39'/%3E%3Ccircle cx='187.8' cy='48.8' r='0.35' fill='%23FFE2B4' fill-opacity='0.65'/%3E%3Ccircle cx='86.1' cy='109.7' r='1.01' fill='%23fff' fill-opacity='0.36'/%3E%3Ccircle cx='252.0' cy='179.9' r='0.70' fill='%23FFE2B4' fill-opacity='0.32'/%3E%3Ccircle cx='65.6' cy='305.4' r='0.59' fill='%23C4DCFF' fill-opacity='0.57'/%3E%3Ccircle cx='18.9' cy='167.8' r='0.90' fill='%23fff' fill-opacity='0.17'/%3E%3Ccircle cx='316.6' cy='78.5' r='1.18' fill='%23C4DCFF' fill-opacity='0.39'/%3E%3Ccircle cx='302.3' cy='44.0' r='0.44' fill='%23C4DCFF' fill-opacity='0.66'/%3E%3Ccircle cx='218.1' cy='296.0' r='0.39' fill='%23C4DCFF' fill-opacity='0.17'/%3E%3Ccircle cx='5.5' cy='164.6' r='0.44' fill='%23fff' fill-opacity='0.18'/%3E%3Ccircle cx='275.7' cy='311.9' r='0.80' fill='%23fff' fill-opacity='0.31'/%3E%3Ccircle cx='63.2' cy='300.7' r='0.62' fill='%23FFE2B4' fill-opacity='0.21'/%3E%3Ccircle cx='51.1' cy='210.3' r='0.57' fill='%23fff' fill-opacity='0.60'/%3E%3Ccircle cx='117.7' cy='277.8' r='0.36' fill='%23fff' fill-opacity='0.18'/%3E%3Ccircle cx='130.9' cy='266.2' r='0.97' fill='%23FFE2B4' fill-opacity='0.46'/%3E%3Ccircle cx='0.2' cy='313.2' r='1.18' fill='%23fff' fill-opacity='0.58'/%3E%3Ccircle cx='206.1' cy='232.7' r='0.36' fill='%23fff' fill-opacity='0.44'/%3E%3Ccircle cx='122.5' cy='124.9' r='1.02' fill='%23C4DCFF' fill-opacity='0.42'/%3E%3Ccircle cx='231.6' cy='133.3' r='0.75' fill='%23C4DCFF' fill-opacity='0.61'/%3E%3Ccircle cx='244.2' cy='148.7' r='0.67' fill='%23fff' fill-opacity='0.59'/%3E%3C/svg%3E") 0 0/320px 320px,radial-gradient(ellipse at 18% 8%,rgba(31,143,128,.18),transparent 55%),radial-gradient(ellipse at 88% 28%,rgba(122,63,184,.16),transparent 50%),radial-gradient(ellipse at 50% 105%,rgba(184,116,28,.12),transparent 55%),var(--bg)}
+body::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='230' height='230'%3E%3Ccircle cx='83.8' cy='148.4' r='0.38' fill='%23fff' fill-opacity='0.36'/%3E%3Ccircle cx='164.6' cy='122.8' r='0.35' fill='%23C4DCFF' fill-opacity='0.42'/%3E%3Ccircle cx='200.1' cy='187.8' r='0.40' fill='%23fff' fill-opacity='0.24'/%3E%3Ccircle cx='173.3' cy='79.7' r='1.53' fill='%23C4DCFF' fill-opacity='0.50'/%3E%3Ccircle cx='144.6' cy='56.9' r='0.71' fill='%23fff' fill-opacity='0.15'/%3E%3Ccircle cx='76.2' cy='224.8' r='0.54' fill='%23fff' fill-opacity='0.45'/%3E%3Ccircle cx='170.9' cy='36.5' r='0.45' fill='%23C4DCFF' fill-opacity='0.59'/%3E%3Ccircle cx='91.3' cy='203.5' r='1.73' fill='%23C4DCFF' fill-opacity='0.88'/%3E%3Ccircle cx='205.7' cy='191.2' r='1.02' fill='%23C4DCFF' fill-opacity='0.61'/%3E%3Ccircle cx='65.6' cy='81.9' r='0.55' fill='%23fff' fill-opacity='0.40'/%3E%3Ccircle cx='191.9' cy='139.2' r='0.36' fill='%23FFE2B4' fill-opacity='0.28'/%3E%3Ccircle cx='124.7' cy='132.8' r='0.47' fill='%23fff' fill-opacity='0.33'/%3E%3Ccircle cx='221.9' cy='2.2' r='1.27' fill='%23fff' fill-opacity='0.31'/%3E%3Ccircle cx='73.5' cy='199.7' r='1.58' fill='%23fff' fill-opacity='0.69'/%3E%3C/svg%3E") 40px 70px/230px 230px;opacity:.35;animation:titila 6s ease-in-out infinite alternate}
+@keyframes titila{to{opacity:.95}}
 body{font:15px/1.5 var(--body);padding-inline:16px;padding-block:calc(16px + env(safe-area-inset-top,0px)) 40px}
 .wrap{max-width:1200px;margin:0 auto;display:grid;gap:16px}
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
@@ -20,7 +25,7 @@ h1{font:800 clamp(28px,5vw,44px)/1 var(--display);margin:0;letter-spacing:-.02em
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .pill{font:600 11px var(--mono);padding:3px 9px;border-radius:99px;background:var(--surf2);color:var(--mute)}
 .pill.on{background:var(--vit);color:#1B1305}.pill.ok{color:var(--life)}
-.panel{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;align-content:start;min-width:0}
+.panel{background:rgba(17,34,42,.86);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;align-content:start;min-width:0}
 h2{font:700 13px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--mute);margin:0;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 h3{margin:0;font:700 16px var(--display)}
 .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
@@ -48,7 +53,16 @@ input{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px 
 .leyes summary{cursor:pointer;font:600 12px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
 .leyes ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:13px}.leyes li span{color:var(--mute)}
 .stage{position:relative;border-radius:10px;overflow:hidden;background:#061014;aspect-ratio:16/9}
-#cv{display:block;width:100%;height:100%;cursor:crosshair}
+#cv{display:block;width:100%;height:100%;cursor:crosshair;touch-action:manipulation}
+@media(max-width:600px){.stage{aspect-ratio:4/3}}
+.galaxia{padding:0;gap:0;overflow:hidden}.galaxia>h2{padding:14px 16px 12px}
+.gstage{position:relative;aspect-ratio:2/1;background:#030810}@media(max-width:900px){.gstage{aspect-ratio:4/3}}@media(max-width:600px){.gstage{aspect-ratio:4/5}}
+#gx{display:block;width:100%;height:100%;touch-action:manipulation}
+.gtip{position:absolute;left:0;top:0;width:max-content;max-width:min(240px,calc(100% - 16px));display:grid;gap:3px;justify-items:start;padding:8px 11px 10px;border-radius:12px;background:rgba(6,16,22,.93);border:1px solid var(--line);box-shadow:0 10px 28px rgba(0,0,0,.5);font-size:12.5px;line-height:1.4}
+.gtip p{margin:0;color:var(--mute)}.gtip button{margin-top:4px}
+.gpie{padding:12px 16px 14px}.legend i.hl{width:18px;height:3px;border-radius:2px;background:linear-gradient(90deg,#62D6B8,#C38BF2);vertical-align:3px}
+.col.con-mini{grid-template-columns:52px 1fr;column-gap:12px}.col.con-mini>canvas.mini{grid-row:1/span 5;grid-column:1;align-self:center}.col.con-mini>:not(canvas){grid-column:2}
+button.sm>canvas.mini{vertical-align:-5px;margin:-3px 6px -3px -3px}
 .overlay{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:rgba(6,16,20,.8);padding:16px;font:800 22px var(--display)}
 .alloc{display:grid;gap:8px}.alloc .r{display:grid;grid-template-columns:92px 1fr 40px;align-items:center;gap:10px;font-size:13px}.alloc b{font:600 13px var(--mono);text-align:right}.alloc .bar i{background:var(--vit)}
 .msg{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--surf2);border-left:3px solid var(--vit);min-height:44px}
@@ -111,7 +125,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
 @keyframes crSalta{30%{transform:translateY(-16px) scale(.96,1.05)}55%{transform:translateY(0) scale(1.07,.93)}75%{transform:scale(.98,1.02)}}
 .cr-nam{animation:crNam .7s ease-in-out}
 @keyframes crNam{20%,60%{transform:scale(1.06,.94)}40%,80%{transform:scale(.97,1.03)}}
-@media(prefers-reduced-motion:reduce){.bar i{transition:none}.cr-anim *,.hv *,.hv-t1,.hv-t2,.cr-z,.cr-salta,.cr-nam{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.bar i{transition:none}.cr-anim *,.hv *,.hv-t1,.hv-t2,.cr-z,.cr-salta,.cr-nam{animation:none!important}body::after{animation:none}}
 </style>
 </head>
 <body>
@@ -174,6 +188,19 @@ a{color:var(--vit)}.full{flex-basis:100%}
       </div>
     </div>
     <details class="leyes" id="criaDiarioBox" hidden><summary>Su diario</summary><ul class="log" id="criaDiario"></ul></details>
+  </section>
+
+  <section class="panel galaxia" id="galaxia">
+    <h2>Galaxia VITA <span class="pill" id="gInfo"></span></h2>
+    <div class="gstage"><canvas id="gx" role="img" aria-label="Galaxia VITA"></canvas><div class="gtip" id="gTip" hidden></div></div>
+    <div class="legend gpie">
+      <span><i style="background:#FFF4CF;border-radius:50%"></i>VITA, la ley</span>
+      <span><i style="background:var(--vit)"></i>órbita Ámbar</span>
+      <span><i style="background:var(--epica)"></i>órbita Oruz</span>
+      <span><i style="background:#7FA6C9"></i>ciudadanas</span>
+      <span><i class="hl"></i>hilo de luz: de madre a hija</span>
+      <span>Toca una colonia, VITA o un planeta.</span>
+    </div>
   </section>
 
   <section class="panel">
@@ -240,7 +267,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
   <div class="grid">
     <section class="panel">
       <h2><span id="cName">Colonia</span> <span class="pill" id="cGenome"></span></h2>
-      <div class="stage"><canvas id="cv" aria-label="Células de la colonia. Toca las esporas doradas para minar VIT."></canvas><div class="overlay" id="deadOv" hidden>Colonia extinta. La supervisora la hará renacer cuando otra colonia pueda donar células.</div></div>
+      <div class="stage"><canvas id="cv" aria-label="Mini mundo de la colonia: cada célula es una criatura. Toca las esporas doradas para minar VIT."></canvas><div class="overlay" id="deadOv" hidden>Colonia extinta. La supervisora la hará renacer cuando otra colonia pueda donar células.</div></div>
       <div class="stats">
         <div class="v"><span class="k">Energía</span><span class="n" id="sE"></span><div class="bar"><i id="bE"></i></div></div>
         <div class="v"><span class="k">Salud</span><span class="n" id="sS"></span><div class="bar"><i id="bS"></i></div></div>
@@ -345,11 +372,12 @@ a{color:var(--vit)}.full{flex-basis:100%}
 <div id="toast" hidden></div>
 
 <script src="/cria-arte.js"></script>
+<script src="/galaxia.js"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const RN = ["Común", "Rara", "Épica", "Legendaria"], RC = ["#8AA4AD", "#6FA8F5", "#C38BF2", "#F0B03F"];
+const RN = ["Común", "Rara", "Épica", "Legendaria"];
 let token = null; try { token = localStorage.getItem("vita-token"); } catch {}
 let W = null, C = null, sel = null, selReg = null, restoring = false, lastSave = 0;
 try { sel = localStorage.getItem("vita-col"); } catch {}
@@ -440,7 +468,7 @@ $("iShare").onclick = async () => {
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-a]"); if (!b) return;
   const d = b.dataset;
-  if (d.a === "col") { sel = d.id; try { localStorage.setItem("vita-col", sel); } catch {} refreshColony(); renderWorld(); }
+  if (d.a === "col") elegir(d.id);
   else if (d.a === "adopt") act({ type: "adopt", colony: sel, cell: d.id }, "Célula adoptada");
   else if (d.a === "sell") act({ type: "sell", colony: d.col, cell: d.id }, "Célula devuelta al tesoro");
   else if (d.a === "up") act({ type: "upgrade", colony: sel, key: d.id }, "Mejora pagada");
@@ -480,6 +508,9 @@ async function habito(k) {
   await refresh();
 }
 
+function elegir(id) { sel = id; try { localStorage.setItem("vita-col", sel); } catch {} refreshColony(); renderWorld(); }
+function irA(k) { ({ colonia: $("cv"), rangos: $("tiers"), oruz: $("oruz"), lumar: $("lumar"), cria: $("criaPanel"), cenit: $("cenit"), aero: $("aero") })[k]?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+
 function hhmm(m) { return m == null ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
 function renderWorld() {
   if (!W) return;
@@ -510,6 +541,7 @@ function renderWorld() {
   $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
   renderRangos();
   try { renderCria(); } catch (e) { console.error("[cría]", e); } // la cría nunca rompe el resto de la web
+  try { GX?.datos(W, sel); window.Galaxia?.minis(document, W); } catch (e) { console.error("[galaxia]", e); } // como la cría, la galaxia nunca rompe el resto
   if (W.ai.report) $("report").textContent = W.ai.report;
   $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");
   $("chainOk").textContent = W.chainOk ? "verificada" : "alterada"; $("chainOk").className = "pill " + (W.chainOk ? "ok" : "");
@@ -795,6 +827,7 @@ function renderColony() {
   $("sp").textContent = `1 participación = ${C.sharePrice} VIT · ${C.investors} participantes`;
   $("market").innerHTML = C.market.map(c => `<tr><td>${c.id}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td>${c.g.ef}·${c.g.res}·${c.g.fer}</td><td class="r">${c.price}</td><td><button class="sm primary" data-a="adopt" data-id="${c.id}" ${me && me.vit >= c.price ? "" : "disabled"}>Adoptar</button></td></tr>`).join("") || `<tr><td colspan="5">No hay células libres.</td></tr>`;
   $("shop").innerHTML = Object.entries(C.upgrades).map(([k, u]) => `<div class="item"><h3>${esc(u.name)} <span class="note">nivel ${u.level}/${u.cost.length}</span></h3><p>${esc(u.desc)}</p>${u.next == null ? `<span class="done">Máximo</span>` : `<button class="sm" data-a="up" data-id="${k}" ${me && me.vit >= u.next ? "" : "disabled"}>Pagar · ${u.next} VIT</button>`}</div>`).join("");
+  try { MW?.datos(C, W); } catch (e) { console.error("[mini mundo]", e); }
 }
 
 async function refresh() {
@@ -810,44 +843,15 @@ async function refresh() {
 }
 async function refreshColony() { if (!sel) return; const c = await api("/api/colony/" + sel); if (c && c.id) { C = c; renderColony(); } }
 
-// ---------- canvas ----------
-const cv = $("cv"), cx = cv.getContext("2d"); let w = 0, h = 0; const vis = new Map(); let spores = [];
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-function resize() { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; w = r.width; h = r.height; cv.width = w * d; cv.height = h * d; cx.setTransform(d, 0, 0, d, 0, 0); }
-new ResizeObserver(resize).observe(cv); resize();
-cv.addEventListener("pointerdown", async e => {
-  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-  const i = spores.findIndex(s => Math.hypot(s.x - x, s.y - y) < 22);
-  if (i < 0) return;
-  spores.splice(i, 1);
-  if (!token) return toast("Entra con tu nombre para minar esporas");
-  act({ type: "spore" }, "Espora minada");
-});
-function draw(t) {
-  const g = cx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, Math.max(w, h) * .7);
-  const day = W?.minuto != null ? Math.max(0, Math.sin((W.minuto / 60 - 6) / 12 * Math.PI)) : .6;
-  g.addColorStop(0, `rgba(40,110,105,${0.15 + day * 0.4})`); g.addColorStop(1, "#061014");
-  cx.fillStyle = g; cx.fillRect(0, 0, w, h);
-  if (C) {
-    const live = new Set();
-    for (const [id, rar, fer, mine] of C.dots) {
-      live.add(id);
-      let p = vis.get(id);
-      if (!p) { p = { x: w / 2 + (Math.random() - .5) * 140, y: h / 2 + (Math.random() - .5) * 90, vx: 0, vy: 0, ph: Math.random() * 6 }; vis.set(id, p); }
-      if (!reduce) { p.vx = (p.vx + (w / 2 - p.x) * .00004 + (Math.random() - .5) * .06) * .99; p.vy = (p.vy + (h / 2 - p.y) * .00006 + (Math.random() - .5) * .06) * .99; p.x = Math.max(4, Math.min(w - 4, p.x + p.vx)); p.y = Math.max(4, Math.min(h - 4, p.y + p.vy)); }
-      const rad = (3 + rar * 1.3 + fer / 8) * (1 + Math.sin(t / 600 + p.ph) * .12);
-      cx.beginPath(); cx.arc(p.x, p.y, rad, 0, 6.283); cx.fillStyle = rar ? RC[rar] + "cc" : `hsla(${160 - (100 - C.salud) * 1.4},65%,50%,.75)`;
-      if (rar >= 2) { cx.shadowColor = RC[rar]; cx.shadowBlur = 10; } cx.fill(); cx.shadowBlur = 0;
-      if (mine) { cx.strokeStyle = "#F0B03F"; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(p.x, p.y, rad + 3, 0, 6.283); cx.stroke(); }
-    }
-    for (const k of vis.keys()) if (!live.has(k)) vis.delete(k);
-  }
-  for (const s of spores) { s.life--; cx.beginPath(); cx.arc(s.x, s.y + Math.sin(t / 400 + s.x) * 3, 7, 0, 6.283); cx.fillStyle = `rgba(240,176,63,${Math.min(1, s.life / 60)})`; cx.shadowColor = "#F0B03F"; cx.shadowBlur = 14; cx.fill(); cx.shadowBlur = 0; }
-  spores = spores.filter(s => s.life > 0);
-  if (C?.alive && spores.length < 2 && Math.random() < .004) spores.push({ x: 20 + Math.random() * (w - 40), y: 20 + Math.random() * (h - 40), life: 700 });
-  requestAnimationFrame(draw);
-}
-requestAnimationFrame(draw);
+// ---------- galaxia y mini mundo (public/galaxia.js) ----------
+let GX = null, MW = null;
+try { // si el navegador no puede dibujarla, la app sigue funcionando sin ella
+  GX = window.Galaxia?.galaxia($("gx"), { tip: $("gTip"), info: $("gInfo"), sur: SUR, onSelect: elegir, onIr: irA });
+  MW = window.Galaxia?.colonia($("cv"), {
+    sur: SUR,
+    onSpore() { if (!token) return toast("Entra con tu nombre para minar esporas"); act({ type: "spore" }, "Espora minada"); },
+  });
+} catch (e) { console.error("[galaxia]", e); }
 
 refresh();
 setInterval(() => { if (!document.hidden) refresh(); }, 5000);
