@@ -10,6 +10,7 @@ import * as oruz from "./oruz.js";
 import * as lumar from "./lumar.js";
 import * as ret from "./retention.js";
 import * as vita from "./vita.js";
+import * as cria from "./cria.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
@@ -172,6 +173,7 @@ function worldView(u) {
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u), vita: vita.view(world),
+    cria: cria.view(world, u),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }
@@ -187,7 +189,7 @@ async function handleAction(u, b) {
     case "invest": return col ? core.invest(world, col, u, Number(b.amount)) : needCol();
     case "withdraw": return col ? core.withdraw(world, col, u) : needCol();
     case "claim": return core.claimMission(world, u, b.key);
-    case "habit": return core.logHabit(world, u, col, b.key);
+    case "habit": { const r = core.logHabit(world, u, col, b.key); if (r.ok) r.cria = cria.habito(world, u, b.key); return r; }
     case "ad": return core.watchedAd(world, u);
     case "spore": return core.mineSpore(world, u, 1 + Math.floor(Math.random() * 3));
     case "amber_collect": return oruz.collectAmber(world, u, String(b.id || ""));
@@ -197,6 +199,7 @@ async function handleAction(u, b) {
     case "pearl_give": return lumar.givePearl(world, u, String(b.id || ""), b.azar === true ? null : String(b.code || ""));
     case "pearl_infuse": return col ? lumar.infusePearl(world, u, String(b.id || ""), col) : needCol();
     case "welcome_seen": u.welcome = null; u.premio = null; return { ok: true };
+    case "cria": return cria.action(world, u, b);
     case "buy_demo": {
       if (!DEMO_PURCHASES) return { ok: false, error: "Los pagos aún no están activados" };
       core.grant(world, u, 50, "compra demo"); world.ai.demoRevenueUsd += 0.99;
@@ -309,7 +312,7 @@ async function route(req, res) {
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
         worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) }, vita: vita.view(world),
-        legalCompleto: legalInfo().completo, retention: ret.metrics(world), saves: !!SAVE_KEY,
+        legalCompleto: legalInfo().completo, retention: ret.metrics(world), saves: !!SAVE_KEY, crias: cria.metrics(world),
       });
     }
     // Para calibrar TRUSTED_PROXY_HOPS tras desplegar: "ip" debe ser tu IP pública.
