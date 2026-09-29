@@ -15,6 +15,8 @@ import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
 import { newRecoveryCode, recoveryHash, validCode } from "./cuentas.js";
 import { legalInfo, legalPage } from "./legal.js";
+import { createCheckout, handleEvent, packsView, paymentsConfig, paymentsMetrics, verifySignature } from "./pagos.js";
+import { adsConfig, adsHead, adsTxt, redeemAd, startAd } from "./anuncios.js";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.PORT || 3000);
@@ -27,6 +29,10 @@ const SUPERVISOR_EVERY = Number(process.env.SUPERVISOR_EVERY_TICKS || (FAST ? 54
 const TZ = process.env.GAME_TZ || "Europe/Madrid";
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 const DEMO_PURCHASES = process.env.DEMO_PURCHASES === "1";
+// Pagos reales y anuncios reales: apagados hasta que el dueño pone sus claves en Render.
+const PAGOS = paymentsConfig(), ANUNCIOS = adsConfig();
+// Dirección pública para volver de la página de pago (Render la da en RENDER_EXTERNAL_URL).
+const PUBLIC_URL = String(process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
 // Proxies de confianza delante del servidor (Render = 1). Con 0 se ignora X-Forwarded-For.
 const TRUSTED_PROXY_HOPS = Number(process.env.TRUSTED_PROXY_HOPS || 0);
 const JOIN_PER_HOUR = Number(process.env.JOIN_PER_HOUR || 60); // cuentas nuevas por hora en todo el servidor
@@ -62,6 +68,9 @@ async function save() {
   await writeFile(tmp, JSON.stringify(world));
   await rename(tmp, WORLD_FILE);
 }
+// Los guardados van en fila: dos a la vez escribirían el mismo world.json.tmp.
+let saving = Promise.resolve();
+const saveNow = () => (saving = saving.then(save, save));
 
 // ---------- entorno ----------
 // Fecha y hora locales del juego: { day: días desde 1970, minute: minuto del día }
@@ -139,10 +148,14 @@ function send(res, code, body, headers = {}) {
   res.writeHead(code, { "content-type": typeof body === "object" && !Buffer.isBuffer(body) ? "application/json; charset=utf-8" : "text/plain; charset=utf-8", "cache-control": "no-store", ...headers });
   res.end(data);
 }
-async function readBody(req, max = 10000) {
+async function readRaw(req, max) {
   let size = 0; const chunks = [];
   for await (const c of req) { size += c.length; if (size > max) throw new Error("too_large"); chunks.push(c); }
-  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+  return Buffer.concat(chunks);
+}
+async function readBody(req, max = 10000) {
+  const raw = await readRaw(req, max);
+  return raw.length ? JSON.parse(raw.toString("utf8")) : {};
 }
 function userFrom(req) {
   const m = /^Bearer ([a-f0-9]{48})$/.exec(req.headers.authorization || "");
@@ -171,7 +184,8 @@ function worldView(u) {
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
     cria: cria.view(world, u),
-    habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
+    habits: core.HABITS, ads: { ...core.ADS, enabled: true, real: ANUNCIOS.enabled }, demoPurchases: DEMO_PURCHASES && !PAGOS.enabled,
+    pagos: PAGOS.enabled ? { enabled: true, test: !PAGOS.live, packs: packsView(PAGOS) } : { enabled: false },
   };
 }
 
@@ -187,7 +201,11 @@ async function handleAction(u, b) {
     case "withdraw": return col ? core.withdraw(world, col, u) : needCol();
     case "claim": return core.claimMission(world, u, b.key);
     case "habit": { const r = core.logHabit(world, u, col, b.key); if (r.ok) r.cria = cria.habito(world, u, b.key); return r; }
-    case "ad": return core.watchedAd(world, u);
+    case "ad": {
+      // Con anuncios reales solo se paga el vale de un anuncio que se ha visto entero.
+      if (ANUNCIOS.enabled) { const t = redeemAd(ANUNCIOS, u, b.ticket); if (!t.ok) return t; }
+      return core.watchedAd(world, u);
+    }
     case "spore": return core.mineSpore(world, u, 1 + Math.floor(Math.random() * 3));
     case "amber_collect": return oruz.collectAmber(world, u, String(b.id || ""));
     case "amber_infuse": return col ? oruz.infuseAmber(world, u, String(b.id || ""), col) : needCol();
@@ -198,7 +216,7 @@ async function handleAction(u, b) {
     case "welcome_seen": u.welcome = null; u.premio = null; return { ok: true };
     case "cria": return cria.action(world, u, b);
     case "buy_demo": {
-      if (!DEMO_PURCHASES) return { ok: false, error: "Los pagos aún no están activados" };
+      if (!DEMO_PURCHASES || PAGOS.enabled) return { ok: false, error: "Las compras de prueba no están activadas" };
       core.grant(world, u, 50, "compra demo"); world.ai.demoRevenueUsd += 0.99;
       return { ok: true };
     }
@@ -268,6 +286,40 @@ async function route(req, res) {
     return send(res, r.ok ? 200 : 400, r);
   }
 
+  // Pago real: abre la página de pago de Stripe. El VIT llega cuando Stripe avisa con el webhook.
+  if (url.pathname === "/api/pagos/checkout" && req.method === "POST") {
+    const u = userFrom(req); if (!u) return send(res, 401, { ok: false, error: "Entra con tu nombre primero" });
+    if (!PAGOS.enabled) return send(res, 400, { ok: false, error: "Los pagos aún no están activados" });
+    if (limited("pay:" + u.id, 10, 3600000)) return send(res, 429, { ok: false, error: "Demasiados intentos de pago; prueba en un rato" });
+    const b = await readBody(req);
+    if (b.acepto !== true) return send(res, 400, { ok: false, error: "Para comprar tienes que aceptar los términos" });
+    // La vuelta del pago nunca sale de la cabecera Host: la elige quien hace la petición.
+    if (!PUBLIC_URL) return send(res, 503, { ok: false, error: "Falta PUBLIC_URL en el servidor" });
+    const r = await createCheckout(world, PAGOS, u, String(b.pack || ""), PUBLIC_URL);
+    dirty = true;
+    return send(res, r.ok ? 200 : 400, r);
+  }
+  if (url.pathname === "/api/pagos/webhook" && req.method === "POST") {
+    if (!PAGOS.enabled) return send(res, 404, { ok: false });
+    const raw = await readRaw(req, 262144);
+    if (!verifySignature(raw, req.headers["stripe-signature"], PAGOS.hook)) return send(res, 400, { ok: false, error: "Firma no válida" });
+    const r = handleEvent(world, PAGOS, JSON.parse(raw.toString("utf8")));
+    dirty = true;
+    // Stripe no repite un aviso contestado con 200: se guarda antes de contestar (si falla, 500 y Stripe reintenta).
+    await saveNow();
+    if (r.note === "entregado") console.log(`[pagos] ${r.user} recibe ${r.vit} VIT`);
+    return send(res, 200, { ok: true });
+  }
+
+  // Anuncio real: el servidor da un vale que se canjea al terminar de verlo.
+  if (url.pathname === "/api/anuncio" && req.method === "POST") {
+    const u = userFrom(req); if (!u) return send(res, 401, { ok: false, error: "Entra con tu nombre primero" });
+    if (!ANUNCIOS.enabled) return send(res, 400, { ok: false, error: "Los anuncios reales aún no están activados" });
+    const r = startAd(u);
+    return send(res, r.ok ? 200 : 400, r);
+  }
+  if (url.pathname === "/ads.txt" && ANUNCIOS.enabled) return send(res, 200, adsTxt(ANUNCIOS), { "cache-control": "public, max-age=3600" });
+
   // Copia firmada de la cuenta: el navegador la guarda y la devuelve si el servidor se reinició
   if (url.pathname === "/api/save" && req.method === "GET") {
     // Sin 401: el navegador borra su token ante un 401 y entonces ya no podría recuperar la cuenta
@@ -309,7 +361,7 @@ async function route(req, res) {
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
         worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
-        legalCompleto: legalInfo().completo, retention: ret.metrics(world), saves: !!SAVE_KEY, crias: cria.metrics(world),
+        legalCompleto: legalInfo().completo, pagos: paymentsMetrics(world, PAGOS), anunciosReales: ANUNCIOS.enabled, retention: ret.metrics(world), saves: !!SAVE_KEY, crias: cria.metrics(world),
       });
     }
     // Para calibrar TRUSTED_PROXY_HOPS tras desplegar: "ip" debe ser tu IP pública.
@@ -328,7 +380,8 @@ async function route(req, res) {
     const file = path.join(ROOT, "public", path.normalize(rel));
     if (!file.startsWith(path.join(ROOT, "public"))) return send(res, 403, "Prohibido");
     try {
-      const data = await readFile(file);
+      let data = await readFile(file);
+      if (ANUNCIOS.enabled && rel === "index.html") data = data.toString("utf8").replace("</head>", adsHead(ANUNCIOS) + "</head>");
       return send(res, 200, data, { "content-type": MIME[path.extname(file)] || "application/octet-stream", "cache-control": "public, max-age=300" });
     } catch { /* cae al 404 */ }
   }
@@ -341,11 +394,15 @@ if (rangos.step(world)) dirty = true; // primer consejo de VITA si el mundo aún
 await refreshWeather();
 setInterval(refreshWeather, 15 * 60000).unref();
 setInterval(tick, TICK_MS);
-setInterval(() => save().catch(e => console.error("Guardado falló:", e.message)), 30000);
+setInterval(() => saveNow().catch(e => console.error("Guardado falló:", e.message)), 30000);
 const server = http.createServer((req, res) => route(req, res).catch(e => {
   if (e.message === "too_large") return send(res, 413, { ok: false, error: "Petición demasiado grande" });
   if (e instanceof SyntaxError) return send(res, 400, { ok: false, error: "JSON inválido" });
   console.error(e); send(res, 500, { ok: false, error: "Error interno" });
 }));
-server.listen(PORT, () => console.log(`Colonia VITA en http://localhost:${PORT} · modo ${FAST ? "rápido" : "tiempo real"} · IA ${aiEnabled() ? "activa" : "solo autopiloto"} · copias ${SAVE_KEY ? "firmadas" : "desactivadas (falta ADMIN_TOKEN o SAVE_SECRET)"}`));
-for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => { dirty = true; await save().catch(() => {}); process.exit(0); });
+server.listen(PORT, () => console.log(`Colonia VITA en http://localhost:${PORT} · modo ${FAST ? "rápido" : "tiempo real"} · IA ${aiEnabled() ? "activa" : "solo autopiloto"}`
+  + ` · pagos ${PAGOS.enabled ? (PAGOS.live ? "reales" : "de prueba") : "apagados"} · anuncios ${ANUNCIOS.enabled ? (ANUNCIOS.test ? "AdSense de prueba" : "AdSense") : "de demostración"}`
+  + ` · copias ${SAVE_KEY ? "firmadas" : "desactivadas (falta ADMIN_TOKEN o SAVE_SECRET)"}`));
+if (!PAGOS.enabled && (PAGOS.key || PAGOS.hook)) console.warn(`Pagos apagados: falta ${PAGOS.missing.join(", ")}`);
+if (process.env.ADSENSE_CLIENT && !ANUNCIOS.enabled) console.warn("Anuncios apagados: ADSENSE_CLIENT debe tener la forma ca-pub-1234567890123456");
+for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => { dirty = true; await saveNow().catch(() => {}); process.exit(0); });

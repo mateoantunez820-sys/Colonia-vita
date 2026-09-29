@@ -67,6 +67,7 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:900px){.money{grid-template-columns:1fr 1fr}}@media(max-width:520px){.money{grid-template-columns:1fr}}
 .money div{background:var(--surf2);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start}.money p{margin:0;color:var(--mute);font-size:13px}
 a{color:var(--vit)}.full{flex-basis:100%}
+input[type=checkbox]{width:20px;height:20px;padding:0;margin:1px 0 0;flex:none;accent-color:var(--vit);border-radius:4px}
 .code{font:600 clamp(18px,4.5vw,26px) var(--mono);letter-spacing:.06em;margin:0;overflow-wrap:anywhere;user-select:all}
 .foot{text-align:center;padding:8px 0}
 .welcome{border-color:var(--vit)}.welcome p{margin:0}
@@ -146,6 +147,13 @@ a{color:var(--vit)}.full{flex-basis:100%}
       <button class="sm" id="demoBuy" hidden>Comprar 50 VIT · 0,99 € (demo)</button>
       <button class="sm" id="recNew">Código de recuperación</button>
     </div>
+  </section>
+
+  <section class="panel" id="buyPanel" hidden>
+    <h2>Comprar VIT <span class="pill" id="buyMode" hidden>modo de prueba</span></h2>
+    <div class="row" id="packs"></div>
+    <label class="note row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="buyOk"> <span>Acepto los <a href="/terminos">términos de uso</a> y que el VIT se entregue al momento. Si vivo en la Unión Europea, sé que por eso pierdo el derecho de desistimiento.</span></label>
+    <p class="note">VIT es una moneda del juego: no es una inversión y no se puede cambiar por dinero. Si eres menor de edad, pide permiso antes de comprar. Pagas en la página segura de Stripe, y el juego no ve tu tarjeta.</p>
   </section>
 
   <section class="panel" id="recPanel" hidden>
@@ -420,7 +428,33 @@ $("recNew").onclick = async () => {
 };
 $("recCopy").onclick = async () => { try { await navigator.clipboard.writeText($("recShow").textContent); toast("Código copiado"); } catch { toast("No se pudo copiar; apúntalo a mano"); } };
 $("recDone").onclick = () => { $("recPanel").hidden = true; };
-$("adBtn").onclick = () => act({ type: "ad" }, "Gracias por ver el anuncio: +2 VIT");
+$("adBtn").onclick = () => W?.ads?.real ? realAd() : act({ type: "ad" }, "Gracias por ver el anuncio: +2 VIT");
+// Anuncio real de AdSense: el servidor da un vale y solo paga si el anuncio se ve entero.
+let adBusy = false;
+async function realAd() {
+  if (adBusy) return;
+  if (typeof window.adBreak !== "function") return toast("Los anuncios aún no han cargado; prueba en unos segundos");
+  adBusy = true;
+  let t;
+  try { t = await api("/api/anuncio", {}); } catch { t = { ok: false, error: "Sin conexión con el servidor" }; }
+  if (!t.ok) { adBusy = false; return toast(t.error || "No se pudo"); }
+  let shown = false, answered = false;
+  // Si Google no responde (por ejemplo, con un bloqueador de anuncios), se avisa en vez de no hacer nada.
+  const silent = setTimeout(() => { if (!answered) { adBusy = false; toast("No se pudo cargar el anuncio. Si usas un bloqueador de anuncios, desactívalo aquí para ganar VIT"); } }, 8000);
+  window.adBreak({
+    type: "reward", name: "vit",
+    beforeReward: showAdFn => { answered = true; showAdFn(); },
+    adViewed: () => { shown = true; act({ type: "ad", ticket: t.ticket }, "Gracias por ver el anuncio: +2 VIT"); },
+    adDismissed: () => { shown = true; toast("El anuncio se cerró antes de terminar: sin recompensa"); },
+    adBreakDone: () => { answered = true; adBusy = false; clearTimeout(silent); if (!shown) toast("Ahora no hay anuncios disponibles; prueba más tarde"); },
+  });
+}
+async function buy(pack) {
+  if (!$("buyOk").checked) return toast("Marca la casilla de los términos para comprar");
+  const r = await api("/api/pagos/checkout", { pack, acepto: true });
+  if (!r.ok) return toast(r.error || "No se pudo abrir el pago");
+  location.href = r.url;
+}
 $("demoBuy").onclick = () => act({ type: "buy_demo" }, "+50 VIT (compra de prueba)");
 $("feedBtn").onclick = () => act({ type: "feed", colony: sel }, "Colonia alimentada");
 $("invBtn").onclick = () => act({ type: "invest", colony: sel, amount: +$("invAmt").value }, "VIT confiado a la IA");
@@ -447,6 +481,7 @@ document.addEventListener("click", e => {
   else if (d.a === "claim") act({ type: "claim", key: d.id }, "Misión cobrada");
   else if (d.a === "habit") habito(d.id);
   else if (d.a === "cria") criaAct(d.op);
+  else if (d.a === "buy") buy(d.id);
   else if (d.a === "reg") { selReg = d.id; renderOruz(); }
   else if (d.a === "amb") act({ type: "amber_collect", id: d.id }, "Ámbar recogido: ya es tuyo");
   else if (d.a === "inf") act({ type: "amber_infuse", id: d.id, colony: sel }, "Ámbar infundido en la colonia");
@@ -499,6 +534,11 @@ function renderWorld() {
     $("adBtn").disabled = me.adsLeft <= 0; $("adBtn").textContent = me.adsLeft > 0 ? `Ver anuncio · +2 VIT (${me.adsLeft})` : "Anuncios de hoy vistos";
   }
   $("demoBuy").hidden = !W.demoPurchases;
+  $("buyPanel").hidden = !(me && W.pagos?.enabled);
+  if (W.pagos?.enabled) {
+    $("buyMode").hidden = !W.pagos.test;
+    $("packs").innerHTML = W.pagos.packs.map(p => `<button class="sm primary" data-a="buy" data-id="${esc(p.id)}">${p.vit} VIT · ${esc(p.price)}</button>`).join("");
+  }
   const cols = W.colonies;
   if (!sel || !cols.find(c => c.id === sel)) sel = (cols.find(c => c.alive) || cols[0]).id;
   $("fedCount").textContent = `${cols.filter(c => c.alive).length} vivas de ${cols.length}`;
@@ -848,6 +888,10 @@ function draw(t) {
   requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
+
+// Vuelta de la página de pago de Stripe.
+const pago = new URLSearchParams(location.search).get("pago");
+if (pago) { history.replaceState(null, "", location.pathname); setTimeout(() => toast(pago === "ok" ? "Pago recibido: tu VIT llega en unos segundos" : "Pago cancelado: no se te ha cobrado nada"), 400); }
 
 refresh();
 setInterval(() => { if (!document.hidden) refresh(); }, 5000);
