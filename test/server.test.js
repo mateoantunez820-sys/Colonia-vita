@@ -105,6 +105,35 @@ test("cada jugador recibe un huevo, lo abre con su calor y su cría siente sus h
   assert.equal(arte.status, 200); assert.ok(arte.text.includes("CriaArte"));
 });
 
+test("el aeropuerto y Cénit se ven en el mundo, una célula saca billete y los certificados que no existen dan 404", async () => {
+  const { token } = (await call("/api/join", { body: { name: "Cielo" } })).json;
+  const W = (await call("/api/world", { token })).json;
+  assert.equal(W.cenit.regions.length, 7);
+  assert.ok(W.cenit.cielo.luna.name && W.cenit.especies.poli.name === "Luciérnagas estelares");
+  assert.deepEqual(W.aeropuerto.mundos.map(M => M.k), ["ORZ", "LMR", "CEN"]);
+  assert.ok(W.aeropuerto.salidas.length >= 3 && W.aeropuerto.llegadas.length >= 3);
+  assert.equal(W.aeropuerto.me.pasaporte.nivel, "Pasajero");
+  assert.equal(W.me.viajando, 0);
+  assert.ok(W.tickMs > 0 && W.tickAt > 0, "el reloj de los horarios");
+  assert.equal((await call("/api/cenit/estrella/EST-00000000")).status, 404);
+  assert.equal((await call("/api/aeropuerto/celula/CEL-000000")).status, 404);
+  const colony = W.colonies[0].id;
+  for (const body of [{ type: "vuelo", cell: "CEL-000000", dest: "LMR" }, { type: "estrella_atrapar", id: "EST-00000000" }, { type: "estrella_deseo", id: "EST-00000000", colony }, { type: "deseo_sumarse", deseo: "D1" }]) {
+    const r = await call("/api/action", { token, body });
+    assert.equal(r.status, 400, body.type); assert.equal(r.json.ok, false);
+  }
+  // Adopta la célula más barata y la manda a Oruz
+  const cel = (await call("/api/colony/" + colony)).json.market.sort((a, b) => a.price - b.price)[0];
+  assert.equal((await call("/api/action", { token, body: { type: "adopt", colony, cell: cel.id } })).json.ok, true);
+  const v = await call("/api/action", { token, body: { type: "vuelo", cell: cel.id, dest: "ORZ" } });
+  assert.equal(v.status, 200, v.json.error); assert.match(v.json.num, /^VG 1\d\d$/);
+  const W2 = (await call("/api/world", { token })).json;
+  assert.equal(W2.me.viajando, 1);
+  assert.equal(W2.aeropuerto.me.viajes[0].cel, cel.id);
+  const pas = await call("/api/aeropuerto/celula/" + cel.id);
+  assert.equal(pas.status, 200); assert.equal(pas.json.donde, "En la terminal · Oruz"); assert.equal(pas.json.cadenaOk, true);
+});
+
 test("los términos, la privacidad y el aviso de VIT están publicados", async () => {
   const t = await call("/terminos");
   assert.equal(t.status, 200);

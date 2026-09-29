@@ -8,6 +8,8 @@ import * as core from "./core.js";
 import * as rangos from "./rangos.js";
 import * as oruz from "./oruz.js";
 import * as lumar from "./lumar.js";
+import * as cenit from "./cenit.js";
+import * as aeropuerto from "./aeropuerto.js";
 import * as ret from "./retention.js";
 import * as cria from "./cria.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
@@ -38,8 +40,9 @@ const SAVE_KEY = SAVE_SECRET ? core.hash("vita-save:" + SAVE_SECRET) : null;
 // Con la misma semilla, Oruz renace con el mismo mapa si el mundo se crea de nuevo
 const ORUZ_SEED = process.env.ORUZ_SEED || (SAVE_SECRET ? core.hash("oruz:" + SAVE_SECRET) : undefined);
 const LUMAR_SEED = ORUZ_SEED ? core.hash("lumar:" + ORUZ_SEED) : undefined;
+const CENIT_SEED = ORUZ_SEED ? core.hash("cenit:" + ORUZ_SEED) : undefined;
 
-let world, dirty = false, realWeather = null, simWeather = null, aiBusy = false;
+let world, dirty = false, realWeather = null, simWeather = null, aiBusy = false, tickAt = Date.now();
 const activity = new Map(); // uid -> último acceso
 const byToken = new Map();  // hash del token -> usuario
 const byRecovery = new Map(); // hash del código de recuperación -> usuario
@@ -54,6 +57,8 @@ async function load() {
   for (const u of Object.values(world.users)) { byToken.set(u.tokenHash, u); if (u.recoveryHash) byRecovery.set(u.recoveryHash, u); }
   if (!world.oruz) { oruz.ensure(world, ORUZ_SEED); dirty = true; }
   if (!world.lumar) { lumar.ensure(world, LUMAR_SEED, simNow()); dirty = true; }
+  if (!world.cenit) { cenit.ensure(world, CENIT_SEED, simNow()); dirty = true; }
+  if (!world.aeropuerto) { aeropuerto.ensure(world); dirty = true; }
 }
 async function save() {
   if (!dirty) return;
@@ -101,14 +106,19 @@ function currentWeather() {
 
 // ---------- bucle principal ----------
 const tickMs = { last: 0, max: 0 };
+// El cielo y el aeropuerto nunca paran la federación: si fallan, se registra y todo lo demás sigue
+function seguro(k, f, siFalla = null) { try { return f(); } catch (e) { console.error(`[${k}]`, e.message); return siFalla; } }
 function tick() {
   const t0 = performance.now();
   core.stepWorld(world, envFor);
   oruz.step(world);
   lumar.step(world, simNow());
+  seguro("Cénit", () => cenit.step(world, simNow()));
+  seguro("Aeropuerto", () => aeropuerto.step(world, { weather: currentWeather() }));
   rangos.step(world);
   ret.leagueTick(world);
   tickMs.last = performance.now() - t0; tickMs.max = Math.max(tickMs.max, tickMs.last);
+  tickAt = Date.now();
   dirty = true;
   if (!aiBusy && aiEnabled()) {
     const col = Object.values(world.colonies).filter(c => canConsult(world, c)).sort((a, b) => a.salud - b.salud || a.ai.lastCallTick - b.ai.lastCallTick)[0];
@@ -163,13 +173,15 @@ function roundSupply() { return Object.fromEntries(Object.entries(world.supply).
 function worldView(u) {
   return {
     tick: world.tick, mode: FAST ? "rápido" : "tiempo real", minuto: FAST ? null : realMinute(), weather: currentWeather(), stats: world.stats,
+    tickAt, tickMs: TICK_MS, // para pasar los ciclos del aeropuerto a horas del reloj
     colonies: Object.values(world.colonies).map(c => ({ ...core.colonySummary(world, c), rango: rangos.tag(world, c) })),
     rangos: rangos.view(world),
     supply: roundSupply(), players: Object.keys(world.users).length, online: [...activity.values()].filter(t => Date.now() - t < 120000).length,
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
-    chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
+    chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, viajando: seguro("Aeropuerto", () => aeropuerto.viajesDe(world, u.id).length, 0), ...ret.userExtras(world, u, SAVE_KEY) } : null,
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
+    cenit: seguro("Cénit", () => cenit.view(world, u)), aeropuerto: seguro("Aeropuerto", () => aeropuerto.view(world, u)),
     cria: cria.view(world, u),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
@@ -195,6 +207,10 @@ async function handleAction(u, b) {
     // Sin código solo si se pide expresamente: un código olvidado no manda la perla a otra persona
     case "pearl_give": return lumar.givePearl(world, u, String(b.id || ""), b.azar === true ? null : String(b.code || ""));
     case "pearl_infuse": return col ? lumar.infusePearl(world, u, String(b.id || ""), col) : needCol();
+    case "vuelo": return aeropuerto.reservar(world, u, String(b.cell || ""), String(b.dest || ""));
+    case "estrella_atrapar": return cenit.catchStar(world, u, String(b.id || ""));
+    case "estrella_deseo": return col ? cenit.wishStar(world, u, String(b.id || ""), col) : needCol();
+    case "deseo_sumarse": return cenit.joinWish(world, u, String(b.deseo || ""));
     case "welcome_seen": u.welcome = null; u.premio = null; return { ok: true };
     case "cria": return cria.action(world, u, b);
     case "buy_demo": {
@@ -297,6 +313,20 @@ async function route(req, res) {
   if (pm && req.method === "GET") {
     const c = lumar.certificate(world, pm[1]);
     return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa perla no existe en este mundo" });
+  }
+
+  // Certificado de origen de una estrella fugaz de Cénit
+  const em = /^\/api\/cenit\/estrella\/(EST-[0-9A-F]{8})$/.exec(url.pathname);
+  if (em && req.method === "GET") {
+    const c = cenit.certificate(world, em[1]);
+    return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa estrella no existe en este cielo" });
+  }
+
+  // Pasaporte de una célula: sus sellos, dónde está y sus vuelos en la cadena
+  const vm = /^\/api\/aeropuerto\/celula\/(CEL-[0-9A-F]{6})$/.exec(url.pathname);
+  if (vm && req.method === "GET") {
+    const c = aeropuerto.pasaporteCelula(world, vm[1]);
+    return c ? send(res, 200, c) : send(res, 404, { ok: false, error: "Esa célula no existe en este mundo" });
   }
 
   // Panel del dueño: métricas y registro de ingresos reales (que financian a las IA).

@@ -1,5 +1,5 @@
 // Retención: que los jugadores vuelvan y que no pierdan lo que consiguieron.
-// - Copia firmada de la cuenta (con su Ámbar y sus perlas), que guarda el navegador y sobrevive a los reinicios del servidor.
+// - Copia firmada de la cuenta (con su Ámbar, sus perlas, sus estrellas y sus células de viaje), que guarda el navegador y sobrevive a los reinicios del servidor.
 // - Informe "Mientras no estabas" al volver tras una hora o más.
 // - Liga semanal con premios en células raras, épicas y legendarias (no en VIT).
 // - Invitaciones que premian a los dos cuando el amigo juega 3 días distintos.
@@ -9,6 +9,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { hash, newCell, block, grant, cellPrice, positions, clog, wlog, cap, EVENTS, RARITY } from "./core.js";
 import { amberOf, ORUZ as ORUZ_CFG } from "./oruz.js";
 import { pearlsOf, LUMAR as LUMAR_CFG } from "./lumar.js";
+import { starsOf, CENIT as CENIT_CFG } from "./cenit.js";
+import { celulasDeViaje } from "./aeropuerto.js";
 
 const err = message => ({ ok: false, error: message });
 const DAY = 86400000;
@@ -22,16 +24,20 @@ const sign = (key, data) => createHmac("sha256", key).update(data).digest("base6
 export function makeSave(w, u, key, now = Date.now()) {
   if (!key) return null;
   const names = [], cells = [];
-  for (const col of Object.values(w.colonies)) for (const c of col.cells) {
-    if (c.owner !== u.id) continue;
-    let i = names.indexOf(col.name); if (i < 0) i = names.push(col.name) - 1;
-    cells.push([c.g.ef, c.g.res, c.g.fer, +c.mined.toFixed(2), i]);
-  }
+  // Cada célula guarda sus genes, lo que acuñó, su colonia y los sellos de sus viajes
+  const add = (c, colName) => {
+    let i = names.indexOf(colName); if (i < 0) i = names.push(colName) - 1;
+    cells.push(c.sellos?.length ? [c.g.ef, c.g.res, c.g.fer, +c.mined.toFixed(2), i, c.sellos] : [c.g.ef, c.g.res, c.g.fer, +c.mined.toFixed(2), i]);
+  };
+  for (const col of Object.values(w.colonies)) for (const c of col.cells) if (c.owner === u.id) add(c, col.name);
+  // Las que están de viaje también son suyas: si el servidor se reinicia, vuelven a su colonia
+  for (const v of celulasDeViaje(w, u.id)) add(v.cel, v.colName);
   // Las participaciones en los fondos de las IA se guardan por su valor neto de retirada
   const fondos = Math.floor(positions(w, u).reduce((s, p) => s + p.value * 0.95, 0));
   const ambar = amberOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
   const perlas = pearlsOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
-  const data = Buffer.from(JSON.stringify({ v: SAVE_VERSION, at: now, world: w.createdAt, user: u, names, cells, fondos, ambar, perlas })).toString("base64url");
+  const estrellas = starsOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
+  const data = Buffer.from(JSON.stringify({ v: SAVE_VERSION, at: now, world: w.createdAt, user: u, names, cells, fondos, ambar, perlas, estrellas })).toString("base64url");
   return `${data}.${sign(key, data)}`;
 }
 
@@ -59,12 +65,13 @@ export function restoreSave(w, blob, key, now = Date.now()) {
   // Llevan un código nuevo para no chocar con las de este mundo; si no caben, se pagan a precio de mercado.
   const alive = Object.values(w.colonies).filter(c => c.alive), placed = [];
   let refund = 0;
-  for (const [ef, res, fer, mined, i] of s.cells || []) {
+  for (const [ef, res, fer, mined, i, sellos] of s.cells || []) {
     const g = { ef, res, fer }, free = c => cap(c) - c.cells.length;
     const col = alive.find(c => c.name === s.names?.[i] && free(c) > 0) || alive.filter(c => free(c) > 0).sort((a, b) => free(b) - free(a))[0];
     if (!col) { refund += cellPrice({ g }); continue; }
     const cell = newCell(w, col, g, id);
     cell.mined = mined || 0;
+    if (Array.isArray(sellos) && sellos.length) cell.sellos = [...new Set(sellos.filter(k => ["ORZ", "LMR", "CEN"].includes(k)))];
     col.cells.push(cell); placed.push(cell.id);
   }
   const vit = Math.floor(s.user.vit || 0) + (s.fondos || 0) + refund;
@@ -80,22 +87,26 @@ export function restoreSave(w, blob, key, now = Date.now()) {
     prl.push(p.id);
   }
   if (prl.length) block(w, "restauración", "copia", id, prl.length, "PRL", prl.slice(0, 3));
-  u.welcome = { restaurada: true, at: now, vit, celulas: placed.length, ambar: amb.length, perlas: prl.length, reembolso: refund };
+  // Las estrellas atrapadas vuelven listas para pedir el deseo
+  const est = [];
+  if (w.cenit) for (const p of s.estrellas || []) if (!w.cenit.estrellas[p.id]) { w.cenit.estrellas[p.id] = { ...p, owner: id, ownerName: u.name, estado: "guardada" }; est.push(p.id); }
+  if (est.length) block(w, "restauración", "copia", id, est.length, "EST", est.slice(0, 3));
+  u.welcome = { restaurada: true, at: now, vit, celulas: placed.length, ambar: amb.length, perlas: prl.length, estrellas: est.length, reembolso: refund };
   u.ret = { seen: now, snap: null };
   stats(w).restores++;
   wlog(w, `${u.name} recupera su cuenta tras un reinicio del servidor`);
-  return { ok: true, user: u, cells: placed.length, vit, amber: amb.length, pearls: prl.length };
+  return { ok: true, user: u, cells: placed.length, vit, amber: amb.length, pearls: prl.length, stars: est.length };
 }
 
 // ---------- "Mientras no estabas" ----------
 export const RETURN_MS = 3600000; // una hora fuera ya cuenta como volver
 function snapshot(w, u, now) {
-  let cells = 0; const cols = {};
+  let cells = celulasDeViaje(w, u.id).length; const cols = {};
   for (const col of Object.values(w.colonies)) {
     let n = 0; for (const c of col.cells) if (c.owner === u.id) n++;
     if (n) { cells += n; cols[col.id] = n; }
   }
-  return { at: now, tick: w.tick, mined: u.mined || 0, vit: Math.floor(u.vit), cells, cols, graduadas: w.oruz?.graduadas || 0, ambar: w.oruz?.ambarSerial || 0, perlas: w.lumar?.perlaSerial || 0 };
+  return { at: now, tick: w.tick, mined: u.mined || 0, vit: Math.floor(u.vit), cells, cols, graduadas: w.oruz?.graduadas || 0, ambar: w.oruz?.ambarSerial || 0, perlas: w.lumar?.perlaSerial || 0, estrellas: w.cenit?.estrellaSerial || 0 };
 }
 function report(w, u, snap, away, now) {
   const cur = snapshot(w, u, now);
@@ -113,6 +124,10 @@ function report(w, u, snap, away, now) {
     // Una foto tomada antes de que existiera Lumar cuenta las perlas desde ahora
     perlasNuevas: Math.max(0, (w.lumar?.perlaSerial || 0) - (snap.perlas ?? cur.perlas)), perlasLibres: Object.values(w.lumar?.perlas || {}).filter(p => p.estado === "libre").length,
     regalos: pearlsOf(w, u.id, "regalada").filter(p => (p.regaladaEn || 0) > snap.at).map(p => ({ id: p.id, de: p.deName, color: p.color })).slice(0, 5), luna: w.lumar?.luna?.name || null,
+    // Las células que volvieron de viaje, las estrellas que cayeron y los deseos por colonias donde tiene células
+    viajes: (w.aeropuerto?.recientes || []).filter(r => r.owner === u.id && r.tick > snap.tick).slice(0, 5).map(r => ({ cel: r.cel, dest: r.dest, gano: r.gano, millas: r.millas })),
+    estrellasNuevas: Math.max(0, (w.cenit?.estrellaSerial || 0) - (snap.estrellas ?? cur.estrellas)), lluvia: w.cenit?.cielo?.lluvia?.name || null,
+    deseos: (w.cenit?.deseos || []).filter(d => d.tick > snap.tick && d.por !== u.id && (cur.cols[d.col] || snap.cols[d.col])).slice(0, 3).map(d => ({ por: d.porName, col: d.colName })),
   };
 }
 // Se llama en cada petición de un jugador con sesión
@@ -136,7 +151,7 @@ function markDay(w, u, now) {
 // ---------- liga semanal ----------
 export const LEAGUE = {
   cap: 60, // puntos máximos por día: premia volver cada día más que jugar sin parar
-  pts: { claim: 8, habit: 4, feed: 3, adopt: 5, upgrade: 5, invest: 2, ad: 1, spore: 1, amber_collect: 4, amber_infuse: 3, pearl_collect: 3, pearl_give: 5, pearl_infuse: 2, racha: 5, invite: 15 },
+  pts: { claim: 8, habit: 4, feed: 3, adopt: 5, upgrade: 5, invest: 2, ad: 1, spore: 1, amber_collect: 4, amber_infuse: 3, pearl_collect: 3, pearl_give: 5, pearl_infuse: 2, vuelo: 3, estrella_atrapar: 3, estrella_deseo: 4, deseo_sumarse: 3, racha: 5, invite: 15 },
   prizes: [3, 2, 2, 1, 1, 1, 1, 1, 1, 1], // rareza de la célula de premio del 1.º al 10.º
 };
 const PRIZE_GENES = [null, { ef: 9, res: 9, fer: 9 }, { ef: 11, res: 11, fer: 11 }, { ef: 13, res: 13, fer: 13 }];
@@ -257,7 +272,7 @@ export function metrics(w, now = Date.now()) {
     const back = base.filter(u => u.days?.includes(dayStr(u.createdAt + k * DAY)));
     return { base: base.length, vuelven: back.length, pct: base.length ? Math.round(back.length / base.length * 100) : null };
   };
-  const o = w.oruz, m = w.lumar;
+  const o = w.oruz, m = w.lumar, c = w.cenit, a = w.aeropuerto;
   return {
     jugadores: users.length,
     dau: users.filter(u => u.days?.includes(today)).length,
@@ -269,5 +284,7 @@ export function metrics(w, now = Date.now()) {
     restauradas: stats(w).restores, informesDeRegreso: stats(w).welcomes,
     oruz: o ? { graduadas: o.graduadas, enEscuela: Object.keys(o.escuela).length, ambarNacido: o.ambarSerial, ambarRecogido: Object.values(o.ambar).filter(p => p.owner).length, porJugadorYDia: ORUZ_CFG.AMBER_PER_DAY } : null,
     lumar: m ? { luna: m.luna.name, perlasNacidas: m.perlaSerial, recogidas: m.recogidas, regaladas: m.regaladas, infundidas: m.infundidas, porJugadorYDia: LUMAR_CFG.PER_DAY } : null,
+    cenit: c ? { lluvia: c.cielo?.lluvia?.name || null, estrellasCaidas: c.estrellaSerial, atrapadas: c.atrapadas, deseos: c.deseados, sumados: c.sumados, porJugadorYDia: CENIT_CFG.PER_DAY } : null,
+    aeropuerto: a ? { ...a.stats, enViaje: Object.keys(a.viajes).length, pasaportes: users.filter(u => u.pasaporte?.viajes).length } : null,
   };
 }
