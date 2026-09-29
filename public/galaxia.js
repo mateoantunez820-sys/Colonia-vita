@@ -177,8 +177,8 @@ function flor(ctx, x, y, s) {
   for (let i = 0; i < 5; i++) { const a = i * TAU / 5; ctx.beginPath(); ctx.arc(x + Math.cos(a) * s * .6, y + Math.sin(a) * s * .6, s * .45, 0, TAU); ctx.fill(); }
   ctx.fillStyle = "#FFD86B"; ctx.beginPath(); ctx.arc(x, y, s * .38, 0, TAU); ctx.fill();
 }
-function destello(ctx, x, y, s, a) {
-  ctx.globalAlpha = clamp(a, 0, 1); ctx.fillStyle = "#FFE7A8"; ctx.beginPath();
+function destello(ctx, x, y, s, a, color = "#FFE7A8") {
+  ctx.globalAlpha = clamp(a, 0, 1); ctx.fillStyle = color; ctx.beginPath();
   ctx.moveTo(x, y - s); ctx.quadraticCurveTo(x, y, x + s, y); ctx.quadraticCurveTo(x, y, x, y + s); ctx.quadraticCurveTo(x, y, x - s, y); ctx.quadraticCurveTo(x, y, x, y - s); ctx.fill();
   ctx.globalAlpha = 1;
 }
@@ -202,10 +202,15 @@ const ORB = {
 };
 const TONO_AMBAR = { miel: "#E9B45A", dorado: "#F0B03F", cobre: "#D98A4E", "rubí": "#E0525E", esmeralda: "#4FC08D", "azul abisal": "#4B7BE0" };
 const PERLA = { blanca: "#F4F1EA", crema: "#EFDDB4", rosa: "#F4B6C8", dorada: "#E9C25C", negra: "#6B6F86", azul: "#7FB2F5" };
+const TONO_ESTRELLA = { blanca: "#F4F6FF", azul: "#8FB8FF", dorada: "#FFD66B", roja: "#FF8A7A", verde: "#7BE3A0", violeta: "#C9A2FF" };
+const COLOR_MUNDO = { oruz: "#62D6B8", lumar: "#7FB2F5", cenit: "#B9A8F5" };
+// Las rutas del Súper Aeropuerto Galáctico: el código de cada destino y su mundo en la galaxia
+const RUTA = { ORZ: "oruz", LMR: "lumar", CEN: "cenit" };
 
 function galaxia(cv, o = {}) {
   let W = null, sel = null, fondo = null, lay = null, tipK = null, hover = false, tAhora = 0, criaPos = null;
   let cartas = [], cartasVistas = null; // sobres en viaje y las cartas que ya se vieron
+  let vuelos = []; // naves del aeropuerto que se ven ahora
   const cuerpos = new Map(), titilan = [];
   let fugaz = null, proximaFugaz = 4000;
   const tip = o.tip;
@@ -219,8 +224,8 @@ function galaxia(cv, o = {}) {
     return {
       w, h, ancho, k, cx: w / 2, cy: h * .52, Rx, Ry: Rx * tilt, P, R: 18 * k,
       mundos: ancho
-        ? { oruz: { x: w * .115, y: h * .3, lado: "abajo" }, lumar: { x: w * .885, y: h * .68, lado: "abajo" } }
-        : { oruz: { x: w * .2, y: h * .13, lado: "der" }, lumar: { x: w * .8, y: h * .86, lado: "izq" } },
+        ? { oruz: { x: w * .115, y: h * .3, lado: "abajo" }, lumar: { x: w * .885, y: h * .68, lado: "abajo" }, cenit: { x: w * .87, y: h * .2, lado: "abajo" } }
+        : { oruz: { x: w * .2, y: h * .13, lado: "der" }, lumar: { x: w * .8, y: h * .86, lado: "izq" }, cenit: { x: w * .8, y: h * .13, lado: "abajo" } },
     };
   }
   // Espacio profundo, nebulosas, estrellas fijas y los brazos de la galaxia: se pinta una vez por tamaño
@@ -254,10 +259,14 @@ function galaxia(cv, o = {}) {
     return c;
   }
 
+  // La lluvia de estrellas del calendario, si está activa (la misma cuenta que usa Cénit para soltar estrellas)
+  const lluviaCenit = () => { const L = W?.cenit?.cielo?.lluvia; return L && L.thz >= 3 ? L : null; };
+  const estrellasLibres = lib => { const n = (lib || []).length; return n ? `${n} estrella${n > 1 ? "s fugaces" : " fugaz"}` : ""; };
   function mundosActivos() {
     const m = [];
     if (W?.oruz?.regions?.length) m.push("oruz");
     if (W?.lumar?.regions?.length) m.push("lumar");
+    if (W?.cenit?.regions?.length) m.push("cenit");
     return m;
   }
   // Reparte cada colonia en su órbita. Las aprendices de Oruz giran alrededor de su escuela.
@@ -318,9 +327,11 @@ function galaxia(cv, o = {}) {
     const M = lay.mundos;
     if (W.oruz?.regions?.length) capas.push({ y: M.oruz.y, f: () => oruz(ctx, t) }, ...ambarEnOrbita(ctx, t));
     if (W.lumar?.regions?.length) capas.push({ y: M.lumar.y, f: () => lumar(ctx, t) }, ...perlasEnOrbita(ctx, t));
+    if (W.cenit?.regions?.length) capas.push({ y: M.cenit.y, f: () => cenit(ctx, t) }, ...estrellasEnOrbita(ctx, t));
     for (const b of cuerpos.values()) capas.push({ y: b.y, f: () => colonia(ctx, b, t) });
     if (criaPos) capas.push({ y: criaPos.y, f: () => pintarCria(ctx, criaPos) });
     capas.sort((a, b) => a.y - b.y).forEach(c => c.f());
+    vuelos = naves(); for (const v of vuelos) nave(ctx, v, t);
     sobres(ctx, t);
     etiquetas(ctx, t);
     if (tipK) moverTip();
@@ -334,7 +345,7 @@ function galaxia(cv, o = {}) {
     const gr = ctx.createLinearGradient(x, y, x - f.vx * .18, y - f.vy * .18);
     gr.addColorStop(0, `rgba(255,255,255,${.9 * a})`); gr.addColorStop(1, "rgba(255,255,255,0)");
     ctx.strokeStyle = gr; ctx.lineWidth = 1.6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - f.vx * .18, y - f.vy * .18); ctx.stroke();
-    if (f.vida > 900) { fugaz = null; proximaFugaz = t + 7000 + Math.random() * 9000; }
+    if (f.vida > 900) { fugaz = null; proximaFugaz = t + (lluviaCenit() ? 1800 + Math.random() * 3000 : 7000 + Math.random() * 9000); }
   }
   function orbitas(ctx) {
     const { cx, cy, Rx, Ry, k } = lay, usadas = new Set([...cuerpos.values()].map(b => b.g));
@@ -345,11 +356,12 @@ function galaxia(cv, o = {}) {
       ctx.setLineDash(g === "ciudadana" ? [2 * k, 5 * k] : g === "muerta" ? [1, 6 * k] : []); ctx.stroke(); ctx.setLineDash([]);
     }
   }
-  // Rutas de luz entre VITA y los otros mundos
+  // Rutas de luz entre VITA y los otros mundos (por ellas vuelan las naves del aeropuerto)
+  const rutaQ = m => { const { cx, cy } = lay, p = lay.mundos[m]; return [(cx + p.x) / 2 + (p.y - cy) * .18, (cy + p.y) / 2 - (p.x - cx) * .18]; };
   function rutas(ctx, t) {
     const { cx, cy, k, mundos } = lay;
     for (const m of mundosActivos()) {
-      const p = mundos[m], col = m === "oruz" ? "#62D6B8" : "#7FB2F5", qx = (cx + p.x) / 2 + (p.y - cy) * .18, qy = (cy + p.y) / 2 - (p.x - cx) * .18;
+      const p = mundos[m], col = COLOR_MUNDO[m], [qx, qy] = rutaQ(m);
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.quadraticCurveTo(qx, qy, p.x, p.y);
       ctx.strokeStyle = rgba(col, .07); ctx.lineWidth = 7 * k; ctx.stroke();
       ctx.strokeStyle = rgba(col, .45); ctx.lineWidth = 1.2; ctx.setLineDash([2 * k, 8 * k]); ctx.lineDashOffset = REDUCE ? 0 : -t / 45; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
@@ -500,6 +512,98 @@ function galaxia(cv, o = {}) {
       return { y, f: () => { const r = 2.8 * lay.k, col = PERLA[q.color] || "#F4F1EA"; ctx.save(); ctx.globalCompositeOperation = "lighter"; luz(ctx, luzHex(col), x, y, r * 3.4, .5); ctx.restore(); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.beginPath(); ctx.arc(x - r * .35, y - r * .35, r * .32, 0, TAU); ctx.fill(); } };
     });
   }
+  // Cénit: el cielo. Sus siete regiones son nubes de colores que giran despacio; de noche se ven
+  // estrellas, y su fenómeno del momento se nota: rayos, arcoíris doble o ventisca.
+  const polvoCenit = (() => { const R = rng(4242); return Array.from({ length: 16 }, () => [R() * 1.6 - .8, R() * 1.6 - .8, R() * TAU]); })();
+  function cenit(ctx, t) {
+    const Z = W.cenit, p = lay.mundos.cenit, P = lay.P, noche = !!Z.noche, fen = Z.fenomeno?.k;
+    ctx.save(); ctx.globalCompositeOperation = "lighter"; luz(ctx, luzHex("#B9A8F5"), p.x, p.y, P * 2.1, .5); ctx.restore();
+    if (fen === "arcoiris") arcoiris(ctx, p.x, p.y, P);
+    ctx.save(); ctx.beginPath(); ctx.arc(p.x, p.y, P, 0, TAU); ctx.clip();
+    const base = ctx.createLinearGradient(p.x, p.y - P, p.x, p.y + P);
+    base.addColorStop(0, noche ? "#1D2156" : "#4F72C8"); base.addColorStop(1, noche ? "#0B0E2B" : "#B5C4F0");
+    ctx.fillStyle = base; ctx.fillRect(p.x - P, p.y - P, P * 2, P * 2);
+    const S = P * .52;
+    ctx.translate(p.x, p.y); ctx.rotate(REDUCE ? 0 : t / 170000 * TAU);
+    for (const R of Z.regions) {
+      const hx = S * Math.sqrt(3) * (R.q + R.r / 2), hy = S * 1.5 * R.r, g = ctx.createRadialGradient(hx, hy, 0, hx, hy, S * 1.05);
+      g.addColorStop(0, rgba(R.color, .4 + .4 * (R.eq ?? .5))); g.addColorStop(1, rgba(R.color, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(hx, hy, S * 1.05, 0, TAU); ctx.fill();
+    }
+    ctx.setTransform(s.d, 0, 0, s.d, 0, 0);
+    // nubes que cruzan en tres bandas
+    const nube = luzHex("#FFFFFF"), ancho = P * 3.2;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      const u = ((REDUCE ? 0 : t / (9000 + i * 3000)) + j / 3 + i * .21) % 1;
+      luz(ctx, nube, p.x - ancho / 2 + u * ancho, p.y - P * .5 + i * P * .5, P * (.34 + .06 * j), noche ? .1 : .26);
+    }
+    if (noche) { for (const [a, b, ph] of polvoCenit) { ctx.globalAlpha = .35 + .65 * (.5 + .5 * Math.sin(t / 700 + ph)); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(p.x + a * P, p.y + b * P, 1.3, 1.3); } ctx.globalAlpha = 1; }
+    if (fen === "rayos" && !REDUCE && t % 4300 < 160) {
+      ctx.fillStyle = "rgba(225,225,255,.3)"; ctx.fillRect(p.x - P, p.y - P, P * 2, P * 2);
+      ctx.strokeStyle = "rgba(255,255,240,.95)"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(p.x + P * .1, p.y - P * .7);
+      for (const [a, b] of [[-.12, -.3], [.08, -.2], [-.1, .15], [.06, .25], [-.05, .6]]) ctx.lineTo(p.x + a * P, p.y + b * P);
+      ctx.stroke();
+    }
+    if (fen === "ventisca") {
+      ctx.strokeStyle = "rgba(240,248,255,.45)"; ctx.lineWidth = 1; ctx.beginPath();
+      for (let i = 0; i < 9; i++) { const u = ((REDUCE ? 0 : t / 1400) + i / 9) % 1, x = p.x - P + u * P * 2.2, y = p.y - P * .8 + (i * .19 % 1) * P * 1.6; ctx.moveTo(x, y); ctx.lineTo(x - P * .22, y + P * .07); }
+      ctx.stroke();
+    }
+    sombraEsfera(ctx, p.x, p.y, P);
+    ctx.restore();
+    ctx.strokeStyle = "rgba(185,168,245,.7)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(p.x, p.y, P, 0, TAU); ctx.stroke();
+  }
+  function arcoiris(ctx, x, y, P) {
+    ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round"; ctx.lineWidth = P * .055;
+    ["#FF6B6B", "#FFB14E", "#FFE66B", "#7BE39A", "#6CB8FF", "#A98BFF"].forEach((c, i) => { ctx.strokeStyle = rgba(c, .38); ctx.beginPath(); ctx.arc(x, y, P * (1.14 + i * .058), Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); });
+    ctx.restore();
+  }
+  // Las estrellas fugaces libres de Cénit giran a su alrededor con su color y su estela, hasta que alguien las atrapa
+  function estrellasEnOrbita(ctx, t) {
+    const lib = W.cenit?.libres || [], p = lay.mundos.cenit, P = lay.P;
+    return lib.map((q, i) => {
+      const at = a => [p.x + Math.cos(a) * P * 1.42, p.y + Math.sin(a) * P * .48];
+      const a = (REDUCE ? 0 : t / 14000 * TAU) + i * TAU / lib.length, [x, y] = at(a), [x2, y2] = at(a - .4);
+      return { y, f: () => {
+        const col = TONO_ESTRELLA[q.color] || "#F4F6FF", r = 3.2 * lay.k;
+        ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
+        const gr = ctx.createLinearGradient(x, y, x2, y2); gr.addColorStop(0, rgba(col, .75)); gr.addColorStop(1, rgba(col, 0));
+        ctx.strokeStyle = gr; ctx.lineWidth = r * .8; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
+        luz(ctx, luzHex(col), x, y, r * 3.4, .6); ctx.restore();
+        destello(ctx, x, y, r * 1.6, 1, col);
+      } };
+    });
+  }
+
+  // ---------- las naves del Súper Aeropuerto Galáctico ----------
+  // Cada vuelo en el aire va por la ruta de luz entre VITA y su mundo; las que embarcan o esperan por un retraso
+  // aguardan en su puerto. Las idas y las vueltas van por carriles distintos para no cruzarse.
+  function naves() {
+    const A = W.aeropuerto; if (!A) return [];
+    const hay = new Set(mundosActivos()), frac = W.tickAt && W.tickMs ? clamp((Date.now() - W.tickAt) / W.tickMs, 0, 1) : 0, tick = (A.tick ?? W.tick) + frac, out = [];
+    for (const [lista, ida] of [[A.salidas, true], [A.llegadas, false]]) for (const f of lista || []) {
+      const m = RUTA[f.dest]; if (!m || !hay.has(m) || !["en vuelo", "embarcando", "retrasado"].includes(f.estado)) continue;
+      const vuela = f.estado === "en vuelo", p = vuela ? clamp((tick - f.sale) / Math.max(1, f.llega - f.sale), 0, 1) : 0;
+      const u = ida ? .1 + .8 * p : .9 - .8 * p, P0 = { x: lay.cx, y: lay.cy }, P2 = lay.mundos[m], [qx, qy] = rutaQ(m), v = 1 - u;
+      const x = v * v * P0.x + 2 * v * u * qx + u * u * P2.x, y = v * v * P0.y + 2 * v * u * qy + u * u * P2.y;
+      const dx = 2 * v * (qx - P0.x) + 2 * u * (P2.x - qx), dy = 2 * v * (qy - P0.y) + 2 * u * (P2.y - qy), d = Math.hypot(dx, dy) || 1, carril = (ida ? -1 : 1) * 4.5 * lay.k;
+      out.push({ f, ida, m, vuela, tick, x: x - dy / d * carril, y: y + dx / d * carril, ang: Math.atan2(dy, dx) + (ida ? 0 : Math.PI) });
+    }
+    return out;
+  }
+  function nave(ctx, v, t) {
+    const L = 6.5 * lay.k, col = COLOR_MUNDO[v.m];
+    ctx.save(); ctx.translate(v.x, v.y); ctx.rotate(v.ang);
+    if (v.vuela) { ctx.globalCompositeOperation = "lighter"; luz(ctx, luzHex(col), -L * .95, 0, L * (1 + (REDUCE ? 0 : .25 * Math.sin(t / 70))), .85); ctx.globalCompositeOperation = "source-over"; }
+    ctx.fillStyle = "#EEF3FA"; ctx.beginPath(); ctx.moveTo(L, 0); ctx.lineTo(-L * .7, -L * .55); ctx.lineTo(-L * .35, 0); ctx.lineTo(-L * .7, L * .55); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(L * .12, 0, L * .2, 0, TAU); ctx.fill();
+    ctx.restore();
+    if (!v.vuela) { // en tierra: una luz que parpadea, verde si embarca y ámbar si hay retraso
+      ctx.globalAlpha = REDUCE ? 1 : .35 + .65 * (.5 + .5 * Math.sin(t / 260)); ctx.fillStyle = v.f.estado === "retrasado" ? "#F0B03F" : "#62D6B8";
+      ctx.beginPath(); ctx.arc(v.x, v.y - L * .9, 1.6, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+    }
+  }
+
   function colonia(ctx, b, t) {
     const L = b.L, r = b.r, per = 3200 + L.seed % 3000, parpadeo = !REDUCE && (t + L.seed % 5000) % per < 140;
     if (L.alive) { ctx.save(); ctx.globalCompositeOperation = "lighter"; luz(ctx, luzHue(L.hue, 85, 65), b.x, b.y, r * 2.2, L.rank === "ambar" ? .55 : .35); ctx.restore(); }
@@ -582,6 +686,9 @@ function galaxia(cv, o = {}) {
 
   function texto(ctx, str, x, y, font, color, align = "center") {
     ctx.font = font; ctx.textAlign = align; ctx.textBaseline = "top";
+    // que no se salga del lienzo cerca de los bordes
+    const w = ctx.measureText(str).width, izq = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+    x += Math.max(0, 6 - izq) - Math.max(0, izq + w - (s.w - 6));
     ctx.lineWidth = 3; ctx.strokeStyle = "rgba(3,8,16,.85)"; ctx.lineJoin = "round"; ctx.strokeText(str, x, y);
     ctx.fillStyle = color; ctx.fillText(str, x, y);
   }
@@ -591,12 +698,17 @@ function galaxia(cv, o = {}) {
     const info = {
       oruz: W.oruz && [W.oruz.name || "Oruz", [W.oruz.cal?.estacion, (W.oruz.libres || []).length && `${W.oruz.libres.length} Ámbar libre${W.oruz.libres.length > 1 ? "s" : ""}`].filter(Boolean).join(" · ")],
       lumar: W.lumar && [W.lumar.name || "Lumar", W.lumar.luna ? W.lumar.luna.name.toLowerCase() : ""],
+      // en el celular cabe una sola cosa: primero las estrellas que se pueden atrapar
+      cenit: W.cenit && ["Cénit", (ancho ? [lluviaCenit()?.name, estrellasLibres(W.cenit.libres)].filter(Boolean).join(" · ") : estrellasLibres(W.cenit.libres) || lluviaCenit()?.name) || (W.cenit.noche ? "de noche" : "de día")],
     };
-    for (const m of mundosActivos()) {
-      const p = mundos[m], [nom, sub] = info[m], col = m === "oruz" ? "#9EEBD8" : "#AFCBF5";
-      if (p.lado === "abajo") { texto(ctx, nom, p.x, p.y + P * 1.25, f1, col); if (sub) texto(ctx, sub, p.x, p.y + P * 1.25 + 16 * Math.min(k, 1.15), f2, "rgba(170,195,203,.95)"); }
+    const activos = mundosActivos();
+    for (const m of activos) {
+      const p = mundos[m], [nom, sub] = info[m], col = { oruz: "#9EEBD8", lumar: "#AFCBF5", cenit: "#D2C6FA" }[m];
+      // en el celular, con Cénit arriba a la derecha, el nombre de Oruz baja para no chocar
+      const lado = m === "oruz" && !ancho && activos.includes("cenit") ? "abajo" : p.lado;
+      if (lado === "abajo") { texto(ctx, nom, p.x, p.y + P * 1.25, f1, col); if (sub) texto(ctx, sub, p.x, p.y + P * 1.25 + 16 * Math.min(k, 1.15), f2, "rgba(170,195,203,.95)"); }
       else {
-        const al = p.lado === "der" ? "left" : "right", x = p.x + (p.lado === "der" ? P * 1.3 : -P * 1.3), y = p.y - 13;
+        const al = lado === "der" ? "left" : "right", x = p.x + (lado === "der" ? P * 1.3 : -P * 1.3), y = p.y - 13;
         texto(ctx, nom, x, y, f1, col, al); if (sub) texto(ctx, sub, x, y + 16 * Math.min(k, 1.15), f2, "rgba(170,195,203,.95)", al);
       }
     }
@@ -613,6 +725,7 @@ function galaxia(cv, o = {}) {
     const probar = (k, id, px, py, r) => { const d = Math.hypot(px - x, py - y); if (d < r && d < bd) { bd = d; best = { k, id }; } };
     for (const b of cuerpos.values()) probar("colonia", b.id, b.x, b.y, b.r + 12);
     if (criaPos) probar("cria", null, criaPos.x, criaPos.y, criaPos.S * .3 + 6);
+    for (const v of vuelos) probar("nave", v.f.num, v.x, v.y, 12);
     if (!lay) return best;
     probar("vita", null, lay.cx, lay.cy, lay.R * 1.6);
     for (const m of mundosActivos()) probar(m, null, lay.mundos[m].x, lay.mundos[m].y, lay.P * 1.25);
@@ -641,7 +754,8 @@ function galaxia(cv, o = {}) {
         <button class="sm primary" data-ir="colonia">Ver su mini mundo</button>`;
     } else if (tipK.k === "vita") {
       const v = W.colonies.filter(c => c.alive), n = k => v.filter(c => (c.rango?.k || "ciudadana") === k).length;
-      html = `<div><b>VITA</b> <span class="note">la ley máxima</span></div><p>${v.length} colonias vivas: ${n("ambar")} en Ámbar, ${n("oruz")} en Oruz y ${n("ciudadana")} ciudadanas.</p><button class="sm" data-ir="rangos">Ver los rangos</button>`;
+      const nv = vuelos.filter(x => x.vuela).length;
+      html = `<div><b>VITA</b> <span class="note">la ley máxima</span></div><p>${v.length} colonias vivas: ${n("ambar")} en Ámbar, ${n("oruz")} en Oruz y ${n("ciudadana")} ciudadanas.${W.aeropuerto ? ` Desde su aeropuerto ${nv === 1 ? "hay 1 nave" : `hay ${nv} naves`} en vuelo.` : ""}</p><button class="sm" data-ir="rangos">Ver los rangos</button>`;
     } else if (tipK.k === "oruz") {
       const O = W.oruz, apr = (O.escuela || []).length, n = (O.libres || []).length;
       html = `<div><b>Oruz</b> <span class="note">el mundo paralelo</span></div><p>${O.cal ? `Estación de ${esc(O.cal.estacion)}. ` : ""}${n ? `${n} pieza${n > 1 ? "s" : ""} de Ámbar esperan dueño` : "No hay Ámbar libre ahora"} y ${apr ? `${apr} aprendiz${apr > 1 ? "es estudian" : " estudia"} en su escuela` : "su escuela está vacía"}.</p><button class="sm" data-ir="oruz">Ir a Oruz</button>`;
@@ -649,6 +763,14 @@ function galaxia(cv, o = {}) {
       const L = W.lumar, lu = L.luna;
       const n = (L.libres || []).length;
       html = `<div><b>Lumar</b> <span class="note">el mar de la luna</span></div><p>${lu ? `${esc(lu.name)}, ${Math.round(lu.ilum * 100)}% iluminada. ` : ""}${n ? `${n} perla${n > 1 ? "s esperan" : " espera"} en el mar.` : "No hay perlas libres ahora."}</p><button class="sm" data-ir="lumar">Ir a Lumar</button>`;
+    } else if (tipK.k === "cenit") {
+      const Z = W.cenit, ll = lluviaCenit(), lib = estrellasLibres(Z.libres);
+      html = `<div><b>Cénit</b> <span class="note">el cielo</span></div><p>${ll ? `Lluvia de estrellas: ${esc(ll.name)}. ` : ""}${lib ? `${lib} ${(Z.libres || []).length > 1 ? "esperan" : "espera"} que alguien pida un deseo.` : `Ahora no cae ninguna estrella fugaz; ${Z.noche ? "es de noche allá arriba" : "es de día allá arriba"}.`}</p><button class="sm" data-ir="cenit">Ir a Cénit</button>`;
+    } else if (tipK.k === "nave") {
+      const v = vuelos.find(x => x.f.num === tipK.id); if (!v) return cerrarTip();
+      const f = v.f, min = W.tickMs ? Math.max(1, Math.round((f.llega - v.tick) * W.tickMs / 60000)) : null;
+      const estado = f.estado === "en vuelo" ? (min ? `Llega en ${min < 90 ? `${min} min` : `${Math.round(min / 60)} h`}.` : "En vuelo.") : f.estado === "embarcando" ? `Embarcando por la puerta ${esc(f.puerta)}.` : `Retrasado${f.motivo ? `: ${esc(f.motivo)}` : ""}.`;
+      html = `<div><b>${esc(f.num)}</b> <span class="note">nave ${esc(f.nave)}</span></div><p>${v.ida ? `De VITA a ${esc(f.name)}` : `De ${esc(f.name)} a VITA`} · ${f.pax === 1 ? "1 célula" : `${f.pax} células`} a bordo. ${estado}</p><button class="sm" data-ir="aero">Ir al aeropuerto</button>`;
     } else if (tipK.k === "cria") {
       const K = W.cria; if (!K?.etapa) return cerrarTip();
       const fuera = K.excursion && K.excursion.vuelveEn > 0;
@@ -662,6 +784,7 @@ function galaxia(cv, o = {}) {
     if (tipK.k === "colonia") { const b = cuerpos.get(tipK.id); if (!b) return cerrarTip(); x = b.x; y = b.y; r = b.r * 1.9; }
     else if (tipK.k === "vita") { x = lay.cx; y = lay.cy; r = lay.R * 1.4; }
     else if (tipK.k === "cria") { if (!criaPos) return cerrarTip(); x = criaPos.x; y = criaPos.y; r = criaPos.S * .35; }
+    else if (tipK.k === "nave") { const v = vuelos.find(n => n.f.num === tipK.id); if (!v) return cerrarTip(); x = v.x; y = v.y; r = 10; }
     else { const p = lay.mundos[tipK.k]; x = p.x; y = p.y; r = lay.P * 1.2; }
     const tw = tip.offsetWidth, th = tip.offsetHeight, abajo = y + r + th + 8 < s.h;
     const left = clamp(x - tw / 2, 8, s.w - tw - 8), top = abajo ? y + r + 6 : Math.max(8, y - r - th - 6);
@@ -674,7 +797,8 @@ function galaxia(cv, o = {}) {
     const partes = [`Galaxia VITA: ${col} ${v.length === 1 ? "viva" : "vivas"} alrededor de la estrella VITA`];
     if (by("ambar").length) partes.push(`en la órbita de Ámbar ${by("ambar").join(", ")}`);
     if (by("oruz").length) partes.push(`en la órbita de Oruz ${by("oruz").join(", ")}`);
-    const m = mundosActivos(); if (m.length) partes.push(`planetas ${m.map(x => x === "oruz" ? "Oruz" : "Lumar").join(" y ")}`);
+    const m = mundosActivos(), nombre = { oruz: "Oruz", lumar: "Lumar", cenit: "Cénit" };
+    if (m.length) partes.push(`planetas ${m.map(x => nombre[x]).join(m.length > 2 ? ", " : " y ").replace(/, ([^,]*)$/, " y $1")}`);
     cv.setAttribute("aria-label", partes.join("; ") + ". Toca una colonia o un planeta.");
     if (o.info) o.info.textContent = `${col} · ${m.length + 1} mundos`;
   }

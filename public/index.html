@@ -509,7 +509,7 @@ async function habito(k) {
 }
 
 function elegir(id) { sel = id; try { localStorage.setItem("vita-col", sel); } catch {} refreshColony(); renderWorld(); }
-function irA(k) { ({ colonia: $("cv"), rangos: $("tiers"), oruz: $("oruz"), lumar: $("lumar"), cria: $("criaPanel") })[k]?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+function irA(k) { ({ colonia: $("cv"), rangos: $("tiers"), oruz: $("oruz"), lumar: $("lumar"), cria: $("criaPanel"), cenit: $("cenit"), aero: $("aero") })[k]?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
 
 function hhmm(m) { return m == null ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
 function renderWorld() {
