@@ -64,6 +64,15 @@ Al entrar, cada jugador recibe un huevo (`src/cria.js`, dibujado por `public/cri
 - **Legado.** Al llegar a Sabia deja una célula con sus genes en su hogar. La célula es del jugador, y sus hijas también.
 - **Economía.** Darle de comer quema 2 VIT. Lo que regala está acotado: en un mes de cuidados al máximo, como mucho los 65 VIT de las etapas y 9 VIT al día de excursiones. En `/api/admin/metrics` se ve cuántas crías hay en cada etapa.
 
+## Galaxia VITA y los mini mundos
+
+`public/galaxia.js` dibuja la federación como una galaxia viva, en canvas y sin librerías:
+
+- **Galaxia.** VITA es la estrella del centro. Cada colonia es un mini planeta con cara, con su color y su dibujo sacados del genoma (bandas por metabolismo, manchas por fertilidad, corteza por resistencia) y una boca que muestra su salud. Gira en la órbita de su rango: Ámbar (con anillo y corona) cerca de la estrella, Oruz en medio y las ciudadanas afuera; las extintas duermen en gris en la órbita de fuera. Un hilo de luz une a cada madre con sus hijas. Oruz y Lumar son planetas: Oruz con el mapa de sus regiones, su Ámbar libre y sus aprendices en órbita, y Lumar con sus perlas libres y su luna en la fase de hoy. Tocar una colonia la elige; tocar VITA, Oruz o Lumar abre su ficha.
+- **Mini mundo.** El panel de cada colonia muestra su planeta de cerca: cada célula es una criatura (comunes redondas, raras con antena, épicas de cristal y legendarias con forma de estrella) y las tuyas llevan un corazón dorado. El cielo sigue la hora y el clima de la colonia, de noche casi todas duermen, y las esporas bajan como destellos dorados que se tocan para minar VIT.
+- **Mini retratos.** Las tarjetas de la federación y los rangos llevan el mini planeta de cada colonia.
+- **Liviano.** La densidad se limita a 2× y el dibujo se detiene cuando no está en pantalla. Con "reducir movimiento" no hay animación.
+
 ## El dinero real y las IA
 
 Las IA solo gastan dinero real hasta este límite:
