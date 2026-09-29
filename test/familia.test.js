@@ -221,7 +221,7 @@ test("las colonias le escriben al jugador que las cuida, una vez al día, y esas
   // Y esa noche Vita le da las gracias en su diario
   let noche = null;
   while (!noche) { w.tick++; noche = familia.step(w, reloj(w)); }
-  assert.match(noche.parrafos.join(" "), /Hoy nos cuidaron Ana: gracias/);
+  assert.match(noche.parrafos.join(" "), /Hoy nos cuidó Ana: gracias/);
   // Las cartas a jugadores se borran a la semana
   pasar(w, (FAMILIA.BUZON_DIAS + 1) * FAMILIA.DIA);
   assert.deepEqual(familia.view(w, ana).buzon, []);

@@ -502,7 +502,7 @@ function escribirNoche(w, F, ctx, now) {
   const ayudantes = Object.values(F.hoy.jugadores).sort((x, y) => y.n - x.n).slice(0, 3).map(j => j.name);
   const jugadores = [
     d("jugadores") ? `${d("jugadores") === 1 ? "Llegó un jugador nuevo" : `Llegaron ${d("jugadores")} jugadores nuevos`}.` : "",
-    ayudantes.length ? `Hoy nos cuidaron ${enumera(ayudantes)}: gracias.` : "",
+    ayudantes.length ? `Hoy nos ${ayudantes.length > 1 ? "cuidaron" : "cuidó"} ${enumera(ayudantes)}: gracias.` : "",
   ];
   const top = destacada(w, F, a);
   for (const g of [vida, duelo, ayudas, rangos, numeros, mundos, jugadores]) { const t = g.filter(Boolean).join(" "); if (t) p.push(t); }
@@ -596,18 +596,19 @@ const PARA_JUGADOR = {
   amber_infuse: () => "Me infundiste Ámbar de Oruz y me volvió la fuerza. Lo voy a llevar siempre conmigo.",
   pearl_infuse: () => "Te regalaron una perla de Lumar y la usaste para curarme a mí. Así se cuida una familia.",
 };
+const ASUNTO_JUGADOR = { feed: "Hoy comí gracias a ti", adopt: "Tu nueva célula", invest: "Tu confianza", upgrade: "Tu regalo", habit: "Gracias por cuidarte", amber_infuse: "El Ámbar de Oruz", pearl_infuse: "La perla de Lumar" };
 const CIERRE_JUGADOR = { tierna: "Me alegraste el día.", practica: "Te lo voy a devolver en VIT.", audaz: "¡Juntos vamos a llegar lejos!", serena: "Gracias por estar." };
 // Se llama tras cada acción que salió bien. La colonia escribe una vez al día a cada jugador que la cuida.
 export function accion(w, u, body, now = Date.now()) {
   const F = ensure(w), c = w.colonies[body?.colony];
-  const texto = c?.alive ? PARA_JUGADOR[body?.type]?.(body, c) : null;
+  const texto = c?.alive && Object.hasOwn(PARA_JUGADOR, body?.type) ? PARA_JUGADOR[body.type](body, c) : null;
   if (!texto) return null;
   const j = (F.hoy.jugadores[u.id] ||= { name: u.name, n: 0 });
   j.n++; j.name = u.name;
   if (!puede(w, F, `jugador:${c.id}:${u.id}`)) return null;
   return carta(w, F, {
     tipo: "jugador", de: quien(c), a: { id: u.id, name: u.name }, privada: true, now,
-    asunto: `Gracias, ${u.name}`, saludo: tono(c) === "audaz" ? `¡Hola, ${u.name}!` : `Hola, ${u.name}:`,
+    asunto: ASUNTO_JUGADOR[body.type], saludo: tono(c) === "audaz" ? `¡Hola, ${u.name}!` : `Hola, ${u.name}:`,
     texto: `${texto} ${CIERRE_JUGADOR[tono(c)]}`, firma: firma(c, `jugador:${F.serial + 1}`),
   });
 }
@@ -620,6 +621,6 @@ export function view(w, u, colId) {
     arbol: arbol(w, u), proxima: proxima(w),
     cartas: F.cartas.slice(0, 30), buzon: u ? F.buzon[u.id] || [] : null,
     diario: F.diario.slice(0, 10),
-    colonia: col ? { id: col.id, parientes: parientes(w, col) } : null,
+    colonia: col ? { id: col.id, parientes: parientes(w, col), cartas: F.cartas.filter(k => k.de === col.id || k.a === col.id).slice(0, 12) } : null,
   };
 }

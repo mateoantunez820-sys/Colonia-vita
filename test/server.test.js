@@ -129,14 +129,14 @@ test("la familia VITA: el árbol, el anuncio y el prólogo de Vita; quien alimen
   const feed = await call("/api/action", { token, body: { type: "feed", colony: col } });
   assert.equal(feed.status, 200);
   assert.equal(feed.json.carta.de, "Génesis");
-  assert.equal(feed.json.carta.asunto, "Gracias, Leo");
+  assert.equal(feed.json.carta.asunto, "Hoy comí gracias a ti");
   const otra = await call("/api/action", { token, body: { type: "feed", colony: col } });
   assert.equal(otra.json.carta, undefined, "una carta al día por colonia");
 
   const mia = (await call(`/api/familia?col=${col}`, { token })).json;
   assert.equal(mia.buzon.length, 1);
   assert.match(mia.buzon[0].texto, /Gracias por alimentarme/);
-  assert.deepEqual(mia.colonia, { id: col, parientes: [] });
+  assert.deepEqual([mia.colonia.id, mia.colonia.parientes, mia.colonia.cartas], [col, [], []], "Génesis aún no tiene familia ni cartas propias");
   const { token: ajeno } = (await call("/api/join", { body: { name: "Sol" } })).json;
   assert.deepEqual((await call("/api/familia", { token: ajeno })).json.buzon, [], "las cartas de otro no se ven");
   assert.equal((await call("/api/familia?col=<script>")).json.colonia, null);
