@@ -84,6 +84,27 @@ test("Lumar se ve con la luna de hoy, sus perlas tienen certificado y no se rega
   assert.equal((await call("/api/action", { token, body: { type: "pearl_collect", id: "PRL-00000000" } })).status, 400);
 });
 
+test("cada jugador recibe un huevo, lo abre con su calor y su cría siente sus hábitos", async () => {
+  const { token } = (await call("/api/join", { body: { name: "Vita Max" } })).json;
+  assert.equal((await call("/api/world")).json.cria, null, "sin entrar no hay cría");
+  const huevo = (await call("/api/world", { token })).json.cria;
+  assert.equal(huevo.etapa, 0); assert.equal(huevo.calorMax, 3);
+  const cria = body => call("/api/action", { token, body: { type: "cria", ...body } });
+  assert.equal((await cria({ op: "comer" })).status, 400, "un huevo no come");
+  for (let i = 0; i < 2; i++) assert.equal((await cria({ op: "calor" })).json.calor, i + 1);
+  const nace = await cria({ op: "calor", colony: "COL-001" });
+  assert.equal(nace.status, 200); assert.equal(nace.json.nacio, true);
+  const v = (await call("/api/world", { token })).json.cria;
+  assert.equal(v.etapaName, "Chispa"); assert.equal(v.nombre, nace.json.nombre); assert.deepEqual(v.ap, huevo.ap);
+  assert.equal((await cria({ op: "saludar" })).status, 200);
+  const h = await call("/api/action", { token, body: { type: "habit", key: "agua", colony: "COL-001" } });
+  assert.equal(h.status, 200); assert.equal(h.json.cria.rasgo, "Brillo");
+  assert.equal((await cria({ op: "nombre", nombre: "<b>Lumi</b>" })).json.nombre, "bLumi/b");
+  assert.equal((await cria({ op: "volar" })).status, 400);
+  const arte = await call("/cria-arte.js");
+  assert.equal(arte.status, 200); assert.ok(arte.text.includes("CriaArte"));
+});
+
 test("los términos, la privacidad y el aviso de VIT están publicados", async () => {
   const t = await call("/terminos");
   assert.equal(t.status, 200);
