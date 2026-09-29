@@ -13,7 +13,13 @@ import { pearlsOf, LUMAR as LUMAR_CFG } from "./lumar.js";
 const err = message => ({ ok: false, error: message });
 const DAY = 86400000;
 const dayStr = t => new Date(t).toISOString().slice(0, 10);
-const stats = w => (w.stats ||= { restores: 0, welcomes: 0 });
+// Los contadores de la retención van dentro de w.stats, que el mundo ya trae con los suyos;
+// se crean a cero si faltan (o si un guardado viejo los dejó en null)
+const stats = w => {
+  const s = (w.stats ||= {});
+  for (const k of ["restores", "welcomes"]) if (!Number.isFinite(s[k])) s[k] = 0;
+  return s;
+};
 
 // ---------- copia firmada de la cuenta ----------
 export const SAVE_VERSION = 1;

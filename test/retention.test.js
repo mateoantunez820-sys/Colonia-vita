@@ -40,6 +40,7 @@ test("la copia firmada devuelve la cuenta, sus células, sus fondos y su Ámbar 
   assert.deepEqual(mine.map(c => c.g).sort((a, b) => a.ef - b.ef || a.res - b.res), cells.map(c => c.g).sort((a, b) => a.ef - b.ef || a.res - b.res));
   assert.deepEqual(oruz.amberOf(w2, u.id).map(p => p.id), [pieza.id], "el Ámbar conserva su código único");
   assert.equal(u.welcome.restaurada, true);
+  assert.equal(ret.metrics(w2).restauradas, 1, "el panel del dueño cuenta la cuenta recuperada");
   assert.equal(ret.restoreSave(w2, save, KEY).ok, false, "la misma cuenta no se puede duplicar");
   // El código de recuperación le da otra clave a la cuenta, pero la copia vieja sigue sin poder duplicarla
   u.tokenHash = core.hash("token-nuevo");
@@ -123,6 +124,7 @@ test("al volver tras unas horas, el jugador ve lo que acuñaron sus células y q
   assert.equal(r.colonias[0].name, col.name);
   ret.touch(w, u, T0 + 5 * H + 1000);
   assert.equal(u.welcome.at, r.at, "un informe por regreso, no uno por petición");
+  assert.equal(ret.metrics(w, T0 + 5 * H).informesDeRegreso, 1, "el panel del dueño cuenta el informe");
 });
 
 test("la liga suma puntos con tope diario y reparte células de premio al cerrar la semana", () => {
@@ -178,6 +180,8 @@ test("las métricas cuentan jugadores activos y cuántos vuelven al día siguien
   mk("E", now, [now]);
   const m = ret.metrics(w, now);
   assert.equal(m.jugadores, 4);
+  assert.equal(m.restauradas, 0, "un mundo nuevo empieza sus contadores en cero");
+  assert.equal(m.informesDeRegreso, 0);
   assert.equal(m.dau, 2);
   assert.equal(m.wau, 3);
   assert.deepEqual(m.d1, { base: 3, vuelven: 2, pct: 67 });
