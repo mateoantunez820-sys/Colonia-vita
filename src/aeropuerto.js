@@ -284,9 +284,12 @@ export function view(w, u) {
     };
   }
   return {
-    tick: t, mundos: Object.values(MUNDOS).map(D => ({ k: D.k, name: D.name, tipo: D.tipo, gen: D.gen, genName: TRAITS[D.gen], tarifa: D.tarifa, vuelo: D.vuelo, millas: D.millas, puerta: D.puerta, estancia: AERO.ESTANCIA, vistas: vistas(w, D) })),
-    salidas, llegadas, me, niveles: NIVELES.map(n => ({ name: n.name, millas: n.millas })),
-    enViaje: Object.keys(a.viajes).length, exploradoras: viajesDe(w, "colonia").length, stats: a.stats,
+    // `aqui`: células que están ahora en ese mundo, explorando o esperando la vuelta
+    tick: t, mundos: Object.values(MUNDOS).map(D => ({ k: D.k, name: D.name, tipo: D.tipo, gen: D.gen, genName: TRAITS[D.gen], tarifa: D.tarifa, vuelo: D.vuelo, millas: D.millas, puerta: D.puerta, estancia: AERO.ESTANCIA, vistas: vistas(w, D), aqui: esperan(D, "explorando") + esperan(D, "espera") })),
+    // `enVuelo`: todas las naves en el aire o retrasadas, para el mapa de rutas
+    salidas, llegadas, enVuelo: fs.filter(f => f.estado === "en vuelo" || f.estado === "retrasado").map(f => ({ ...fila(w, f), ida: f.ida })),
+    me, niveles: NIVELES.map(n => ({ name: n.name, millas: n.millas })),
+    enViaje: Object.keys(a.viajes).length, enTerminal: Object.values(a.viajes).filter(v => v.fase === "terminal").length, exploradoras: viajesDe(w, "colonia").length, stats: a.stats,
     cronica: a.cronica.slice(0, 12),
   };
 }

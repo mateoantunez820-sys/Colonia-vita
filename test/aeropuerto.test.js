@@ -259,8 +259,15 @@ test("al volver, el jugador ve qué células volvieron de viaje, las estrellas q
 test("el tablero muestra las salidas y llegadas en orden, los destinos y el pasaporte del jugador", () => {
   const w = mundo(), { u, ids } = jugador(w, "Ana", 100, 2);
   aero.reservar(w, u, ids[0], "CEN");
+  assert.equal(aero.view(w, null).enTerminal, 1);
   for (let i = 0; i < 9; i++) ciclo(w);
   const g = aero.view(w, null), v = aero.view(w, u);
+  // El mapa de rutas: la nave de Ana va en el aire hacia Cénit y todavía no hay nadie allí
+  const nave = g.enVuelo.find(f => f.dest === "CEN" && f.ida);
+  assert.equal(nave.num, v.me.viajes[0].vuelo); assert.equal(nave.pax, 1);
+  assert.ok(nave.sale <= w.tick && w.tick < nave.llega);
+  assert.ok(g.enVuelo.every(f => f.estado === "en vuelo" || f.estado === "retrasado"));
+  assert.deepEqual([g.enTerminal, g.mundos.find(M => M.k === "CEN").aqui], [0, 0]);
   assert.equal(g.me, null);
   assert.deepEqual(g.mundos.map(M => M.name), ["Oruz", "Lumar", "Cénit"]);
   assert.ok(g.salidas.length <= 6 && g.llegadas.length <= 6);
@@ -272,4 +279,6 @@ test("el tablero muestra las salidas y llegadas en orden, los destinos y el pasa
   assert.deepEqual(v.me.celulas.map(c => c.id), [ids[1]], "solo las que están en casa pueden viajar");
   assert.deepEqual([v.me.pasaporte.nivel, v.me.plazas, v.me.porDia, v.me.hoy], ["Pasajero", 3, 3, 1]);
   assert.equal(v.enViaje, 1);
+  for (let i = 0; i < 2; i++) ciclo(w);
+  assert.equal(aero.view(w, null).mundos.find(M => M.k === "CEN").aqui, 1, "ya explora Cénit");
 });

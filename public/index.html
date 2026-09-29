@@ -123,6 +123,12 @@ select{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px
 .sellos{display:flex;flex-wrap:wrap;gap:8px}
 .sello{font:700 11px var(--mono);padding:4px 8px;border-radius:6px;border:1.5px dashed currentColor;color:var(--mc);transform:rotate(-3deg);opacity:.35}.sello.on{opacity:1}
 .m-ORZ{--mc:#D9A45B}.m-LMR{--mc:#6FB8F0}.m-CEN{--mc:#B9A6F5}
+#vRutas{display:block;width:100%;max-width:560px;height:auto;justify-self:center;border-radius:10px;background:radial-gradient(ellipse at 50% 52%,#10293A 0%,#071116 78%)}
+#vRutas text{paint-order:stroke;stroke:#071116;stroke-width:3px;stroke-linejoin:round}
+.rt-n{font:700 12.5px var(--display);fill:var(--ink)}.rt-s{font:9px var(--mono);fill:var(--mute)}.rt-v{font:600 8.5px var(--mono)}.rt-c{font:600 9px var(--mono);fill:var(--ink)}
+.estr{cursor:pointer}.estr:focus{outline:none}.estr:focus-visible circle.v{stroke:var(--vit);stroke-width:2}
+/* Un texto largo (como el nombre de una célula en el desplegable) no ensancha el panel en el celular */
+#aero>*,#aero .list>*,#aero .grid2>*,#aero .grid3>*,#cenit>*,#cenit .list>*,#cenit .grid3>*,#cenit .oruz-cols>*{min-width:0}
 #zMap{display:block;width:100%;height:auto;border-radius:10px;touch-action:manipulation;background:linear-gradient(180deg,#16365E,#2A5A8F)}
 #zMap.noche{background:linear-gradient(180deg,#040820,#111A4A)}#zMap text{paint-order:stroke;stroke:#0A1633;stroke-opacity:.6;stroke-width:3px;stroke-linejoin:round}
 .est{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px;clip-path:polygon(50% 0,61% 38%,100% 50%,61% 62%,50% 100%,39% 62%,0 50%,39% 38%)}
@@ -209,6 +215,7 @@ select{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px
   <section class="panel" id="aero" hidden>
     <h2>Súper Aeropuerto Galáctico <span class="pill" id="vStats"></span></h2>
     <p class="note">El puerto de VITA une sus cuatro mundos. Cada hora sale una nave hacia Oruz, la tierra; otra hacia Lumar, el mar; y otra hacia Cénit, el cielo; y de cada mundo vuelve otra. Manda de viaje a una de tus células: explora un día entero de ese mundo y la primera vez que lo pisa aprende algo. Mientras viaja no acuña VIT, no tiene hijas y no envejece.</p>
+    <svg id="vRutas" viewBox="0 0 340 252" role="img" aria-label="Mapa de rutas: las naves que vuelan ahora entre VITA, Oruz, Lumar y Cénit"><g id="vRFijo"></g><g id="vRVivo"></g></svg>
     <div class="grid2">
       <div class="list"><h2>Salidas</h2><div class="scroll"><table class="fids"><thead><tr><th>Hora</th><th>Vuelo</th><th>Destino</th><th class="ex">Puerta</th><th>Estado</th></tr></thead><tbody id="vSal"></tbody></table></div></div>
       <div class="list"><h2>Llegadas</h2><div class="scroll"><table class="fids"><thead><tr><th>Hora</th><th>Vuelo</th><th>Desde</th><th class="ex">Nave</th><th>Estado</th></tr></thead><tbody id="vLle"></tbody></table></div></div>
@@ -529,7 +536,7 @@ document.addEventListener("click", e => {
   else if (d.a === "deseo") accion({ type: "estrella_deseo", id: d.id, colony: sel }, r => `Deseo pedido: ${r.col} florece ${durL(r.ciclos)}`);
   else if (d.a === "sumar") accion({ type: "deseo_sumarse", deseo: d.id }, r => `Te sumaste: ${r.col} florece ${durL(r.ciclos)} más`);
 });
-document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"],[data-a="zreg"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"],[data-a="zreg"],g[data-a="est"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 $("vCel").onchange = e => { celSel = e.target.value; };
 $("vGo").onclick = () => {
   const cell = $("vCel").value;
@@ -792,7 +799,70 @@ function renderAeropuerto() {
     <div class="sellos">${A.mundos.map(M => `<span class="sello m-${M.k} ${P.sellos[M.k] ? "on" : ""}">${esc(M.name)} ×${P.sellos[M.k] || 0}</span>`).join("")}</div></div>`
     : `<p class="note">Entra para tener tu pasaporte galáctico: cada viaje de tus células le suma sellos y millas.</p>`;
   $("vCron").innerHTML = A.cronica.map(x => `<li>${hora(x.t)} · ${esc(x.txt)}</li>`).join("") || "<li>Todavía no despegó ninguna nave.</li>";
+  rutasMarcas(A); rutasVivas();
 }
+// ---------- el mapa de rutas ----------
+// VITA en el centro y los tres mundos alrededor. Cada nave avanza entre su salida y su llegada con el
+// reloj del servidor, y la que lleva una de tus células va marcada.
+const RUTAS = { hub: [170, 128], pos: { CEN: [170, 36], ORZ: [58, 196], LMR: [282, 196] }, rHub: 25, rMundo: 17, color: { ORZ: "#D9A45B", LMR: "#6FB8F0", CEN: "#B9A6F5" } };
+const rutasQuietas = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// La ruta de ida y la de vuelta son dos curvas, una a cada lado de la línea recta
+function tramo(k, ida) {
+  const P = RUTAS.pos[k], H = RUTAS.hub, a0 = ida ? H : P, b0 = ida ? P : H, dx = b0[0] - a0[0], dy = b0[1] - a0[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+  const ra = (ida ? RUTAS.rHub : RUTAS.rMundo) + 3, rb = (ida ? RUTAS.rMundo : RUTAS.rHub) + 3, a = [a0[0] + ux * ra, a0[1] + uy * ra], b = [b0[0] - ux * rb, b0[1] - uy * rb];
+  return [a, [(a[0] + b[0]) / 2 - uy * 15, (a[1] + b[1]) / 2 + ux * 15], b];
+}
+const bez = ([a, c, b], s) => { const u = 1 - s; return [u * u * a[0] + 2 * u * s * c[0] + s * s * b[0], u * u * a[1] + 2 * u * s * c[1] + s * s * b[1]]; };
+const tangente = ([a, c, b], s) => [2 * (1 - s) * (c[0] - a[0]) + 2 * s * (b[0] - c[0]), 2 * (1 - s) * (c[1] - a[1]) + 2 * s * (b[1] - c[1])];
+let rutasListas = false;
+function rutasFijas(A) {
+  const f1 = n => n.toFixed(1), [hx, hy] = RUTAS.hub, grad = (id, a, b) => `<radialGradient id="${id}" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`;
+  const fondo = Array.from({ length: 44 }, (_, i) => { const x = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1, y = Math.abs(Math.sin(i * 78.233) * 12345.678) % 1; return `<circle cx="${f1(x * 340)}" cy="${f1(y * 252)}" r="${f1(0.5 + (i % 3) * 0.3)}" fill="#fff" opacity="${(0.2 + (i % 4) * 0.12).toFixed(2)}"/>`; }).join("");
+  const rutas = A.mundos.map(M => [true, false].map(ida => { const [a, c, b] = tramo(M.k, ida); return `<path d="M${f1(a[0])},${f1(a[1])} Q${f1(c[0])},${f1(c[1])} ${f1(b[0])},${f1(b[1])}" fill="none" stroke="${RUTAS.color[M.k]}" stroke-opacity="${ida ? 0.45 : 0.25}" stroke-width="1.3" stroke-dasharray="${ida ? "3 4" : "1 4"}" stroke-linecap="round"/>`; }).join("")).join("");
+  const mundos = A.mundos.map(M => {
+    const [x, y] = RUTAS.pos[M.k], arriba = M.k === "CEN";
+    return `<circle cx="${x}" cy="${y}" r="${RUTAS.rMundo + 5}" fill="${RUTAS.color[M.k]}" opacity=".12"/><circle cx="${x}" cy="${y}" r="${RUTAS.rMundo}" fill="url(#rg${M.k})"/>`
+      + (arriba ? `<text x="${x + 28}" y="${y - 2}" class="rt-n">${esc(M.name)}</text><text x="${x + 28}" y="${y + 11}" class="rt-s">${esc(M.tipo)}</text>`
+        : `<text x="${x}" y="${y + 34}" class="rt-n" text-anchor="middle">${esc(M.name)}</text><text x="${x}" y="${y + 46}" class="rt-s" text-anchor="middle">${esc(M.tipo)}</text>`)
+      + `<g id="rc${M.k}" hidden><circle cx="${x + 14}" cy="${y - 13}" r="8.5" fill="#0A1519" stroke="${RUTAS.color[M.k]}" stroke-width="1.2"/><text x="${x + 14}" y="${y - 10}" class="rt-c" text-anchor="middle"></text><title></title></g>`;
+  }).join("");
+  $("vRFijo").innerHTML = `<defs>${grad("rgORZ", "#F2C98A", "#7A4F22")}${grad("rgLMR", "#A8DAFF", "#1F4F86")}${grad("rgCEN", "#E3D8FF", "#5B48B5")}${grad("rgHUB", "#1F4A56", "#0C1E25")}</defs>${fondo}${rutas}
+    <circle cx="${hx}" cy="${hy}" r="${RUTAS.rHub + 7}" fill="none" stroke="var(--vit)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+    <circle cx="${hx}" cy="${hy}" r="${RUTAS.rHub}" fill="url(#rgHUB)" stroke="var(--life)" stroke-width="1.5"/>
+    <text x="${hx}" y="${hy + 4}" class="rt-n" text-anchor="middle">VITA</text>
+    <text x="${hx + RUTAS.rHub + 9}" y="${hy - 5}" class="rt-s">Súper Aeropuerto</text><text x="${hx + RUTAS.rHub + 9}" y="${hy + 7}" class="rt-s" id="rcVTA"></text>${mundos}`;
+  rutasListas = true;
+}
+// Cuántas células hay ahora en cada mundo y en la terminal
+function rutasMarcas(A) {
+  if (!rutasListas) rutasFijas(A);
+  for (const M of A.mundos) {
+    const g = $("rc" + M.k), n = M.aqui || 0;
+    if (!g) continue;
+    g.toggleAttribute("hidden", !n);
+    g.querySelector("text").textContent = n;
+    g.querySelector("title").textContent = `${n} célula${n === 1 ? "" : "s"} en ${M.name}`;
+  }
+  $("rcVTA").textContent = `${A.enTerminal || 0} en la terminal`;
+}
+function rutasVivas() {
+  const A = W?.aeropuerto; if (!A || !rutasListas) return;
+  const tf = W.tick + Math.min(1, Math.max(0, (Date.now() - (W.tickAt || Date.now())) / (W.tickMs || 1)));
+  const mias = new Set((A.me?.viajes || []).filter(v => v.fase === "ida" || v.fase === "vuelta").map(v => v.vuelo));
+  const pulso = rutasQuietas ? 1 : (0.55 + 0.45 * Math.cos(performance.now() / 230)).toFixed(2);
+  $("vRVivo").innerHTML = (A.enVuelo || []).map(f => {
+    const T = tramo(f.dest, f.ida), tarde = f.estado === "retrasado", s = tarde ? 0 : Math.min(1, Math.max(0, (tf - f.sale) / (f.llega - f.sale)));
+    const [x, y] = bez(T, s), [dx, dy] = tangente(T, s), L = Math.hypot(dx, dy) || 1, ang = Math.atan2(dy, dx) * 180 / Math.PI, mia = mias.has(f.num), col = RUTAS.color[f.dest];
+    const X = x.toFixed(1), Y = y.toFixed(1), aro = c => `<circle cx="${X}" cy="${Y}" r="${tarde ? 8 : 10}" fill="none" stroke="${c}" stroke-width="1.5" opacity="${pulso}"/>`;
+    return `<g>${mia ? aro("var(--vit)") : ""}${tarde ? aro("var(--warn)") : ""}<path d="M8.5,0 L-6,-5.5 L-3,0 L-6,5.5Z" fill="${col}" transform="translate(${X},${Y}) rotate(${ang.toFixed(0)})"><title>${esc(f.num)} · ${f.pax} célula${f.pax === 1 ? "" : "s"} a bordo de la ${esc(f.nave)}</title></path>
+      <text x="${(x - dy / L * 11).toFixed(1)}" y="${(y + dx / L * 11 + 3).toFixed(1)}" class="rt-v" text-anchor="middle" fill="${tarde ? "var(--warn)" : mia ? "var(--vit)" : col}">${esc(f.num)}${tarde ? " · retraso" : mia ? " · tu célula" : ""}</text></g>`;
+  }).join("");
+}
+// Las naves se mueven solas mientras el mapa está a la vista
+let rutasVista = true, rutasT = 0;
+try { new IntersectionObserver(es => { rutasVista = es.some(e => e.isIntersecting); }).observe($("vRutas")); } catch {}
+function animaRutas(now) { if (rutasVista && !document.hidden && now - rutasT > 100) { rutasT = now; rutasVivas(); } requestAnimationFrame(animaRutas); }
+if (!rutasQuietas) requestAnimationFrame(animaRutas);
 
 // ---------- Cénit, el cielo ----------
 const estrella = c => `<i class="est" style="background:${ESTC[c] || "#fff"}"></i>`;
@@ -801,6 +871,8 @@ const certE = id => `<a href="/api/cenit/estrella/${id}" target="_blank" rel="no
 const fechaCorta = ms => new Date(ms).toLocaleDateString("es", { day: "numeric", month: "long", timeZone: "UTC" });
 const rango = (a, b) => new Date(a).getUTCMonth() === new Date(b).getUTCMonth() ? `del ${new Date(a).getUTCDate()} al ${fechaCorta(b)}` : `del ${fechaCorta(a)} al ${fechaCorta(b)}`;
 const meteoros = n => `${n} meteoro${n === 1 ? "" : "s"} por hora`;
+// Horas de Cénit que faltan para la noche (la misma cuenta que el servidor)
+const hastaLaNoche = h => { let n = 1; while (n < 24 && Math.sin(((h + n) % 24 - 6) / 12 * Math.PI) > 0) n++; return n; };
 // La lluvia de estrellas de ahora: empieza, está en su pico o se despide
 function lluviaTxt(L) {
   const ahora = Date.now(), n = `la lluvia de estrellas de las <b>${esc(L.name)}</b>`;
@@ -831,8 +903,12 @@ function renderCenit() {
       return `<g class="hx ${R.id === selZ ? "sel" : ""}" data-a="zreg" data-id="${R.id}" tabindex="0" role="button" aria-label="${esc(R.name)}, ${esc(R.biomaName)}">
       <polygon points="${hexPts(x, y, S - 2)}" fill="${R.color}" fill-opacity="${(0.2 + 0.45 * R.eq).toFixed(2)}"/>
       <text x="${x}" y="${y - 3}" class="hx-n">${esc(R.name)}</text>${bl.map((l, i) => `<text x="${x}" y="${y + 11 + i * 10}" class="hx-b">${esc(l)}</text>`).join("")}
-      ${es.map((p, i) => { const px = x - (es.length - 1) * 7 + i * 14, py = y + 19 + bl.length * 10, col = ESTC[p.color] || "#fff"; return `<line x1="${px + 12}" y1="${py - 9}" x2="${px}" y2="${py}" stroke="${col}" stroke-width="2" stroke-linecap="round" opacity=".45"/><circle cx="${px}" cy="${py}" r="4" fill="${col}"><title>${p.id} · estrella ${esc(p.color)}</title></circle>`; }).join("")}
       ${Z.fenomeno.region === R.id ? `<text x="${x + 30}" y="${y - 18}" class="hx-f" fill="#E4EEEF"><title>${esc(Z.fenomeno.name)}</title>${FXZ[Z.fenomeno.k] || "✦"}</text>` : ""}</g>`;
+    }).join("")
+    // Las estrellas fugaces van encima de las regiones: tocar una la atrapa
+    + Z.regions.map(R => {
+      const [x, y] = pos(R), es = free[R.id] || [], bl = dosLineas(R.biomaName).length;
+      return es.map((p, i) => { const px = x - (es.length - 1) * 7 + i * 14, py = y + 19 + bl * 10, col = ESTC[p.color] || "#fff"; return `<g class="estr" data-a="est" data-id="${p.id}" tabindex="0" role="button" aria-label="Atrapar la estrella ${esc(p.color)} ${p.id}"><title>${p.id} · estrella ${esc(p.color)}</title><line x1="${px + 12}" y1="${py - 9}" x2="${px}" y2="${py}" stroke="${col}" stroke-width="2" stroke-linecap="round" opacity=".45"/><circle class="v" cx="${px}" cy="${py}" r="4" fill="${col}"/><circle cx="${px}" cy="${py}" r="12" fill="#fff" fill-opacity="0"/></g>`; }).join("");
     }).join("");
   $("zLegend").innerHTML = Object.entries(Z.especies).map(([k, e]) => `<span><i style="background:${ESPZ[k]}"></i>${esc(e.name)} · ${esc(e.rol.toLowerCase())}</span>`).join("");
   $("zFen").textContent = `${Z.fenomeno.name} sobre ${(Z.regions.find(R => R.id === Z.fenomeno.region) || {}).name || ""}. ${Z.estrellasTotal === 1 ? "Ha caído 1 estrella fugaz" : `Han caído ${Z.estrellasTotal} estrellas fugaces`} y ${Z.deseosTotal === 1 ? "se ha pedido 1 deseo" : `se han pedido ${Z.deseosTotal} deseos`}.`;
@@ -848,7 +924,7 @@ function renderCenit() {
   const canTake = me && Z.atrapadasHoy < Z.porDia, canSum = me && Z.sumadosHoy < Z.sumarPorDia;
   $("zHoy").hidden = !me; $("zHoy").textContent = me ? `hoy ${Z.atrapadasHoy}/${Z.porDia}` : "";
   $("zLibres").innerHTML = Z.libres.length ? Z.libres.map(p => `<div class="item"><span><b class="nw">${estrella(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>${esc(p.region)}${p.lluvia ? ` · ${esc(p.lluvia)}` : ""} · se apaga en ${durL(p.expira)}</p><button class="sm primary" data-a="est" data-id="${p.id}" ${canTake ? "" : "disabled"}>Atrapar</button></div>`).join("")
-    : `<p class="note">No cae ninguna estrella ahora. Caen de noche donde viven las cuatro especies, muchas más en una lluvia de estrellas y con luna nueva.</p>`;
+    : `<p class="note">No cae ninguna estrella ahora. ${Z.noche ? "Caen de noche donde viven las cuatro especies, muchas más en una lluvia de estrellas y con luna nueva." : `Es de día en Cénit: caen de noche, dentro de ${durL(hastaLaNoche(c.hora))}, donde viven las cuatro especies.`}</p>`;
   const selName = (W.colonies.find(x => x.id === sel) || {}).name || "la colonia";
   $("zMias").innerHTML = Z.mias.length ? Z.mias.map(p => `<div class="item"><span><b class="nw">${estrella(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>${esc(p.region)} · florece ${durL(p.ciclos)} · ${certE(p.id)}</p><button class="sm primary" data-a="deseo" data-id="${p.id}">Pedir un deseo por ${esc(selName)}</button></div>`).join("")
     : `<p class="note">${me ? (Z.atrapadasHoy >= Z.porDia ? "Ya atrapaste tu estrella de hoy. Mañana puedes atrapar otra." : "Atrapa una estrella fugaz, una al día, y pide un deseo.") : "Entra para atrapar estrellas."}</p>`;
