@@ -177,7 +177,7 @@ function worldView(u) {
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
-    cria: cria.view(world, u),
+    cria: cria.view(world, u), cartas: familia.recientes(world),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }

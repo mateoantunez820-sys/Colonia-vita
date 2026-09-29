@@ -122,6 +122,7 @@ test("la familia VITA: el árbol, el anuncio y el prólogo de Vita; quien alimen
   assert.equal(f.diario[0].titulo, "Prólogo");
   assert.equal(f.buzon, null, "sin entrar no hay buzón");
   assert.equal(f.proxima.name, "Génesis");
+  assert.deepEqual((await call("/api/world")).json.cartas, [], "el anuncio a toda la familia no es una carta entre colonias");
 
   const { token } = (await call("/api/join", { body: { name: "Leo" } })).json;
   const col = f.arbol.nodos[0].id;

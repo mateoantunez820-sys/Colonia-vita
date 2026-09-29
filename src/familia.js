@@ -580,6 +580,14 @@ export function step(w, ctx = {}) {
   return noche;
 }
 
+// Las últimas cartas entre colonias (o de Vita a una colonia), en corto, para dibujarlas en otras vistas
+export function recientes(w, n = 20) {
+  const F = w.familia;
+  if (!F) return [];
+  return F.cartas.filter(k => w.colonies[k.a] && (k.de === VITA.id || w.colonies[k.de])).slice(0, n)
+    .map(k => ({ id: k.id, de: k.de, a: k.a, t: k.t, tipo: k.tipo }));
+}
+
 // La noche recién escrita que Claude todavía puede pasar a limpio (durante la hora siguiente)
 export function pendiente(w) {
   const e = w.familia?.diario?.[0];

@@ -100,6 +100,11 @@ test("cuando nace una hija, su madre le da la bienvenida, su hermana mayor se pr
     assert.equal(hermana.de, aurora.id); assert.equal(hermana.a, brisa.id);
     assert.equal(w.familia.cartas.filter(k => k.tipo === "espera").length, 1, "solo le escribe a la primera");
     assert.ok(brisa.log.some(l => l.includes("Carta de Génesis")), "la carta queda en la bitácora de quien la recibe");
+    // En corto, para otras vistas: solo cartas entre colonias (o de Vita), la más nueva primero
+    const r = familia.recientes(w);
+    assert.deepEqual(r[0], { id: hermana.id, de: aurora.id, a: brisa.id, t: hermana.t, tipo: "hermana" });
+    assert.ok(r.some(k => k.tipo === "espera" && k.a === aurora.id), "la carta de antes de nacer ya cuenta: tiene destinataria");
+    assert.ok(!r.some(k => k.tipo === "anuncio"), "el anuncio a toda la familia no va de una colonia a otra");
     // Esa noche Vita lo cuenta en su diario
     let noche = null;
     while (!noche) { w.tick++; noche = familia.step(w, reloj(w)); }
