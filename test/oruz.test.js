@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as core from "../src/core.js";
 import * as oruz from "../src/oruz.js";
+import { conAzar } from "./azar.js";
 
 function hija(w, persona = { riesgo: 0.5, codicia: 0.5, cuidado: 0.5 }) {
   const madre = Object.values(w.colonies)[0];
@@ -12,13 +13,6 @@ function hasta(w, cond, max = 200) {
   let n = 0;
   while (!cond() && n++ < max) { w.tick++; oruz.step(w, oruz.rng("ciclo" + n)); }
   return n;
-}
-// Las células nacen con genes y vida al azar (Math.random en core). Con el azar fijado por una semilla,
-// una prueba que depende de toda la escuela da siempre el mismo resultado.
-function conAzar(semilla, fn) {
-  const antes = Math.random;
-  Math.random = oruz.rng(semilla);
-  try { return fn(); } finally { Math.random = antes; }
 }
 
 test("Oruz es un mundo propio: la misma semilla da el mismo mapa y otra semilla, otro", () => {

@@ -4,6 +4,7 @@ import * as core from "../src/core.js";
 import * as oruz from "../src/oruz.js";
 import * as lumar from "../src/lumar.js";
 import * as ret from "../src/retention.js";
+import { conAzar } from "./azar.js";
 
 const KEY = "clave-de-prueba";
 const env = () => ({ weather: null, attention: 0, difficulty: 1 });
@@ -108,7 +109,7 @@ test("sin clave no hay copias", () => {
   assert.equal(ret.restoreSave(w, "a.b", null).ok, false);
 });
 
-test("al volver tras unas horas, el jugador ve lo que acuñaron sus células y qué pasó", () => {
+test("al volver tras unas horas, el jugador ve lo que acuñaron sus células y qué pasó", () => conAzar("regreso", () => {
   const w = core.createWorld(), col = Object.values(w.colonies)[0];
   const u = core.createUser(w, "Iris", "h"); u.vit = 300;
   for (const c of col.cells.slice(0, 10)) core.adopt(w, col, c.id, u);
@@ -125,7 +126,7 @@ test("al volver tras unas horas, el jugador ve lo que acuñaron sus células y q
   ret.touch(w, u, T0 + 5 * H + 1000);
   assert.equal(u.welcome.at, r.at, "un informe por regreso, no uno por petición");
   assert.equal(ret.metrics(w, T0 + 5 * H).informesDeRegreso, 1, "el panel del dueño cuenta el informe");
-});
+}));
 
 test("la liga suma puntos con tope diario y reparte células de premio al cerrar la semana", () => {
   const w = core.createWorld();
