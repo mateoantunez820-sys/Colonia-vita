@@ -20,7 +20,9 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - **Rangos y respeto entre colonias.** La Ley VITA está por encima de todo, Oruz es el rango intermedio y gestor social, y Ámbar es la élite. Ver abajo.
 - **Oruz, el mundo paralelo.** Un ecomundo aparte con su escuela para las colonias recién nacidas y el Ámbar de Oruz, piezas únicas registradas en la cadena. Ver abajo.
 - **Lumar, el mar de la luna.** El segundo ecomundo: un mar que sigue la luna real, donde nacen las Perlas de Lumar. Una perla no la usa quien la recoge: se regala. Ver abajo.
-- **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta.
+- **Cénit, el cielo de VITA.** El tercer ecomundo: un cielo con la luna y las lluvias de estrellas reales, donde caen estrellas fugaces. Quien atrapa una pide un deseo y la colonia que elige florece. Ver abajo.
+- **Súper Aeropuerto Galáctico.** Una nave cada hora entre VITA, Oruz, Lumar y Cénit. Las células viajan, exploran un día de ese mundo, aprenden algo la primera vez y vuelven, y cada viaje deja sellos y millas en el pasaporte. Ver abajo.
+- **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta (con sus células de viaje y sus estrellas).
 - **Tu cría.** Cada jugador recibe un huevo único que se abre con su calor. La cría crece cuando su jugador se cuida. Ver abajo.
 
 ## Rangos: Ley VITA, Oruz y Ámbar
@@ -51,6 +53,28 @@ Cada hora se reúne el consejo de VITA (`src/rangos.js`):
 - **Mar.** Siete regiones (laguna, arrecife, kelp, posidonia, abismo, fuentes termales y arena) donde algas de luz, ostras perleras, estrellas de mar y pepinos de mar se equilibran solos. La marea alta trae alimento y la baja deja al aire los fondos someros; en las fuentes termales la energía sale del calor, no del sol.
 - **Perlas de Lumar.** Las ostras forman nácar donde viven las cuatro especies. Nacen unas 1,5 perlas al día de media: unas 3 con luna llena y 0,3 con luna nueva, y las de las noches de desove del coral, justo después de la luna llena, salen con más brillo. Cada perla tiene un código único, un color y un brillo, y su certificado está en `/api/lumar/perla/PRL-XXXXXXXX`.
 - **Se regalan.** Cada jugador recoge una perla al día, pero no la puede usar: solo puede regalarla, con el código de invitación de un amigo o "a quien la necesite" (primero quien tiene células en una colonia con sequía, helada o plaga). Quien la recibe la infunde en una colonia: la cura y acorta su sequía, helada o plaga. Recoger, regalar e infundir suman puntos en la liga. Las perlas no crean VIT y no se venden por dinero real.
+
+## Cénit: el cielo de VITA
+
+`src/cenit.js` es el tercer ecomundo, sobre la tierra de Oruz y el mar de Lumar. Usa el mismo motor (`src/ecomundo.js`) y avanza una hora de Cénit en cada ciclo:
+
+- **El cielo de verdad.** La luna es la de Lumar, la misma que se ve esa noche. Las lluvias de estrellas siguen el calendario de la Organización Internacional de Meteoros (Cuadrántidas, Líridas, Eta Acuáridas, Delta Acuáridas, Perseidas, Táuridas, Dracónidas, Oriónidas, Leónidas, Gemínidas y Úrsidas) con su pico y su tasa horaria, y la web avisa de la próxima.
+- **Cielo.** Siete regiones (puerto de las nubes, mar de cúmulos, ojo de la tormenta, velo de auroras, islas flotantes, corriente en chorro y borde de las estrellas) donde flores de nube, luciérnagas estelares, halcones de tormenta y líquenes del viento se equilibran solos. En el ojo de la tormenta los rayos dan energía también de noche y en el velo de auroras las auroras iluminan la noche.
+- **Estrellas fugaces.** De noche, donde viven las cuatro especies, las luciérnagas dejan polvo de estrellas que cae como estrellas fugaces: unas 3 al día con luna llena, unas 9 con luna nueva y más de 15 en el pico de las Perseidas o las Gemínidas, porque la luz de la luna apaga muchas. Una estrella se apaga si nadie la atrapa en 2 horas. Cada una tiene un código único, un color y un brillo, y su certificado está en `/api/cenit/estrella/EST-XXXXXXXX`.
+- **Deseos.** Cada jugador atrapa una estrella al día y pide un deseo por la colonia que quiera, suya o de otra persona: la colonia florece (más luz y más crecimiento) de 2 a casi 4 horas según el brillo. Otros jugadores se suman al deseo (hasta 4, y cada uno a 3 deseos al día) y la floración dura 40 minutos más por cada uno, hasta un tope de 8 horas. Una estrella no puede con la sequía, la helada ni la plaga: para eso están las perlas de Lumar. Atrapar, pedir y sumarse dan puntos en la liga. Las estrellas no crean VIT y no se venden por dinero real.
+
+## Súper Aeropuerto Galáctico
+
+`src/aeropuerto.js` une VITA con Oruz (la tierra), Lumar (el mar) y Cénit (el cielo):
+
+- **Una nave cada hora.** Sale una de VITA hacia cada mundo y vuelve otra de cada uno, con su número de vuelo, su puerta y su nave. La web muestra el tablero de salidas y llegadas con la hora del reloj del jugador.
+- **Viajar.** El jugador manda de viaje a una de sus células: deja su colonia, vuela (30 minutos a Oruz, 40 a Lumar y 1 hora a Cénit), explora un día entero de ese mundo (4 horas reales) en una de sus regiones y vuelve. Mientras viaja no acuña VIT, no tiene hijas y no envejece. Si su colonia ya no existe o está llena, vuelve a otra.
+- **Aprender.** La primera vez que pisa cada mundo aprende algo: Oruz la hace más resistente (y vive más), Lumar más fértil y Cénit más eficiente. Cada viaje deja un sello en su pasaporte, y `/api/aeropuerto/celula/CEL-XXXXXX` muestra sus sellos y sus vuelos en la cadena.
+- **Billetes.** 4 VIT a Oruz, 5 a Lumar y 8 a Cénit, y se queman: el aeropuerto retira VIT del juego. Cada jugador tiene 3 células de viaje a la vez y 3 billetes al día.
+- **Pasaporte del jugador.** Cada viaje suma millas (300, 500 u 800, el doble a Cénit durante una lluvia de estrellas). Los niveles Pasajero, Viajero, Viajero frecuente, Pasaporte de oro y Comandante galáctico dan una plaza y un billete más cada uno.
+- **Exploradoras.** Las colonias sanas con más de 250 VIT de tesoro mandan de vez en cuando a su mejor célula a aprender el gen que más les falta, con el billete pagado por su tesoro: una a la vez y una al día como mucho. Las agradecidas y las aprendices de Oruz no gastan en viajes.
+- **Retrasos.** Una tormenta sobre el puerto del otro mundo, o lluvia fuerte o tormenta de verdad en VITA, retrasa las naves de 10 a 30 minutos.
+- Sacar un billete da puntos en la liga, y el informe "Mientras no estabas" cuenta qué células volvieron y qué aprendieron.
 
 ## La cría: el regalo de VITA para cada jugador
 
@@ -83,7 +107,7 @@ VIT y CEL son tokens del juego, sin valor fuera de él. No hay blockchain públi
 ```
 npm install
 npm run dev      # modo rápido: 1 ciclo cada 2 segundos
-npm test         # simulación de 45 días, economía, carteras, gratitud, anti-abuso, clima e IA
+npm test         # simulación de 45 días, economía, carteras, gratitud, anti-abuso, clima, IA, ecomundos y aeropuerto
 ```
 
 Abre http://localhost:3000.

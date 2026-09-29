@@ -111,7 +111,23 @@ a{color:var(--vit)}.full{flex-basis:100%}
 @keyframes crSalta{30%{transform:translateY(-16px) scale(.96,1.05)}55%{transform:translateY(0) scale(1.07,.93)}75%{transform:scale(.98,1.02)}}
 .cr-nam{animation:crNam .7s ease-in-out}
 @keyframes crNam{20%,60%{transform:scale(1.06,.94)}40%,80%{transform:scale(.97,1.03)}}
-@media(prefers-reduced-motion:reduce){.bar i{transition:none}.cr-anim *,.hv *,.hv-t1,.hv-t2,.cr-z,.cr-salta,.cr-nam{animation:none!important}}
+/* Aeropuerto y Cénit */
+select{font:15px var(--body);background:var(--surf2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:0;max-width:100%;flex:1 1 220px}select:focus-visible{outline:2px solid var(--vit);outline-offset:2px}
+.fids td,.fids th{padding:6px 5px}.fids .dst{font-weight:600}@media(max-width:480px){.fids .ex{display:none}}
+.st{font:600 11px var(--mono);padding:2px 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.st-programado{color:var(--mute)}.st-embarcando{color:var(--vit)}.st-en-vuelo{color:var(--rara)}.st-retrasado{color:var(--warn)}.st-aterrizado{color:var(--life)}
+.destinos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}@media(max-width:620px){.destinos{grid-template-columns:1fr}}
+.dest{all:unset;cursor:pointer;display:grid;gap:3px;padding:10px 12px;border-radius:10px;background:var(--surf2);border:1px solid transparent;border-top:3px solid var(--mc)}
+.dest.sel{border-color:var(--vit);border-top-color:var(--mc)}.dest:focus-visible{outline:2px solid var(--vit)}
+.dest .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.dest b{font:700 16px var(--display)}.dest .m{font:12px var(--mono);color:var(--mute)}.dest .vis{color:var(--vit)}
+.sellos{display:flex;flex-wrap:wrap;gap:8px}
+.sello{font:700 11px var(--mono);padding:4px 8px;border-radius:6px;border:1.5px dashed currentColor;color:var(--mc);transform:rotate(-3deg);opacity:.35}.sello.on{opacity:1}
+.m-ORZ{--mc:#D9A45B}.m-LMR{--mc:#6FB8F0}.m-CEN{--mc:#B9A6F5}
+#zMap{display:block;width:100%;height:auto;border-radius:10px;touch-action:manipulation;background:linear-gradient(180deg,#16365E,#2A5A8F)}
+#zMap.noche{background:linear-gradient(180deg,#040820,#111A4A)}#zMap text{paint-order:stroke;stroke:#0A1633;stroke-opacity:.6;stroke-width:3px;stroke-linejoin:round}
+.est{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px;clip-path:polygon(50% 0,61% 38%,100% 50%,61% 62%,50% 100%,39% 62%,0 50%,39% 38%)}
+.tw{animation:tw 3.2s ease-in-out infinite}@keyframes tw{50%{opacity:.2}}
+@media(prefers-reduced-motion:reduce){.bar i{transition:none}.cr-anim *,.hv *,.hv-t1,.hv-t2,.cr-z,.cr-salta,.cr-nam,.tw{animation:none!important}}
 </style>
 </head>
 <body>
@@ -190,6 +206,27 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <ul class="log" id="rLog"></ul>
   </section>
 
+  <section class="panel" id="aero" hidden>
+    <h2>Súper Aeropuerto Galáctico <span class="pill" id="vStats"></span></h2>
+    <p class="note">El puerto de VITA une sus cuatro mundos. Cada hora sale una nave hacia Oruz, la tierra; otra hacia Lumar, el mar; y otra hacia Cénit, el cielo; y de cada mundo vuelve otra. Manda de viaje a una de tus células: explora un día entero de ese mundo y la primera vez que lo pisa aprende algo. Mientras viaja no acuña VIT, no tiene hijas y no envejece.</p>
+    <div class="grid2">
+      <div class="list"><h2>Salidas</h2><div class="scroll"><table class="fids"><thead><tr><th>Hora</th><th>Vuelo</th><th>Destino</th><th class="ex">Puerta</th><th>Estado</th></tr></thead><tbody id="vSal"></tbody></table></div></div>
+      <div class="list"><h2>Llegadas</h2><div class="scroll"><table class="fids"><thead><tr><th>Hora</th><th>Vuelo</th><th>Desde</th><th class="ex">Nave</th><th>Estado</th></tr></thead><tbody id="vLle"></tbody></table></div></div>
+    </div>
+    <p class="note" id="vRetrasos" hidden></p>
+    <div class="list">
+      <h2>Saca un billete <span class="pill" id="vHoy"></span></h2>
+      <div class="destinos" id="vDest"></div>
+      <div class="row"><select id="vCel" aria-label="Célula que viaja"></select><button class="primary" id="vGo">Sacar billete</button></div>
+      <p class="note" id="vNote"></p>
+    </div>
+    <div class="grid3">
+      <div class="list"><h2>Tus células de viaje</h2><div class="list" id="vMis"></div></div>
+      <div class="list"><h2>Tu pasaporte</h2><div class="list" id="vPas"></div></div>
+      <div class="list"><h2>Crónica del aeropuerto</h2><ul class="log" id="vCron"></ul></div>
+    </div>
+  </section>
+
   <section class="panel" id="oruz" hidden>
     <h2>Oruz · el mundo paralelo <span class="pill" id="oCal"></span></h2>
     <p class="note">Un ecomundo aparte, con su mapa, sus estaciones y cuatro roles que se equilibran solos. Las colonias recién nacidas estudian aquí antes de salir a la federación, y donde el ecosistema está sano nace el Ámbar de Oruz.</p>
@@ -234,6 +271,29 @@ a{color:var(--vit)}.full{flex-basis:100%}
         <div class="list" id="lRegalar"></div></div>
       <div class="list"><h2>Te regalaron</h2><p class="note">Infundir una perla cura a la colonia que estás viendo y acorta su sequía, helada o plaga.</p><div class="list" id="lRecibidas"></div></div>
       <div class="list"><h2>Crónica de Lumar</h2><ul class="log" id="lCron"></ul></div>
+    </div>
+  </section>
+
+  <section class="panel" id="cenit" hidden>
+    <h2>Cénit · el cielo de VITA <span class="pill" id="zCal"></span></h2>
+    <p class="note">El tercer ecomundo, sobre la tierra de Oruz y el mar de Lumar. Su luna es la de tu cielo esta noche y sus lluvias de estrellas siguen el calendario real. De noche, las luciérnagas estelares dejan polvo de estrellas que cae como estrellas fugaces: muchas más en una lluvia de estrellas y con luna nueva. Atrapa una y pide un deseo por una colonia: la colonia florece.</p>
+    <div class="oruz-cols">
+      <div class="list">
+        <svg id="zMap" viewBox="-160 -140 320 280" role="group" aria-label="Mapa de Cénit. Toca una región para ver su ecosistema."></svg>
+        <div class="legend" id="zLegend"></div>
+        <p class="note" id="zFen"></p>
+      </div>
+      <div class="list">
+        <div class="luna" id="zCielo"></div>
+        <div id="zReg"></div>
+        <h2>Estrellas fugaces <span class="pill" id="zHoy"></span></h2>
+        <div class="list" id="zLibres"></div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="list"><h2>Tus estrellas</h2><p class="note">Pide el deseo por la colonia que estás viendo, sea tuya o de otra persona: florece y gana energía. Una estrella no puede con la sequía, la helada ni la plaga.</p><div class="list" id="zMias"></div></div>
+      <div class="list"><h2>Deseos que se cumplen</h2><p class="note">Súmate al deseo de otro jugador y esa colonia florecerá más tiempo.</p><div class="list" id="zDeseos"></div></div>
+      <div class="list"><h2>Crónica de Cénit</h2><ul class="log" id="zCron"></ul></div>
     </div>
   </section>
 
@@ -283,7 +343,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
       <h2>Liga semanal <span class="pill" id="lWeek"></span></h2>
       <p class="note" id="lMe"></p>
       <div class="scroll"><table><thead><tr><th>#</th><th>Jugador</th><th class="r">Puntos</th><th>Premio</th></tr></thead><tbody id="lTop"></tbody></table></div>
-      <p class="note">Suman las misiones, los hábitos, alimentar, adoptar, mejorar, el Ámbar y cada día que vuelves, con un tope diario. Los 10 primeros ganan una célula rara, épica o legendaria.</p>
+      <p class="note">Suman las misiones, los hábitos, alimentar, adoptar, mejorar, el Ámbar, las perlas, los viajes, las estrellas, los deseos y cada día que vuelves, con un tope diario. Los 10 primeros ganan una célula rara, épica o legendaria.</p>
       <p class="note" id="lPrev"></p>
     </section>
     <section class="panel">
@@ -364,6 +424,10 @@ const MAREA = { alta: "Marea alta", baja: "Marea baja", subiendo: "La marea sube
 // En el hemisferio sur la luna creciente se ilumina por la izquierda: se dibuja como la ven allí
 let SUR = false; try { SUR = /^(America\/(Argentina|Santiago|Punta_Arenas|Lima|La_Paz|Asuncion|Montevideo|Sao_Paulo)|Australia\/|Pacific\/Auckland|Africa\/Johannesburg)/.test(Intl.DateTimeFormat().resolvedOptions().timeZone || ""); } catch {}
 let selL = null, vistas = new Set();
+let destSel = "ORZ", celSel = "", celHtml = null, selZ = null;
+const ESTC = { blanca: "#F4F6FF", azul: "#8FB8FF", dorada: "#F5D06B", roja: "#FF8A7A", verde: "#8CF0B0", violeta: "#C9A2FF" };
+const ESPZ = { flora: "#F3B6D8", poli: "#F5D06B", depre: "#9C8CF2", reci: "#7FD1C0" };
+const FXZ = { rayos: "⚡", arcoiris: "🌈", ventisca: "❄" };
 try { vistas = new Set(JSON.parse(localStorage.getItem("vita-perlas") || "[]")); } catch {}
 
 async function api(p, body) {
@@ -459,8 +523,25 @@ document.addEventListener("click", e => {
   }
   else if (d.a === "azar") regalar({ type: "pearl_give", id: d.id, azar: true });
   else if (d.a === "pinf") infundirPerla(d.id);
+  else if (d.a === "dest") { destSel = d.id; renderAeropuerto(); }
+  else if (d.a === "zreg") { selZ = d.id; renderCenit(); }
+  else if (d.a === "est") act({ type: "estrella_atrapar", id: d.id }, "Estrella atrapada: ahora pide un deseo");
+  else if (d.a === "deseo") accion({ type: "estrella_deseo", id: d.id, colony: sel }, r => `Deseo pedido: ${r.col} florece ${durL(r.ciclos)}`);
+  else if (d.a === "sumar") accion({ type: "deseo_sumarse", deseo: d.id }, r => `Te sumaste: ${r.col} florece ${durL(r.ciclos)} más`);
 });
-document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+document.addEventListener("keydown", e => { const g = (e.key === "Enter" || e.key === " ") && e.target.closest?.('[data-a="reg"],[data-a="lreg"],[data-a="zreg"]'); if (g) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+$("vCel").onchange = e => { celSel = e.target.value; };
+$("vGo").onclick = () => {
+  const cell = $("vCel").value;
+  if (!cell) return toast("Elige una de tus células");
+  accion({ type: "vuelo", cell, dest: destSel }, r => `Billete en el ${r.num}: sale en ${durL(r.sale)}`);
+};
+async function accion(body, ok) {
+  const r = await api("/api/action", body);
+  toast(r.ok ? ok(r) : r.error || "No se pudo");
+  if (r.ok) lastSave = 0;
+  await refresh(); return r;
+}
 async function regalar(body) {
   const r = await api("/api/action", body);
   toast(r.ok ? `Regalaste la perla a ${r.to}` : r.error || "No se pudo");
@@ -495,7 +576,7 @@ function renderWorld() {
     $("recNew").className = me.hasRecovery ? "sm" : "sm primary";
     $("recNew").textContent = me.hasRecovery ? "Código de recuperación" : "Guarda tu código de recuperación";
     $("wallet").textContent = `${me.vit} VIT`; $("streak").textContent = `racha ${me.streak} día${me.streak === 1 ? "" : "s"}`;
-    $("myCells").textContent = `${me.cellCount} células tuyas · ${me.sporesLeft} esporas hoy`;
+    $("myCells").textContent = `${me.cellCount} células tuyas${me.viajando ? ` y ${me.viajando} de viaje` : ""} · ${me.sporesLeft} esporas hoy`;
     $("adBtn").disabled = me.adsLeft <= 0; $("adBtn").textContent = me.adsLeft > 0 ? `Ver anuncio · +2 VIT (${me.adsLeft})` : "Anuncios de hoy vistos";
   }
   $("demoBuy").hidden = !W.demoPurchases;
@@ -520,8 +601,10 @@ function renderWorld() {
   $("positions").innerHTML = me && me.positions.length ? me.positions.map(p => `<div class="item"><span>${esc(p.name)}</span><p>${p.shares} participaciones${p.withdrawable < Math.floor(p.value) ? ` · ahora puedes retirar ${p.withdrawable}` : ""}</p><span class="done">${p.value} VIT</span></div>`).join("") : `<p class="note">Aún no has confiado VIT a ninguna IA.</p>`;
   $("mine").innerHTML = me && me.cells.length ? me.cells.map(c => `<tr><td>${c.id}</td><td>${esc(c.colonyName)}</td><td><span class="rar r${c.rarity}">${RN[c.rarity]}</span></td><td class="r">${c.mined}</td><td><button class="sm" data-a="sell" data-id="${c.id}" data-col="${c.colony}">Vender · ${c.sell}</button></td></tr>`).join("") : `<tr><td colspan="5">Adopta una célula para que acuñe VIT para ti.</td></tr>`;
   ["invBtn", "wdBtn", "feedBtn"].forEach(id => $(id).disabled = !me);
-  renderWelcome(); renderOruz(); renderLumar(); renderLiga(); renderInvite();
+  renderWelcome(); aparte(renderAeropuerto); renderOruz(); renderLumar(); aparte(renderCenit); renderLiga(); renderInvite();
 }
+// El aeropuerto y Cénit nunca rompen el resto de la web
+function aparte(f) { try { f(); } catch (e) { console.error(`[${f.name}]`, e); } }
 function oruzTag(id) {
   const st = W?.oruz?.estado?.[id]; if (!st) return "";
   return `<span class="m" style="color:var(--life)">${st.estado === "aprendiz" ? "aprendiz en la escuela de Oruz" : `graduada en Oruz · nota ${st.nota} · ${ROLN[st.rol] || st.rol}`}</span>`;
@@ -535,7 +618,7 @@ function renderWelcome() {
   const lines = [];
   $("wHoras").textContent = r?.horas ? `${r.horas} h fuera` : "";
   if (p) lines.push(`<b>Quedaste ${p.pos}.º en la liga ${esc(p.week)}</b> y ganaste la célula ${esc(p.rareza.toLowerCase())} ${esc(p.cell || "")}.`);
-  if (r?.restaurada) lines.push(`El servidor se reinició y recuperamos tu cuenta: ${enumera([`${r.vit} VIT`, `${r.celulas} células`, r.ambar && `${r.ambar} piezas de Ámbar`, r.perlas && `${r.perlas} perla${r.perlas === 1 ? "" : "s"}`])}. Las colonias vuelven a crecer desde cero.`);
+  if (r?.restaurada) lines.push(`El servidor se reinició y recuperamos tu cuenta: ${enumera([`${r.vit} VIT`, `${r.celulas} células`, r.ambar && `${r.ambar} piezas de Ámbar`, r.perlas && `${r.perlas} perla${r.perlas === 1 ? "" : "s"}`, r.estrellas && `${r.estrellas} estrella${r.estrellas === 1 ? "" : "s"}`])}. Las colonias vuelven a crecer desde cero y tus células de viaje ya están en casa.`);
   else if (r) {
     lines.push(`Tus células acuñaron <b>${r.acunado} VIT</b> para ti. Ahora tienes ${r.vit} VIT y ${r.celulas} células (${signed(r.celulas - r.celulasAntes)}).`);
     for (const c of r.colonias) lines.push(`${esc(c.name)}: ${c.alive ? `salud ${c.salud}${c.evento ? `, ${esc(c.evento).toLowerCase()} en curso` : ""}, ${c.celulas} células tuyas` : "extinta; la supervisora intentará que renazca"}${c.oruz === "aprendiz" ? ", estudiando en Oruz" : ""}.`);
@@ -544,6 +627,9 @@ function renderWelcome() {
     if (r.ambarNuevo) lines.push(`Nacieron ${r.ambarNuevo} piezas de Ámbar${r.ambarLibre ? ` y ${r.ambarLibre} esperan dueño` : ""}.`);
     if (r.regalos?.length) lines.push(`<b>${r.regalos.length === 1 ? `${esc(r.regalos[0].de)} te regaló una perla ${esc(r.regalos[0].color)}` : `Te regalaron ${r.regalos.length} perlas: ${r.regalos.map(p => `${esc(p.de)} (${esc(p.color)})`).join(", ")}`}</b>. Infúndela${r.regalos.length === 1 ? "" : "s"} en una colonia desde Lumar.`);
     if (r.perlasNuevas) lines.push(`Nacieron ${r.perlasNuevas} perla${r.perlasNuevas === 1 ? "" : "s"} en Lumar${r.perlasLibres ? ` y ${r.perlasLibres} esperan en el mar` : ""}${r.luna ? ` (${esc(r.luna.toLowerCase())})` : ""}.`);
+    if (r.viajes?.length) lines.push(`<b>Volvieron de viaje ${enumera(r.viajes.map(v => { const M = mundo(v.dest); return `${esc(v.cel)} desde ${esc(M?.name || v.dest)}${v.gano && M ? ` con +1 de ${esc(M.genName.toLowerCase())}` : ""}`; }))}</b>: tu pasaporte suma ${r.viajes.reduce((n, v) => n + v.millas, 0)} millas.`);
+    if (r.estrellasNuevas) lines.push(`${r.estrellasNuevas === 1 ? "Cayó una estrella fugaz" : `Cayeron ${r.estrellasNuevas} estrellas fugaces`} en Cénit${r.lluvia ? `, en plena lluvia de las ${esc(r.lluvia)}` : ""}.`);
+    if (r.deseos?.length) lines.push(`${enumera(r.deseos.map(d => `${esc(d.por)} pidió un deseo por ${esc(d.col)}`))}, donde tienes células: la colonia florece.`);
     lines.push(`Tu racha va por ${r.racha} día${r.racha === 1 ? "" : "s"}.`);
   }
   $("wBody").innerHTML = lines.map(l => `<p>${l}</p>`).join("");
@@ -592,7 +678,7 @@ function moonSvg(fase, r) {
   return `<g transform="scale(${SUR ? -1 : 1},1)"><circle r="${r}" fill="#1B2B3A" stroke="#F3EFD8" stroke-opacity=".25"/><path d="${lit}" fill="#F3EFD8"/></g>`;
 }
 // Una hora de Lumar son 10 minutos reales
-const durL = h => W.mode === "rápido" ? `${h} ciclos` : h >= 6 ? `${Math.floor(h / 6)} h${h % 6 ? ` ${h % 6 * 10} min` : ""}` : `${h * 10} min`;
+const durL = h => W.mode === "rápido" ? `${h} ciclo${h === 1 ? "" : "s"}` : h >= 6 ? `${Math.floor(h / 6)} h${h % 6 ? ` ${h % 6 * 10} min` : ""}` : `${h * 10} min`;
 const dias = d => d < 1 ? "menos de un día" : `${Math.round(d)} día${Math.round(d) === 1 ? "" : "s"}`;
 const prl = c => `<i class="prl" style="background:${PERLC[c] || "#fff"};color:${PERLC[c] || "#fff"}"></i>`;
 const certP = id => `<a href="/api/lumar/perla/${id}" target="_blank" rel="noopener">certificado</a>`;
@@ -641,6 +727,134 @@ function renderLumar() {
     try { localStorage.setItem("vita-perlas", JSON.stringify([...vistas].slice(-50))); } catch {}
     toast(nuevas.length > 1 ? `Te regalaron ${nuevas.length} perlas en Lumar` : `${nuevas[0].de || "Alguien"} te regaló una perla ${nuevas[0].color}`);
   }
+}
+// ---------- Súper Aeropuerto Galáctico ----------
+// Un ciclo son 10 minutos: los horarios se ven en la hora de tu reloj (en modo rápido, en ciclos)
+function hora(t) {
+  if (W.mode === "rápido") return t === W.tick ? "ahora" : `${t > W.tick ? "+" : "−"}${Math.abs(t - W.tick)} c`;
+  return new Date(W.tickAt + (t - W.tick) * W.tickMs).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+}
+const cuando = t => W.mode === "rápido" ? `en ${durL(Math.max(0, t - W.tick))}` : `a las ${hora(t)}`;
+const aprox = h => { if (W.mode === "rápido") return `unos ${h} ciclos`; const n = Math.max(1, Math.round(h / 6)); return n === 1 ? "una hora" : `unas ${n} horas`; };
+const ESTADO = { programado: "Programado", embarcando: "Embarcando", "en vuelo": "En vuelo", retrasado: "Retrasado", aterrizado: "Aterrizó" };
+const mundo = k => (W?.aeropuerto?.mundos || []).find(M => M.k === k);
+function renderAeropuerto() {
+  const A = W?.aeropuerto;
+  $("aero").hidden = !A;
+  if (!A) return;
+  const me = W.me, V = A.me, t = W.tick;
+  $("vStats").textContent = `${A.enViaje} célula${A.enViaje === 1 ? "" : "s"} de viaje · ${A.stats.viajes} viajes`;
+  const fila = (f, sale, extra) => `<tr class="m-${f.dest}" title="${f.pax} célula${f.pax === 1 ? "" : "s"} a bordo de la ${esc(f.nave)}"><td>${sale && f.sale !== f.prog ? `<s class="note">${hora(f.prog)}</s> ` : ""}${hora(sale ? f.sale : f.llega)}</td><td>${esc(f.num)}</td><td class="dst" style="color:var(--mc)">${esc(f.name)}</td><td class="ex">${esc(extra)}</td><td><span class="st st-${f.estado.replace(" ", "-")}">${ESTADO[f.estado] || esc(f.estado)}</span></td></tr>`;
+  $("vSal").innerHTML = A.salidas.map(f => fila(f, true, f.puerta)).join("");
+  $("vLle").innerHTML = A.llegadas.map(f => fila(f, false, f.nave)).join("");
+  const motivos = [...A.salidas, ...A.llegadas].filter(f => f.estado === "retrasado");
+  $("vRetrasos").hidden = !motivos.length;
+  $("vRetrasos").textContent = motivos.length ? `Con retraso: ${motivos.map(f => `${f.num} (${f.motivo})`).join(" · ")}.` : "";
+  if (!A.mundos.some(M => M.k === destSel)) destSel = A.mundos[0].k;
+  $("vDest").innerHTML = A.mundos.map(M => `<button class="dest m-${M.k} ${M.k === destSel ? "sel" : ""}" data-a="dest" data-id="${M.k}" aria-pressed="${M.k === destSel}">
+    <span class="t"><b>${esc(M.name)}</b><span class="m">${esc(M.tipo)}</span></span>
+    <span class="m">${M.tarifa} VIT · ${durL(M.vuelo)} de vuelo · puerta ${esc(M.puerta)}</span>
+    <span class="m">1.ª visita: +1 de ${esc(M.genName.toLowerCase())} · ${M.millas} millas</span>
+    ${M.vistas ? `<span class="m vis">Con vistas a las ${esc(M.vistas)}: millas ×2</span>` : ""}</button>`).join("");
+  // Las células que pueden viajar; se elige primero una que todavía no conozca el destino
+  const D = mundo(destSel), cels = V?.celulas || [];
+  const opts = cels.map(c => `<option value="${c.id}">${c.id} · ${RN[c.rarity]} · ${c.g.ef}·${c.g.res}·${c.g.fer} · ${esc(c.colonyName)}${c.sellos.includes(destSel) ? ` · ya conoce ${esc(D.name)}` : ""}</option>`).join("");
+  if (opts !== celHtml) { celHtml = opts; $("vCel").innerHTML = opts || `<option value="">${me ? "No tienes células en las colonias" : "Entra para mandar tus células"}</option>`; }
+  if (!cels.some(c => c.id === celSel)) celSel = (cels.find(c => !c.sellos.includes(destSel)) || cels[0] || {}).id || "";
+  $("vCel").value = celSel;
+  const n = V?.viajes.length || 0, lleno = V && n >= V.plazas, agotado = V && V.hoy >= V.porDia, caro = me && me.vit < D.tarifa;
+  $("vCel").disabled = !cels.length;
+  $("vGo").disabled = !me || !cels.length || lleno || agotado || caro;
+  $("vGo").textContent = `Sacar billete · ${D.tarifa} VIT`;
+  $("vHoy").hidden = !V; $("vHoy").textContent = V ? `hoy ${V.hoy}/${V.porDia}` : "";
+  const s = A.salidas.find(f => f.dest === destSel && (f.estado === "programado" || f.estado === "embarcando"));
+  $("vNote").textContent = !me ? "Entra para mandar tus células de viaje."
+    : !cels.length ? "Adopta una célula para mandarla de viaje."
+    : lleno ? `Ya tienes ${n} células de viaje, tu máximo por ahora: espera a que vuelva alguna.`
+    : agotado ? "Ya sacaste todos tus billetes de hoy; mañana puedes sacar más."
+    : caro ? `El billete a ${D.name} cuesta ${D.tarifa} VIT.`
+    : `${s ? `La próxima nave a ${D.name} sale ${cuando(s.sale)} por la puerta ${s.puerta}. ` : ""}Tu célula vuelve en ${aprox((s ? s.sale - t : 3) + 2 * D.vuelo + D.estancia + 3)}. Te quedan ${V.porDia - V.hoy} billete${V.porDia - V.hoy === 1 ? "" : "s"} hoy.`;
+  const fase = v => ({
+    terminal: `En la terminal: embarca ${cuando(t + v.en)}`,
+    ida: v.retraso ? `Retrasada por ${esc(v.retraso)}: aterriza ${cuando(t + v.en)}` : `Volando en el ${esc(v.vuelo)}: aterriza ${cuando(t + v.en)}`,
+    explorando: `Explorando ${esc(v.region || v.destName)}${v.bioma ? ` (${esc(v.bioma)})` : ""}: vuelve a la terminal ${cuando(t + v.en)}`,
+    espera: `En la terminal de ${esc(v.destName)}: su nave sale ${cuando(t + v.en)}`,
+    vuelta: `Volviendo en el ${esc(v.vuelo)}: llega ${cuando(t + v.en)}`,
+  }[v.fase] || esc(v.faseName));
+  const aprendio = v => { const M = mundo(v.dest); return v.gano && M ? ` · aprendió ${esc(M.genName.toLowerCase())}` : ""; };
+  $("vMis").innerHTML = (V?.viajes.length ? V.viajes.map(v => `<div class="item m-${v.dest}"><span><b class="nw">${v.cel}</b> <span class="rar r${v.rarity}">${RN[v.rarity]}</span> <span style="color:var(--mc)">a ${esc(v.destName)}</span></span><p>${fase(v)}${aprendio(v)}${v.vistas ? ` · con vistas a las ${esc(v.vistas)}` : ""} · <a href="/api/aeropuerto/celula/${v.cel}" target="_blank" rel="noopener">pasaporte</a></p><span class="done">${v.millas} mi</span></div>`).join("")
+    : `<p class="note">${me ? "Ninguna de tus células está de viaje ahora." : "Entra para mandar tus células de viaje."}</p>`)
+    + (V?.volvieron.length ? `<p class="note">Volvieron hace poco: ${V.volvieron.map(x => { const M = mundo(x.dest); return `${x.cel} desde ${esc(M?.name || x.dest)}${x.gano && M ? ` con +1 de ${esc(M.genName.toLowerCase())}` : ""}, a ${esc(x.col)}`; }).join(" · ")}.</p>` : "");
+  const P = V?.pasaporte;
+  $("vPas").innerHTML = P ? `<div class="item g"><span><b>${esc(P.nivel)}</b> <span class="note">${P.millas} millas · ${P.viajes} viaje${P.viajes === 1 ? "" : "s"}</span></span>
+    ${P.siguiente ? `<div class="bar"><i style="width:${Math.min(100, (P.millas - P.desde) / (P.siguiente.millas - P.desde) * 100)}%;background:var(--vit)"></i></div><p>Te faltan ${P.siguiente.millas - P.millas} millas para ${esc(P.siguiente.name)}: una plaza de viaje y un billete más al día.</p>` : "<p>Llegaste al nivel más alto del pasaporte.</p>"}
+    <p>Puedes tener ${V.plazas} células de viaje a la vez y sacar ${V.porDia} billetes al día.</p>
+    <div class="sellos">${A.mundos.map(M => `<span class="sello m-${M.k} ${P.sellos[M.k] ? "on" : ""}">${esc(M.name)} ×${P.sellos[M.k] || 0}</span>`).join("")}</div></div>`
+    : `<p class="note">Entra para tener tu pasaporte galáctico: cada viaje de tus células le suma sellos y millas.</p>`;
+  $("vCron").innerHTML = A.cronica.map(x => `<li>${hora(x.t)} · ${esc(x.txt)}</li>`).join("") || "<li>Todavía no despegó ninguna nave.</li>";
+}
+
+// ---------- Cénit, el cielo ----------
+const estrella = c => `<i class="est" style="background:${ESTC[c] || "#fff"}"></i>`;
+const certE = id => `<a href="/api/cenit/estrella/${id}" target="_blank" rel="noopener">certificado</a>`;
+// Las fechas de las lluvias son días del calendario: se muestran igual en cualquier huso horario
+const fechaCorta = ms => new Date(ms).toLocaleDateString("es", { day: "numeric", month: "long", timeZone: "UTC" });
+const rango = (a, b) => new Date(a).getUTCMonth() === new Date(b).getUTCMonth() ? `del ${new Date(a).getUTCDate()} al ${fechaCorta(b)}` : `del ${fechaCorta(a)} al ${fechaCorta(b)}`;
+const meteoros = n => `${n} meteoro${n === 1 ? "" : "s"} por hora`;
+// La lluvia de estrellas de ahora: empieza, está en su pico o se despide
+function lluviaTxt(L) {
+  const ahora = Date.now(), n = `la lluvia de estrellas de las <b>${esc(L.name)}</b>`;
+  if (Math.abs(L.pico - ahora) < 864e5) return `Hoy es el pico de ${n}: ${meteoros(L.thz)}.`;
+  if (L.pico > ahora) return L.thz < 2 ? `Empieza ${n}; su pico, de ${meteoros(L.picoThz)}, llega el ${fechaCorta(L.pico)}.` : `Está activa ${n}: ${meteoros(L.thz)}, y su pico, de ${L.picoThz}, llega el ${fechaCorta(L.pico)}.`;
+  return L.thz < 2 ? `Se despide ${n}.` : `Se despide ${n}: ${meteoros(L.thz)}.`;
+}
+// Un nombre largo se parte en dos líneas por el espacio más cercano al centro para que quepa en su hexágono
+function dosLineas(s) {
+  if (s.length <= 15) return [s];
+  let i = -1; for (let j = 0; j < s.length; j++) if (s[j] === " " && (i < 0 || Math.abs(j - s.length / 2) < Math.abs(i - s.length / 2))) i = j;
+  return i < 0 ? [s] : [s.slice(0, i), s.slice(i + 1)];
+}
+// Las estrellas del fondo, siempre en el mismo sitio
+const FONDO = Array.from({ length: 46 }, (_, i) => { const a = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1, b = Math.abs(Math.sin(i * 78.233) * 12345.678) % 1; return [(a * 316 - 158).toFixed(1), (b * 276 - 138).toFixed(1), (0.5 + (i % 3) * 0.35).toFixed(2), ((i % 7) * 0.45).toFixed(2)]; });
+function renderCenit() {
+  const Z = W?.cenit;
+  $("cenit").hidden = !Z;
+  if (!Z) return;
+  const S = 58, pos = R => [S * Math.sqrt(3) * (R.q + R.r / 2), S * 1.5 * R.r], c = Z.cal, K = Z.cielo, lu = K.luna, L = K.lluvia, P = K.proxima, me = W.me;
+  $("zCal").textContent = `día ${c.dia} · ${String(c.hora).padStart(2, "0")}:00 · ${Z.noche ? "noche" : "día"}${L ? ` · ${L.name}` : ""}`;
+  if (!selZ || !Z.regions.some(R => R.id === selZ)) selZ = Z.regions[0].id;
+  const free = {}; for (const p of Z.libres) (free[p.regionId] ||= []).push(p);
+  $("zMap").classList.toggle("noche", Z.noche);
+  $("zMap").innerHTML = (Z.noche ? FONDO.map(([x, y, r, d]) => `<circle class="tw" cx="${x}" cy="${y}" r="${r}" fill="#fff" style="animation-delay:${d}s"/>`).join("") + `<g transform="translate(136,-116)">${moonSvg(lu.fase, 13)}</g>` : "")
+    + Z.regions.map(R => {
+      const [x, y] = pos(R), es = free[R.id] || [], bl = dosLineas(R.biomaName);
+      return `<g class="hx ${R.id === selZ ? "sel" : ""}" data-a="zreg" data-id="${R.id}" tabindex="0" role="button" aria-label="${esc(R.name)}, ${esc(R.biomaName)}">
+      <polygon points="${hexPts(x, y, S - 2)}" fill="${R.color}" fill-opacity="${(0.2 + 0.45 * R.eq).toFixed(2)}"/>
+      <text x="${x}" y="${y - 3}" class="hx-n">${esc(R.name)}</text>${bl.map((l, i) => `<text x="${x}" y="${y + 11 + i * 10}" class="hx-b">${esc(l)}</text>`).join("")}
+      ${es.map((p, i) => { const px = x - (es.length - 1) * 7 + i * 14, py = y + 19 + bl.length * 10, col = ESTC[p.color] || "#fff"; return `<line x1="${px + 12}" y1="${py - 9}" x2="${px}" y2="${py}" stroke="${col}" stroke-width="2" stroke-linecap="round" opacity=".45"/><circle cx="${px}" cy="${py}" r="4" fill="${col}"><title>${p.id} · estrella ${esc(p.color)}</title></circle>`; }).join("")}
+      ${Z.fenomeno.region === R.id ? `<text x="${x + 30}" y="${y - 18}" class="hx-f" fill="#E4EEEF"><title>${esc(Z.fenomeno.name)}</title>${FXZ[Z.fenomeno.k] || "✦"}</text>` : ""}</g>`;
+    }).join("");
+  $("zLegend").innerHTML = Object.entries(Z.especies).map(([k, e]) => `<span><i style="background:${ESPZ[k]}"></i>${esc(e.name)} · ${esc(e.rol.toLowerCase())}</span>`).join("");
+  $("zFen").textContent = `${Z.fenomeno.name} sobre ${(Z.regions.find(R => R.id === Z.fenomeno.region) || {}).name || ""}. ${Z.estrellasTotal === 1 ? "Ha caído 1 estrella fugaz" : `Han caído ${Z.estrellasTotal} estrellas fugaces`} y ${Z.deseosTotal === 1 ? "se ha pedido 1 deseo" : `se han pedido ${Z.deseosTotal} deseos`}.`;
+  $("zCielo").innerHTML = `<svg viewBox="-26 -26 52 52" width="52" height="52" aria-hidden="true">${moonSvg(lu.fase, 22)}</svg>
+    <div><b>${esc(lu.name)}</b> <span class="note">${Math.round(lu.ilum * 100)}% iluminada · es de ${Z.noche ? "noche" : "día"} en Cénit</span>
+    <p class="note">${L ? lluviaTxt(L) : "Hoy no hay lluvia de estrellas."}${P ? ` La próxima: las ${esc(P.name)}, ${rango(P.desde, P.hasta - 1)}, con pico el ${fechaCorta(P.pico)}.` : ""}</p>
+    <p class="note">${lu.ilum > 0.7 ? "La luna brilla mucho y apaga muchas estrellas fugaces." : lu.ilum < 0.25 ? "Noche oscura: se ven casi todas las estrellas fugaces." : "La luna deja ver bastantes estrellas fugaces."} Estrellas ×${K.mult.toFixed(1).replace(".", ",")}</p></div>`;
+  const R = Z.regions.find(x => x.id === selZ);
+  $("zReg").innerHTML = `<h3>${esc(R.name)} <span class="note">${esc(R.biomaName)}</span></h3>
+    <p class="note">Luz ${R.clima.luz} · humedad ${R.clima.agua} · frío ${R.clima.frio} · nutrientes ${R.suelo}</p>
+    <div class="alloc">${Object.entries(Z.especies).map(([k, e]) => `<div class="r"><span>${esc(e.name)}</span><div class="bar"><i style="width:${R.pops[k]}%;background:${ESPZ[k]}"></i></div><b>${R.pops[k]}</b></div>`).join("")}</div>
+    <p class="note">Polvo de estrellas ${Math.round(R.polvo * 100)}% · equilibrio ${Math.round(R.eq * 100)}% · ${R.estrellas} estrellas cayeron aquí</p>`;
+  const canTake = me && Z.atrapadasHoy < Z.porDia, canSum = me && Z.sumadosHoy < Z.sumarPorDia;
+  $("zHoy").hidden = !me; $("zHoy").textContent = me ? `hoy ${Z.atrapadasHoy}/${Z.porDia}` : "";
+  $("zLibres").innerHTML = Z.libres.length ? Z.libres.map(p => `<div class="item"><span><b class="nw">${estrella(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>${esc(p.region)}${p.lluvia ? ` · ${esc(p.lluvia)}` : ""} · se apaga en ${durL(p.expira)}</p><button class="sm primary" data-a="est" data-id="${p.id}" ${canTake ? "" : "disabled"}>Atrapar</button></div>`).join("")
+    : `<p class="note">No cae ninguna estrella ahora. Caen de noche donde viven las cuatro especies, muchas más en una lluvia de estrellas y con luna nueva.</p>`;
+  const selName = (W.colonies.find(x => x.id === sel) || {}).name || "la colonia";
+  $("zMias").innerHTML = Z.mias.length ? Z.mias.map(p => `<div class="item"><span><b class="nw">${estrella(p.color)}${p.id}</b> ${esc(p.color)} · brillo ${p.brillo}</span><p>${esc(p.region)} · florece ${durL(p.ciclos)} · ${certE(p.id)}</p><button class="sm primary" data-a="deseo" data-id="${p.id}">Pedir un deseo por ${esc(selName)}</button></div>`).join("")
+    : `<p class="note">${me ? (Z.atrapadasHoy >= Z.porDia ? "Ya atrapaste tu estrella de hoy. Mañana puedes atrapar otra." : "Atrapa una estrella fugaz, una al día, y pide un deseo.") : "Entra para atrapar estrellas."}</p>`;
+  $("zDeseos").innerHTML = Z.deseos.length ? Z.deseos.map(d => `<div class="item"><span><b>${esc(d.colName)}</b> <span class="note">florece ${durL(d.quedan)} más</span></span><p>${estrella(d.color)}Deseo de ${esc(d.por)}${d.sumados.length ? ` · se sumaron ${enumera(d.sumados.map(esc))}` : ""}</p>${d.puedo ? `<button class="sm" data-a="sumar" data-id="${d.id}" ${canSum ? "" : "disabled"}>Sumarme</button>` : `<span class="done">${d.mio ? "Tu deseo" : d.sumado ? "Te sumaste" : me ? "Completo" : ""}</span>`}</div>`).join("")
+    : `<p class="note">Ahora no se está cumpliendo ningún deseo. Cuando alguien pida uno, aparecerá aquí.</p>`;
+  $("zCron").innerHTML = Z.cronica.map(l => `<li>${esc(l)}</li>`).join("");
 }
 function renderLiga() {
   const L = W?.liga; if (!L) return;
