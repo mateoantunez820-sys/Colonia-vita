@@ -15,6 +15,7 @@ import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
 import { newRecoveryCode, recoveryHash, validCode } from "./cuentas.js";
 import { legalInfo, legalPage } from "./legal.js";
+import * as aura from "./aura.js";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.PORT || 3000);
@@ -172,6 +173,7 @@ function worldView(u) {
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
     cria: cria.view(world, u),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
+    aura: aura.view(world, u),
   };
 }
 
@@ -197,6 +199,7 @@ async function handleAction(u, b) {
     case "pearl_infuse": return col ? lumar.infusePearl(world, u, String(b.id || ""), col) : needCol();
     case "welcome_seen": u.welcome = null; u.premio = null; return { ok: true };
     case "cria": return cria.action(world, u, b);
+    case "aura": return aura.elegir(world, u, String(b.key || ""), col);
     case "buy_demo": {
       if (!DEMO_PURCHASES) return { ok: false, error: "Los pagos aún no están activados" };
       core.grant(world, u, 50, "compra demo"); world.ai.demoRevenueUsd += 0.99;

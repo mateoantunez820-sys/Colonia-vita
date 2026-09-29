@@ -84,6 +84,16 @@ test("Lumar se ve con la luna de hoy, sus perlas tienen certificado y no se rega
   assert.equal((await call("/api/action", { token, body: { type: "pearl_collect", id: "PRL-00000000" } })).status, 400);
 });
 
+test("el aura del día llega por la API y hace brillar la colonia", async () => {
+  const { token } = (await call("/api/join", { body: { name: "Aura" } })).json;
+  assert.equal((await call("/api/world")).json.aura, null, "sin entrar no hay aura");
+  const r = await call("/api/action", { token, body: { type: "aura", key: "calma", colony: "COL-001" } });
+  assert.equal(r.status, 200); assert.equal(r.json.vit, 2);
+  const a = (await call("/api/world", { token })).json.aura;
+  assert.equal(a.hoy.k, "calma"); assert.equal(a.hoy.col, "COL-001"); assert.equal(a.racha, 1);
+  assert.equal((await call("/api/action", { token, body: { type: "aura", key: "enfado" } })).status, 400);
+});
+
 test("cada jugador recibe un huevo, lo abre con su calor y su cría siente sus hábitos", async () => {
   const { token } = (await call("/api/join", { body: { name: "Vita Max" } })).json;
   assert.equal((await call("/api/world")).json.cria, null, "sin entrar no hay cría");
