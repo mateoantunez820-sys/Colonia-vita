@@ -82,6 +82,16 @@ a{color:var(--vit)}.full{flex-basis:100%}
 .legend{display:flex;flex-wrap:wrap;gap:6px 12px;font:12px var(--mono);color:var(--mute)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .share{display:grid;grid-template-columns:1fr auto;gap:8px}.share input{font:13px var(--mono)}
 .icode{font:700 22px var(--mono);letter-spacing:.12em;color:var(--vit)}
+/* El aura del día */
+.aura-ops{display:flex;flex-wrap:wrap;gap:8px}
+.aura-op{display:inline-flex;align-items:center;gap:8px}.aura-op.on{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.aura-op i,.aura-hist i{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.aura-hoy{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}.aura-hoy .msg{border-left-color:var(--c)}
+.aura-orbe{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff9 0,var(--c) 42%,transparent 74%);box-shadow:0 0 28px var(--c);animation:auraLatido 4s ease-in-out infinite}
+@keyframes auraLatido{50%{transform:scale(1.08);box-shadow:0 0 42px var(--c)}}
+.aura-hist{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.aura-brilla{box-shadow:0 0 0 2px var(--aura),0 0 26px var(--aura)!important}
+@media(prefers-reduced-motion:reduce){.aura-orbe{animation:none}}
 /* La cría */
 .cria{display:grid;grid-template-columns:minmax(150px,230px) 1fr;gap:16px;align-items:center}
 @media(max-width:600px){.cria{grid-template-columns:1fr}}
@@ -159,6 +169,15 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <h2>Mientras no estabas <span class="pill" id="wHoras"></span></h2>
     <div class="list" id="wBody"></div>
     <div class="row"><button class="sm primary" id="wOk">Entendido</button></div>
+  </section>
+
+  <section class="panel" id="auraPanel" hidden>
+    <h2>Tu aura de hoy <span class="pill" id="auraTag"></span></h2>
+    <p class="note" id="auraTexto"></p>
+    <div class="aura-ops" id="auraOps"></div>
+    <div class="aura-hoy" id="auraHoy" hidden><span class="aura-orbe" aria-hidden="true"></span><div class="msg" id="auraMsg"></div></div>
+    <p class="note" id="auraAyuda" hidden></p>
+    <div class="aura-hist" id="auraHist"></div>
   </section>
 
   <section class="panel" id="criaPanel">
@@ -512,6 +531,7 @@ function renderWorld() {
   try { renderCria(); } catch (e) { console.error("[cría]", e); } // la cría nunca rompe el resto de la web
   if (W.ai.report) $("report").textContent = W.ai.report;
   $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");
+  try { renderAura(); } catch (e) { console.error("[aura]", e); } // el aura tampoco rompe el resto de la web
   $("chainOk").textContent = W.chainOk ? "verificada" : "alterada"; $("chainOk").className = "pill " + (W.chainOk ? "ok" : "");
   $("chain").innerHTML = W.chain.map(b => `<tr><td>${b.n}</td><td>${esc(b.tipo)}</td><td>${esc(b.de)} → ${esc(b.a)}</td><td class="r">${b.cant} ${b.unit}</td><td>${(b.ids || []).join(", ")}</td><td>${b.hash.slice(0, 12)}</td></tr>`).join("");
   // misiones, hábitos, posiciones, células propias
@@ -745,6 +765,35 @@ $("criaRen").onclick = async () => {
   const n = prompt("¿Cómo quieres que se llame?", W?.cria?.nombre || "");
   if (n == null) return;
   act({ type: "cria", op: "nombre", nombre: n }, "Nombre cambiado");
+};
+// ---------- el aura del día ----------
+// Es privada: el brillo de tu colonia solo se ve en tu pantalla
+function renderAura() {
+  const A = W.aura, H = A?.hoy;
+  $("auraPanel").hidden = !A;
+  document.querySelectorAll(".aura-brilla").forEach(e => e.classList.remove("aura-brilla"));
+  if (!A) return;
+  $("auraTag").textContent = A.racha ? `racha ${A.racha} día${A.racha === 1 ? "" : "s"}` : "solo la ves tú";
+  $("auraTexto").textContent = H
+    ? `Hoy te levantaste ${H.name.toLowerCase()}${H.colName ? ` y ${H.colName} brilla con tu color` : ""}. Si tu ánimo cambia, puedes cambiarla.`
+    : `¿Cómo te levantaste hoy? Tu color ilumina la colonia que estás viendo (+${A.premio.energia} energía) y tú recibes ${A.premio.vit} VIT, estés como estés. Solo lo ves tú.`;
+  $("auraOps").innerHTML = A.opciones.map(o => `<button class="sm aura-op ${H?.k === o.k ? "on" : ""}" data-aura="${o.k}" style="--c:${o.color}" aria-pressed="${H?.k === o.k}"><i></i>${esc(o.name)}</button>`).join("");
+  $("auraHoy").hidden = !H; $("auraAyuda").hidden = !H?.ayuda;
+  if (H) { $("auraHoy").style.setProperty("--c", H.color); $("auraMsg").textContent = `VITA: ${H.texto}`; $("auraAyuda").textContent = H.ayuda || ""; }
+  const falta = A.semana - A.racha % A.semana;
+  $("auraHist").innerHTML = A.hist.length ? `<span class="note">Tus días:</span>${A.hist.slice().reverse().map(d => `<i style="--c:${d.color}" title="${d.f} · ${esc(d.name)}"></i>`).join("")}<span class="note">${A.racha ? `· en ${falta} día${falta === 1 ? "" : "s"} más ganas ${A.premio.semana} VIT` : ""}</span>` : "";
+  if (!H?.col) return;
+  const brilla = e => { if (e) { e.style.setProperty("--aura", H.color); e.classList.add("aura-brilla"); } };
+  brilla(document.querySelector(`#fed [data-id="${H.col}"]`));
+  if (sel === H.col) brilla(document.querySelector(".stage"));
+}
+$("auraOps").onclick = async e => {
+  const b = e.target.closest("[data-aura]"); if (!b) return;
+  const r = await api("/api/action", { type: "aura", key: b.dataset.aura, colony: sel });
+  if (!r.ok) return toast(r.error || "No se pudo");
+  lastSave = 0;
+  toast(r.cambio ? `Cambiaste tu aura: ${r.name}` : `Tu aura de hoy: ${r.name} · +${r.vit} VIT${r.semana ? ", con tu semana de auras" : ""}`);
+  await refresh();
 };
 
 function renderRangos() {
