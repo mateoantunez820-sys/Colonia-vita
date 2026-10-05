@@ -524,7 +524,7 @@ async function habito(k) {
   const r = await api("/api/action", { type: "habit", key: k, colony: sel });
   toast(!r.ok ? r.error || "No se pudo" : !r.cria ? "Hábito registrado" : r.cria.sube ? `Hábito registrado. ¡Tu cría sube su ${r.cria.rasgo.toLowerCase()} a ${r.cria.nivel}!` : "Hábito registrado. Tu cría también lo siente");
   if (r.ok) lastSave = 0;
-  if (r.mascotas?.suben) setTimeout(() => toast(`Tus mascotas también lo sienten: ${r.mascotas.suben === 1 ? "una sube" : `${r.mascotas.suben} suben`} de nivel de lazo`), 2700);
+  if (r.mascotas?.suben) setTimeout(() => toast(r.mascotas.n === 1 ? "Tu mascota también lo siente: sube de nivel de lazo" : `Tus mascotas también lo sienten: ${r.mascotas.suben === 1 ? "una sube" : `${r.mascotas.suben} suben`} de nivel de lazo`), 2700);
   await refresh();
 }
 
@@ -880,7 +880,7 @@ async function mascotaAct(op, cell) {
   }
   const r = await api("/api/action", body);
   if (!r.ok) toast(r.error || "No se pudo");
-  else if (op === "mimos") toast(`${r.n === 1 ? "Tu mascota recibió" : `Tus ${r.n} mascotas recibieron`} sus mimos de hoy${r.suben ? `, y ${r.suben === 1 ? "una sube" : `${r.suben} suben`} de nivel de lazo` : ""}`);
+  else if (op === "mimos") toast(`${r.n === 1 ? "Tu mascota recibió" : `Tus ${r.n} mascotas recibieron`} sus mimos de hoy${!r.suben ? "" : r.n === 1 ? ", y sube de nivel de lazo" : `, y ${r.suben === 1 ? "una sube" : `${r.suben} suben`} de nivel de lazo`}`);
   else if (op === "premio") toast(r.sube ? `¡${r.nombre} y tu célula ahora son ${r.sube.toLowerCase()}!` : `A ${r.nombre} le encantó: lazo ${r.lazo}`);
   else toast(`Ahora se llama ${r.nombre}`);
   if (r.ok) lastSave = 0; // la copia firmada de la cuenta lleva sus mascotas
