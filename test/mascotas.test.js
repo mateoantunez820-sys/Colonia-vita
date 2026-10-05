@@ -187,8 +187,8 @@ test("el jugador da a sus mascotas una ronda de mimos al día y premios que quem
   assert.equal(m.nombre(c1.m), "bLumi/b");
   ko(m.action(w, u, { op: "nombre", cell: c1.id, nombre: "x" }), /2 letras/);
   ko(m.action(w, u, { op: "volar", cell: c1.id }), /no entiende/);
-  // Al día siguiente vuelven los mimos y los premios
-  core.checkDay(w, u, new Date(T0 + 86400000));
+  // Al día siguiente vuelven los mimos y los premios (el día del jugador sale del reloj real, no del mundo)
+  core.checkDay(w, u, new Date(Date.parse(u.daily.date) + 86400000));
   ok(m.mimos(w, u)); ok(m.action(w, u, { op: "premio", cell: c1.id }));
   const v = m.view(w, u).mias;
   assert.equal(v.n, 2); assert.equal(v.mimos, true); assert.equal(v.premios, 2);
