@@ -72,6 +72,29 @@ test("al entrar se recibe un código de recuperación que devuelve la cuenta en 
   assert.equal(tras.status, 200); assert.equal(tras.json.name, "Ana");
 });
 
+test("cada célula vive con su mascota: se ven en el mundo y en su colonia, y el jugador cuida a las suyas", async () => {
+  const { token } = (await call("/api/join", { body: { name: "Pipo" } })).json;
+  const act = body => call("/api/action", { token, body });
+  for (const key of ["pasos", "agua", "sueno", "ejercicio"]) assert.equal((await act({ type: "habit", key, colony: "COL-001" })).status, 200);
+  const W = (await call("/api/world", { token })).json;
+  assert.equal(W.mascotas.total, W.colonies.filter(c => c.alive).reduce((s, c) => s + c.cells, 0), "una por célula");
+  assert.equal(W.mascotas.mias.n, 0);
+  const C = (await call("/api/colony/COL-001", { token })).json;
+  assert.equal(C.mascotas.puntos.length, C.dots.length, "cada punto del dibujo con su mascota");
+  assert.equal((await act({ type: "mimos" })).status, 400, "sin células no hay mascotas que mimar");
+  const cell = [...C.market].sort((a, b) => a.price - b.price)[0];
+  assert.equal((await act({ type: "adopt", colony: "COL-001", cell: cell.id })).status, 200);
+  const mimos = await act({ type: "mimos" });
+  assert.equal(mimos.status, 200); assert.equal(mimos.json.n, 1);
+  const mias = (await call("/api/world", { token })).json.mascotas.mias;
+  assert.equal(mias.lista[0].cell, cell.id); assert.equal(mias.mimos, true);
+  assert.equal((await act({ type: "mascota", op: "nombre", cell: cell.id, nombre: "<i>Pipo</i>" })).json.nombre, "iPipo/i");
+  assert.equal((await act({ type: "mascota", op: "premio", cell: "CEL-000000" })).status, 400);
+  assert.equal((await call("/api/colony/COL-001", { token })).json.mascotas.mias[0].nombre, "iPipo/i");
+  const arte = await call("/mascotas-arte.js");
+  assert.equal(arte.status, 200); assert.ok(arte.text.includes("MascotasArte"));
+});
+
 test("Lumar se ve con la luna de hoy, sus perlas tienen certificado y no se regalan sin dueño", async () => {
   const { token } = (await call("/api/join", { body: { name: "Mar" } })).json;
   const L = (await call("/api/world", { token })).json.lumar;

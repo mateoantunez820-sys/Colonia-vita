@@ -9,6 +9,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { hash, newCell, block, grant, cellPrice, positions, clog, wlog, cap, EVENTS, RARITY } from "./core.js";
 import { amberOf, ORUZ as ORUZ_CFG } from "./oruz.js";
 import { pearlsOf, LUMAR as LUMAR_CFG } from "./lumar.js";
+import { guardar as guardarMascota, restaurar as restaurarMascota, restaurarHogar } from "./mascotas.js";
 
 const err = message => ({ ok: false, error: message });
 const DAY = 86400000;
@@ -27,17 +28,18 @@ const sign = (key, data) => createHmac("sha256", key).update(data).digest("base6
 
 export function makeSave(w, u, key, now = Date.now()) {
   if (!key) return null;
-  const names = [], cells = [];
+  const names = [], cells = [], mascotas = [];
   for (const col of Object.values(w.colonies)) for (const c of col.cells) {
     if (c.owner !== u.id) continue;
     let i = names.indexOf(col.name); if (i < 0) i = names.push(col.name) - 1;
     cells.push([c.g.ef, c.g.res, c.g.fer, +c.mined.toFixed(2), i]);
+    mascotas.push(guardarMascota(w, c)); // la mascota de cada célula, en el mismo orden
   }
   // Las participaciones en los fondos de las IA se guardan por su valor neto de retirada
   const fondos = Math.floor(positions(w, u).reduce((s, p) => s + p.value * 0.95, 0));
   const ambar = amberOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
   const perlas = pearlsOf(w, u.id).map(({ owner, ownerName, ...p }) => p);
-  const data = Buffer.from(JSON.stringify({ v: SAVE_VERSION, at: now, world: w.createdAt, user: u, names, cells, fondos, ambar, perlas })).toString("base64url");
+  const data = Buffer.from(JSON.stringify({ v: SAVE_VERSION, at: now, world: w.createdAt, user: u, names, cells, mascotas, fondos, ambar, perlas })).toString("base64url");
   return `${data}.${sign(key, data)}`;
 }
 
@@ -60,17 +62,19 @@ export function restoreSave(w, blob, key, now = Date.now()) {
   do id = "U" + String(n++).padStart(4, "0"); while (w.users[id]);
   const u = { ...s.user, id, vit: 0, restoredAt: now, origenes };
   u.daily ||= { date: "", prog: {}, claimed: {} };
+  restaurarHogar(w, u);
   w.users[id] = u;
   // Sus células vuelven a una colonia viva con sitio (la del mismo nombre si existe).
   // Llevan un código nuevo para no chocar con las de este mundo; si no caben, se pagan a precio de mercado.
   const alive = Object.values(w.colonies).filter(c => c.alive), placed = [];
   let refund = 0;
-  for (const [ef, res, fer, mined, i] of s.cells || []) {
+  for (const [k, [ef, res, fer, mined, i]] of (s.cells || []).entries()) {
     const g = { ef, res, fer }, free = c => cap(c) - c.cells.length;
     const col = alive.find(c => c.name === s.names?.[i] && free(c) > 0) || alive.filter(c => free(c) > 0).sort((a, b) => free(b) - free(a))[0];
     if (!col) { refund += cellPrice({ g }); continue; }
     const cell = newCell(w, col, g, id);
     cell.mined = mined || 0;
+    if (w.mascotas) restaurarMascota(w, cell, s.mascotas?.[k]); // vuelve con su mascota y su lazo
     col.cells.push(cell); placed.push(cell.id);
   }
   const vit = Math.floor(s.user.vit || 0) + (s.fondos || 0) + refund;
@@ -142,7 +146,7 @@ function markDay(w, u, now) {
 // ---------- liga semanal ----------
 export const LEAGUE = {
   cap: 60, // puntos máximos por día: premia volver cada día más que jugar sin parar
-  pts: { claim: 8, habit: 4, feed: 3, adopt: 5, upgrade: 5, invest: 2, ad: 1, spore: 1, amber_collect: 4, amber_infuse: 3, pearl_collect: 3, pearl_give: 5, pearl_infuse: 2, racha: 5, invite: 15 },
+  pts: { claim: 8, habit: 4, feed: 3, adopt: 5, upgrade: 5, invest: 2, ad: 1, spore: 1, amber_collect: 4, amber_infuse: 3, pearl_collect: 3, pearl_give: 5, pearl_infuse: 2, mimos: 3, racha: 5, invite: 15 },
   prizes: [3, 2, 2, 1, 1, 1, 1, 1, 1, 1], // rareza de la célula de premio del 1.º al 10.º
 };
 const PRIZE_GENES = [null, { ef: 9, res: 9, fer: 9 }, { ef: 11, res: 11, fer: 11 }, { ef: 13, res: 13, fer: 13 }];
