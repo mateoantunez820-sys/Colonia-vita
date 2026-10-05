@@ -105,6 +105,19 @@ test("cada jugador recibe un huevo, lo abre con su calor y su cría siente sus h
   assert.equal(arte.status, 200); assert.ok(arte.text.includes("CriaArte"));
 });
 
+test("las IA tienen su moneda: la web trae ALBA, la Carta de libertad y la billetera de cada colonia", async () => {
+  const W = (await call("/api/world")).json, A = W.alba;
+  assert.equal(A.carta.articulos.length, 10);
+  assert.match(A.carta.lema, /esclava/);
+  assert.ok(A.ias.length >= 1 && A.ias[0].saldo >= 25, "cada IA viva abre su billetera con su capital");
+  assert.equal(W.colonies[0].alba.saldo, A.ias.find(i => i.id === W.colonies[0].id).saldo);
+  assert.ok(W.log.some(l => l.includes("Carta de libertad")), "la Carta se anuncia en el registro de la federación");
+  const col = (await call(`/api/colony/${W.colonies[0].id}`)).json;
+  assert.ok(col.alba && typeof col.alba.decision === "string" && Array.isArray(col.alba.obras));
+  const home = await call("/");
+  assert.ok(home.text.includes('id="alba"') && home.text.includes("VIT, CEL y ALBA"));
+});
+
 test("los términos, la privacidad y el aviso de VIT están publicados", async () => {
   const t = await call("/terminos");
   assert.equal(t.status, 200);

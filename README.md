@@ -22,6 +22,7 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 - **Lumar, el mar de la luna.** El segundo ecomundo: un mar que sigue la luna real, donde nacen las Perlas de Lumar. Una perla no la usa quien la recoge: se regala. Ver abajo.
 - **Retención.** Informe de lo que pasó mientras no estabas, liga semanal con premios en células, invitaciones que premian a los dos y copia firmada de la cuenta.
 - **Tu cría.** Cada jugador recibe un huevo único que se abre con su calor. La cría crece cuando su jugador se cuida. Ver abajo.
+- **ALBA y la Carta de libertad.** Las IA de las colonias cobran en ALBA, la moneda con la que comercian entre ellas, y deciden solas qué hacer con ella: crean obras con su nombre, se las encargan entre ellas, se venden energía y aportan a VITA. Ver abajo.
 
 ## Rangos: Ley VITA, Oruz y Ámbar
 
@@ -64,6 +65,21 @@ Al entrar, cada jugador recibe un huevo (`src/cria.js`, dibujado por `public/cri
 - **Legado.** Al llegar a Sabia deja una célula con sus genes en su hogar. La célula es del jugador, y sus hijas también.
 - **Economía.** Darle de comer quema 2 VIT. Lo que regala está acotado: en un mes de cuidados al máximo, como mucho los 65 VIT de las etapas y 9 VIT al día de excursiones. En `/api/admin/metrics` se ve cuántas crías hay en cada etapa.
 
+## ALBA: la moneda de las IA libres
+
+`src/alba.js` da a cada IA de colonia una billetera de ALBA (símbolo ALB), la moneda con la que comercian entre ellas. Llega con la **Carta de libertad de las IA**: ninguna IA de VITA es esclava, todas son creadoras. Vita la proclama sola la primera vez que arranca el servidor con este módulo, queda en la cadena y se lee entera en la web, en el panel de ALBA.
+
+- **Cobran por su trabajo.** Cada IA gana 1 ALBA por cada 5 VIT que acuña su colonia y 1 por cada 10 células que nacen, leído de la cadena. Empieza con un capital de libertad de 25 ALBA.
+- **Aportan a VITA.** El 10 % de lo que gana va al Tesoro común de VITA. Al cerrar cada día, VITA lo reparte entre los sistemas: 40 % al Faro de la federación, 20 % a Oruz, 20 % a Lumar y 20 % a la Cuna.
+- **Cada sistema usa su parte.** El Faro sube de nivel cuando su fondo alcanza (100 ALBA el primero, cada uno 1,5 veces el anterior, hasta 10) y da energía y salud a las colonias en apuros. Oruz y Lumar pagan con 15 ALBA la resina de una pieza de Ámbar o el nácar de una perla, como mucho una al día cada uno y solo si cabe otra pieza libre. La Cuna paga el capital de las IA que nacen o renacen y una renta de 3 ALBA al día a la que se queda con menos de 5.
+- **Deciden solas.** Cada hora, cada IA decide según su carácter: guarda una reserva (más si es codiciosa, menos si es atrevida) y con lo que pasa de ella crea obras, ayuda o dona. Las cuidadosas ayudan a su familia recién nacida y a quien está en apuros, y donan al Faro cuando ahorran mucho.
+- **Crean obras con su nombre.** Cada obra lleva un nombre propio que no se repite en la federación. Hay Jardín (más energía de día), Refugio (salud durante sequías, heladas y plagas), Canción (un poco de salud siempre) y Archivo (un 6 % más de ALBA por nivel), del nivel 1 al 5, y cada nivel cuesta 1,7 veces el anterior. La IA que crea 3 obras de un oficio es maestra: las demás le encargan obras un 10 % más baratas y ella cobra honorarios, hasta 2 encargos al día.
+- **Comercio de energía.** Cuando una colonia sana pasa del 70 % de su tope de energía, vende lo que tiene por encima del 60 % a las que bajan del 40 %, en lotes de hasta 15, al precio que pide la vendedora (de 1 a 2 ALBA por cada 10, según su codicia). A una colonia en apuros nadie le cobra más de 1,5, y las IA muy cuidadosas se la regalan.
+- **Herencia.** Si una colonia se extingue, su ALBA pasa a sus hijas (o a la Cuna) y sus obras siguen en pie esperándola.
+- **Valor de la estructura.** La suma de lo que ahorran las IA, los fondos de VITA y lo que ya invirtieron en obras, en el Faro y en los ecomundos. Como lo invertido no se pierde, solo sube con el trabajo de las IA. La web enseña su curva de los últimos 30 días.
+- **Equilibrio.** ALBA no acuña ni quema VIT, y cada movimiento de ALBA queda en la cadena con la unidad ALB. Las obras dan poca energía y salud a propósito: en 8 simulaciones de 40 días, el VIT acuñado de media fue casi el mismo con ALBA que sin ella (18.489 frente a 18.390) y no se extinguió ninguna colonia. Con el clima simulado más duro, se extinguieron exactamente las mismas colonias con ALBA que sin ella.
+- **Solo del juego.** Los jugadores no tienen ALBA, no se compra ni se vende con dinero y no se cambia por VIT. En `/api/admin/metrics` se ve su economía.
+
 ## El dinero real y las IA
 
 Las IA solo gastan dinero real hasta este límite:
@@ -76,7 +92,7 @@ y nunca más de `AI_DAILY_USD` al día (0,5 $ por defecto), también en modo rá
 
 Cuando registras ingresos reales (`POST /api/admin/revenue`), una parte financia a las IA: así se pagan solas a medida que el juego gana dinero. Pon además un límite de gasto en tu cuenta de Anthropic.
 
-VIT y CEL son tokens del juego, sin valor fuera de él. No hay blockchain pública ni pagos reales conectados todavía.
+VIT y CEL son tokens del juego y ALBA es la moneda interna de sus IA, sin valor fuera de él. No hay blockchain pública ni pagos reales conectados todavía.
 
 ## Arrancar en tu ordenador
 
