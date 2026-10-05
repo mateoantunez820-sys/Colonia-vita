@@ -10,6 +10,7 @@ import * as oruz from "./oruz.js";
 import * as lumar from "./lumar.js";
 import * as ret from "./retention.js";
 import * as cria from "./cria.js";
+import * as alba from "./alba.js";
 import { aiEnabled, budgetLeft, canConsult, consultColony, superviseWithClaude } from "./ai.js";
 import { fetchWeather, simulatedWeather } from "./weather.js";
 import { clientIp } from "./net.js";
@@ -54,6 +55,7 @@ async function load() {
   for (const u of Object.values(world.users)) { byToken.set(u.tokenHash, u); if (u.recoveryHash) byRecovery.set(u.recoveryHash, u); }
   if (!world.oruz) { oruz.ensure(world, ORUZ_SEED); dirty = true; }
   if (!world.lumar) { lumar.ensure(world, LUMAR_SEED, simNow()); dirty = true; }
+  if (!world.alba) { alba.ensure(world); dirty = true; } // la primera vez, VITA proclama la Carta de libertad
 }
 async function save() {
   if (!dirty) return;
@@ -107,6 +109,7 @@ function tick() {
   oruz.step(world);
   lumar.step(world, simNow());
   rangos.step(world);
+  try { alba.step(world); } catch (e) { console.error("[alba]", e.message); } // la economía de las IA nunca para el mundo
   ret.leagueTick(world);
   tickMs.last = performance.now() - t0; tickMs.max = Math.max(tickMs.max, tickMs.last);
   dirty = true;
@@ -163,14 +166,14 @@ function roundSupply() { return Object.fromEntries(Object.entries(world.supply).
 function worldView(u) {
   return {
     tick: world.tick, mode: FAST ? "rápido" : "tiempo real", minuto: FAST ? null : realMinute(), weather: currentWeather(), stats: world.stats,
-    colonies: Object.values(world.colonies).map(c => ({ ...core.colonySummary(world, c), rango: rangos.tag(world, c) })),
+    colonies: Object.values(world.colonies).map(c => ({ ...core.colonySummary(world, c), rango: rangos.tag(world, c), alba: alba.tag(world, c) })),
     rangos: rangos.view(world),
     supply: roundSupply(), players: Object.keys(world.users).length, online: [...activity.values()].filter(t => Date.now() - t < 120000).length,
     ai: { enabled: aiEnabled(), calls: world.ai.calls, difficulty: world.ai.difficulty, report: world.ai.report, budgetOk: budgetLeft(world) > 0.05 },
     leaderboard: core.leaderboard(world), log: world.log.slice(0, 40), chainOk: core.verifyChain(world),
     chain: world.chain.slice(-12).reverse(), me: u ? { ...core.userView(world, u), hasRecovery: !!u.recoveryHash, ...ret.userExtras(world, u, SAVE_KEY) } : null,
     oruz: oruz.view(world, u), lumar: lumar.view(world, u), liga: ret.leagueView(world, u),
-    cria: cria.view(world, u),
+    cria: cria.view(world, u), alba: alba.view(world),
     habits: core.HABITS, ads: { ...core.ADS, enabled: true }, demoPurchases: DEMO_PURCHASES,
   };
 }
@@ -221,7 +224,7 @@ async function route(req, res) {
   if (cm && req.method === "GET") {
     const col = world.colonies[cm[1]]; if (!col) return send(res, 404, { ok: false, error: "Colonia no encontrada" });
     const u = userFrom(req);
-    return send(res, 200, { ...core.colonyDetail(world, col, u?.id), rango: rangos.detail(world, col) });
+    return send(res, 200, { ...core.colonyDetail(world, col, u?.id), rango: rangos.detail(world, col), alba: alba.detail(world, col) });
   }
 
   if (url.pathname === "/api/join" && req.method === "POST") {
@@ -309,7 +312,7 @@ async function route(req, res) {
         ads: world.ads || {}, colonies: Object.keys(world.colonies).length, alive: Object.values(world.colonies).filter(c => c.alive).length,
         tick: world.tick, weather: currentWeather(), memoryMb: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
         worldKb: Math.round(JSON.stringify(world).length / 1024), tickMs: { last: +tickMs.last.toFixed(2), max: +tickMs.max.toFixed(2) },
-        legalCompleto: legalInfo().completo, retention: ret.metrics(world), saves: !!SAVE_KEY, crias: cria.metrics(world),
+        legalCompleto: legalInfo().completo, retention: ret.metrics(world), saves: !!SAVE_KEY, crias: cria.metrics(world), alba: alba.metrics(world),
       });
     }
     // Para calibrar TRUSTED_PROXY_HOPS tras desplegar: "ip" debe ser tu IP pública.

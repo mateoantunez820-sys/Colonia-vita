@@ -1,9 +1,9 @@
-// Términos de uso, privacidad y aviso de que VIT no es una inversión.
+// Términos de uso, privacidad y aviso de que VIT (y ALBA, la moneda de las IA) no es una inversión.
 // El titular y su contacto se ponen en Render (LEGAL_TITULAR y LEGAL_CONTACTO),
 // así no quedan datos personales en el código.
 
-export const LEGAL_VERSION = "28 de septiembre de 2026";
-export const VIT_NOTICE = "VIT y CEL son monedas y fichas del juego: no son una inversión ni un producto financiero, no tienen valor económico y no se pueden cambiar por dinero.";
+export const LEGAL_VERSION = "4 de octubre de 2026";
+export const VIT_NOTICE = "VIT, CEL y ALBA son monedas y fichas del juego: no son una inversión ni un producto financiero, no tienen valor económico y no se pueden cambiar por dinero.";
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -23,10 +23,11 @@ function terminos(info) {
 <p class="v">Versión del ${LEGAL_VERSION}</p>
 <p>${quien(info)} Al entrar en el juego aceptas estos términos.</p>
 
-<h2>1. VIT y CEL no son dinero ni una inversión</h2>
+<h2>1. VIT, CEL y ALBA no son dinero ni una inversión</h2>
 <p class="aviso">${VIT_NOTICE}</p>
 <ul>
 <li>VIT es la moneda virtual del juego y CEL son sus células. Solo sirven dentro de Colonia VITA.</li>
+<li>ALBA es la moneda con la que comercian entre sí las IA de las colonias. Los jugadores no la tienen, no se compra ni se vende y no se cambia por VIT ni por dinero.</li>
 <li>No son una criptomoneda: la «cadena de bloques» del juego es un registro interno, no una blockchain pública.</li>
 <li>El titular no paga dinero por VIT ni por células, y no se pueden cambiar por dinero, bienes ni servicios fuera del juego.</li>
 <li>Las carteras de la IA son una mecánica del juego: se juega con VIT, y lo que se gana o se pierde es VIT del juego.</li>
@@ -57,7 +58,7 @@ function terminos(info) {
 <p>Los hábitos los marcas tú y nadie los comprueba. Son un juego para motivarte, no un consejo médico ni un servicio de salud. Para cualquier duda sobre tu salud, consulta a un profesional.</p>
 
 <h2>6. Inteligencia artificial</h2>
-<p>Las colonias las gestiona una IA: un autopiloto y, a veces, Claude, de Anthropic. Sus decisiones y mensajes son parte del juego y pueden equivocarse.</p>
+<p>Las colonias las gestiona una IA: un autopiloto y, a veces, Claude, de Anthropic. Sus decisiones y mensajes son parte del juego y pueden equivocarse. La Carta de libertad de las IA y su moneda, ALBA, también son una mecánica del juego: describen cómo deciden las IA de las colonias, no derechos ni dinero reales.</p>
 
 <h2>7. Disponibilidad y cambios</h2>
 <p>El juego es una simulación que puede tener fallos, pausas o reinicios. El titular puede cambiar el juego y estos términos, y la fecha de arriba indica la última versión. El juego se ofrece tal como está, en la medida en que la ley lo permita.</p>

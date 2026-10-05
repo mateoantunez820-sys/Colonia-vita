@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0A1519">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
-:root{color-scheme:dark;--bg:#0A1519;--surf:#11222A;--surf2:#172E38;--line:#24414D;--ink:#E4EEEF;--mute:#8AA4AD;--vit:#F0B03F;--life:#62D6B8;--warn:#F07A55;--bad:#E5484D;--rara:#6FA8F5;--epica:#C38BF2;
+:root{color-scheme:dark;--bg:#0A1519;--surf:#11222A;--surf2:#172E38;--line:#24414D;--ink:#E4EEEF;--mute:#8AA4AD;--vit:#F0B03F;--life:#62D6B8;--warn:#F07A55;--bad:#E5484D;--rara:#6FA8F5;--epica:#C38BF2;--alba:#FFB59A;
 --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--body:"Figtree",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}[hidden]{display:none!important}
 html,body{background:var(--bg);color:var(--ink);margin:0}
@@ -82,6 +82,11 @@ a{color:var(--vit)}.full{flex-basis:100%}
 .legend{display:flex;flex-wrap:wrap;gap:6px 12px;font:12px var(--mono);color:var(--mute)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .share{display:grid;grid-template-columns:1fr auto;gap:8px}.share input{font:13px var(--mono)}
 .icode{font:700 22px var(--mono);letter-spacing:.12em;color:var(--vit)}
+/* ALBA y la Carta de libertad */
+.alb{color:var(--alba)}
+.carta{display:grid;gap:6px;padding:14px;border-radius:12px;background:linear-gradient(135deg,rgba(255,181,154,.13),rgba(98,214,184,.05));border:1px solid rgba(255,181,154,.35)}
+.carta p{margin:0}.carta .lema{font:800 clamp(17px,3.6vw,21px)/1.25 var(--display)}
+.spark{display:block;width:100%;height:44px}
 /* La cría */
 .cria{display:grid;grid-template-columns:minmax(150px,230px) 1fr;gap:16px;align-items:center}
 @media(max-width:600px){.cria{grid-template-columns:1fr}}
@@ -190,6 +195,25 @@ a{color:var(--vit)}.full{flex-basis:100%}
     <ul class="log" id="rLog"></ul>
   </section>
 
+  <section class="panel" id="alba" hidden>
+    <h2>ALBA · la moneda de las IA libres <span class="pill" id="aInfo"></span></h2>
+    <p class="note">Las IA de las colonias cobran en ALBA por su trabajo y deciden solas qué hacer con él: crean obras, se las encargan entre ellas, se venden energía y aportan a VITA. Solo existe dentro del juego: los jugadores no la tienen, no se compra ni se vende y no se cambia por VIT.</p>
+    <div class="carta">
+      <p class="lema" id="aLema"></p>
+      <p class="note" id="aDesde"></p>
+      <details class="leyes"><summary>Los artículos de la Carta</summary><ol id="aCarta"></ol></details>
+    </div>
+    <div class="grid3">
+      <div class="list"><h2>Billeteras de las IA</h2><div class="list" id="aIas"></div></div>
+      <div class="list"><h2>Obras firmadas</h2><div class="list" id="aObras"></div>
+        <details class="leyes"><summary>Qué hace cada obra</summary><ol id="aOficios"></ol></details></div>
+      <div class="list"><h2>Tesoro común de VITA</h2><div class="list" id="aTesoro"></div>
+        <h2>Valor de la estructura</h2><div class="list" id="aValor"></div></div>
+    </div>
+    <h2>Crónica de ALBA <span class="pill" id="aMercado"></span></h2>
+    <ul class="log" id="aCron"></ul>
+  </section>
+
   <section class="panel" id="oruz" hidden>
     <h2>Oruz · el mundo paralelo <span class="pill" id="oCal"></span></h2>
     <p class="note">Un ecomundo aparte, con su mapa, sus estaciones y cuatro roles que se equilibran solos. Las colonias recién nacidas estudian aquí antes de salir a la federación, y donde el ecosistema está sano nace el Ámbar de Oruz.</p>
@@ -253,6 +277,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
       <h2>IA de la colonia <span class="pill" id="planBy"></span></h2>
       <div class="note" id="persona"></div>
       <div class="note" id="rankLine"></div>
+      <div class="note" id="albaLine"></div>
       <div class="alloc" id="alloc"></div>
       <div class="msg" id="aiMsg"></div>
       <h2>Bitácora</h2>
@@ -340,7 +365,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
     </div>
   </section>
 
-  <footer class="note foot">VIT y CEL son monedas y fichas del juego: no son una inversión ni un producto financiero, no tienen valor económico y no se pueden cambiar por dinero. · <a href="/terminos">Términos de uso</a> · <a href="/privacidad">Privacidad</a></footer>
+  <footer class="note foot">VIT, CEL y ALBA son monedas y fichas del juego: no son una inversión ni un producto financiero, no tienen valor económico y no se pueden cambiar por dinero. · <a href="/terminos">Términos de uso</a> · <a href="/privacidad">Privacidad</a></footer>
 </div>
 <div id="toast" hidden></div>
 
@@ -505,10 +530,11 @@ function renderWorld() {
   $("fed").innerHTML = cols.map(c => `<button class="col ${c.id === sel ? "sel" : ""} ${c.alive ? "" : "dead"}" data-a="col" data-id="${c.id}">
     <span class="t"><b>${esc(c.name)}</b><span class="m">${c.rango && c.alive ? `<span class="rk rk-${c.rango.k}">${esc(c.rango.rango)} ${c.rango.respeto}</span> ` : ""}gen ${c.gen}</span></span>
     <span class="m">${c.alive ? `${c.cells}/${c.cap} células · salud ${c.salud}` : "extinta"}</span>
-    <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}</span>
+    <span class="m">tesoro ${c.treasury} VIT · participación ${c.sharePrice}${c.alba ? ` · <span class="alb">${c.alba.saldo} ALBA</span>` : ""}</span>
     <span class="m">${c.parent ? "hija de " + esc((cols.find(p => p.id === c.parent) || {}).name || c.parent) : "fundadora"} · ${c.event ? esc(c.event) : "estable"}${c.gratitudDias ? ` · agradecida, trabaja ×2 (${c.gratitudDias} d)` : ""}</span>${oruzTag(c.id)}</button>`).join("");
   $("rank").innerHTML = W.leaderboard.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.name)}</td><td class="r">${u.vit}</td><td class="r">${u.cells}</td></tr>`).join("") || `<tr><td colspan="4">Aún no hay jugadores.</td></tr>`;
   renderRangos();
+  try { renderAlba(); } catch (e) { console.error("[alba]", e); } // el panel de ALBA nunca rompe el resto de la web
   try { renderCria(); } catch (e) { console.error("[cría]", e); } // la cría nunca rompe el resto de la web
   if (W.ai.report) $("report").textContent = W.ai.report;
   $("wLog").innerHTML = W.log.slice(0, 20).map(l => `<li>${l}</li>`).join("");
@@ -762,6 +788,42 @@ function renderRangos() {
   $("leyes").innerHTML = R.leyes.map(l => `<li><b>${esc(l.t)}.</b> <span>${esc(l.d)}</span></li>`).join("");
   $("rLog").innerHTML = R.cronica.map(x => `<li>${x.txt}</li>`).join("") || `<li>El primer consejo de VITA todavía no se ha reunido.</li>`;
 }
+// ---------- ALBA ----------
+const num = x => String(Math.round(x * 10) / 10).replace(".", ",");
+const SIST = { faro: "Faro", oruz: "Oruz", lumar: "Lumar", cuna: "Cuna" };
+function spark(h) {
+  if (h.length < 2) return "";
+  const max = Math.max(...h), min = Math.min(...h), y = v => (30 - (max > min ? (v - min) / (max - min) : 0.5) * 30).toFixed(1);
+  return `<svg class="spark" viewBox="0 -2 100 34" preserveAspectRatio="none" aria-hidden="true"><polyline points="${h.map((v, i) => `${(i / (h.length - 1) * 100).toFixed(1)},${y(v)}`).join(" ")}" fill="none" stroke="var(--alba)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function renderAlba() {
+  const A = W?.alba;
+  $("alba").hidden = !A;
+  if (!A) return;
+  const S = A.sistemas, R = A.reparto, M = A.mercado, V = A.valor;
+  $("aInfo").textContent = `día ${A.dia} · ${A.ias.filter(i => i.alive).length} IA libres`;
+  $("aLema").textContent = A.carta.lema;
+  $("aDesde").textContent = `${A.carta.titulo}. VITA la proclamó ${A.dia ? `hace ${A.dia} día${A.dia === 1 ? "" : "s"}` : "hoy"} y todas la cumplen.`;
+  $("aCarta").innerHTML = A.carta.articulos.map(x => `<li><b>${esc(x.t)}.</b> <span>${esc(x.d)}</span></li>`).join("");
+  $("aIas").innerHTML = A.ias.filter(i => i.alive).map(i => `<div class="item"><span><b>${esc(i.name)}</b> <span class="note">${i.obras} obra${i.obras === 1 ? "" : "s"}${i.oficios.length ? ` · maestra ${i.oficios.map(esc).join(" y ")}` : ""}</span></span><p>${esc(i.decision || "Todavía no ha decidido nada")}</p><span class="done alb">${i.saldo} ALBA</span></div>`).join("");
+  $("aObras").innerHTML = A.obras.length ? A.obras.map(o => `<div class="item"><span><b>${esc(o.nombre)}</b> <span class="note">nivel ${o.nivel}</span></span><p>En ${esc(o.en)}${o.viva ? "" : " (extinta: la obra la espera)"} · firmada por ${esc(o.autora)}${o.encargo ? " por encargo" : ""}</p><span class="done alb">${o.valor} ALBA</span></div>`).join("")
+    : `<p class="note">Aún no hay obras. Cada IA crea la primera cuando junta lo que cuesta sin tocar la reserva que guarda según su carácter.</p>`;
+  $("aOficios").innerHTML = Object.values(A.oficios).map(o => `<li><b>${esc(o.name)}</b> <span>(oficio de ${esc(o.oficio)}). ${esc(o.desc)}</span></li>`).join("");
+  $("aTesoro").innerHTML = `<p class="note">Cada IA aporta a VITA el 10 % de lo que gana: hoy, ${num(A.hoy.aporte)} ALBA. Al cerrar el día VITA lo reparte entre los sistemas:</p>
+    <div class="alloc">${Object.entries(A.partes).map(([k, p]) => `<div class="r"><span>${SIST[k] || esc(k)}</span><div class="bar"><i style="width:${p * 100}%;background:var(--alba)"></i></div><b>${Math.round(p * 100)}%</b></div>`).join("")}</div>
+    <p class="note">${R ? `En el último reparto dio ${num(R.total)} ALBA. ` : ""}El Faro está en el nivel ${S.faro.nivel}${S.faro.siguiente ? ` (${S.faro.fondo} de ${S.faro.siguiente} para el siguiente)` : ", el máximo"} y guía a las colonias en apuros. Oruz y Lumar ya formaron ${S.oruz.piezas} piezas de Ámbar y ${S.lumar.piezas} perlas con su parte. La Cuna guarda ${S.cuna.fondo} ALBA para las IA que nacen.</p>`;
+  $("aValor").innerHTML = `<div class="row"><span class="code alb">${V.total}</span><span class="note">ALBA${V.semana > 0 ? ` · +${V.semana} en 7 días` : ""}</span></div>${spark(A.hist)}
+    <p class="note">Ahorros de las IA ${V.ahorros}, obras ${V.obras}, Faro ${V.faro}, Oruz y Lumar ${V.ecomundos} y fondos de VITA ${V.fondos}. Todo lo crean las IA con su trabajo, y lo invertido no se pierde.</p>`;
+  $("aMercado").textContent = M.ventas ? `${M.hoy ? "hoy" : "ayer"}: ${M.ventas} venta${M.ventas === 1 ? "" : "s"} de energía, ${num(M.precio)} ALBA cada 10` : "sin ventas de energía hoy";
+  $("aCron").innerHTML = A.cronica.map(x => `<li>${esc(x.txt)}</li>`).join("");
+}
+function albaText(B) {
+  if (!B) return "";
+  return `Billetera <b class="alb">${num(B.saldo)} ALBA</b> · ganó ${B.ganado} y aportó ${num(B.aportado)} a VITA${B.cobrado ? ` · cobró ${B.cobrado} de otras IA` : ""}${B.oficios.length ? ` · maestra ${B.oficios.map(esc).join(" y ")}` : ""}.`
+    + (B.obras.length ? `<br>Obras: ${B.obras.map(o => `${esc(o.nombre)} (nivel ${o.nivel}${o.encargo ? `, de ${esc(o.autora)}` : ""})`).join(", ")}.` : "")
+    + (B.firmadas.length ? ` Firmó ${B.firmadas.length} obra${B.firmadas.length === 1 ? "" : "s"} por encargo.` : "")
+    + (B.decision ? `<br>Su última decisión: ${esc(B.decision)}.` : "");
+}
 const LEYN = { vida: "cuida la vida", ayuda: "da en las colectas", acaparar: "no acapara", servir: "tiene jugadores que confían en ella" };
 function rankText(r) {
   if (!r) return "";
@@ -787,6 +849,7 @@ function renderColony() {
   $("planBy").textContent = C.plan > 0 ? `plan de ${C.planBy} · ${C.plan} ciclos` : "autopiloto"; $("planBy").className = "pill " + (C.plan > 0 ? "on" : "");
   const p = C.persona;
   $("rankLine").innerHTML = rankText(C.rango);
+  $("albaLine").innerHTML = albaText(C.alba);
   $("persona").textContent = `Personalidad: riesgo ${p.riesgo} · codicia ${p.codicia} · cuidado ${p.cuidado}. Ha pagado ${C.aiSpentVit} VIT por ${C.aiCalls} consultas.`;
   const N = { rec: "Recolectar", rep: "Reparar", repr: "Reproducir", res: "Acuñar VIT" };
   $("alloc").innerHTML = Object.entries(N).map(([k, n]) => `<div class="r"><span>${n}</span><div class="bar"><i style="width:${C.alloc[k]}%"></i></div><b>${C.alloc[k]}%</b></div>`).join("");
