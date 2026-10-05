@@ -91,7 +91,8 @@ export function necesidades(c, now) {
 }
 function asentar(c, now) { Object.assign(c, necesidades(c, now)); c.t = Math.max(c.t, now); }
 export const duracion = c => Math.max(20, 60 - 3 * c.rasgos.ef); // minutos de excursión: la agilidad acorta el viaje
-function anotar(c, t, txt) { c.diario.unshift({ t, txt }); if (c.diario.length > CRIA.DIARIO) c.diario.length = CRIA.DIARIO; }
+// También lo usan las mascotas de las colonias para contar lo que vivió con ellas
+export function anotar(c, t, txt) { c.diario.unshift({ t, txt }); if (c.diario.length > CRIA.DIARIO) c.diario.length = CRIA.DIARIO; }
 // Su hogar es el que eligió el jugador; si se extinguió, la colonia viva donde el jugador tiene más células.
 export function hogarDe(w, u, c) {
   const h = w.colonies[c.hogar];

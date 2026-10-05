@@ -70,6 +70,28 @@ a{color:var(--vit)}.full{flex-basis:100%}
 .code{font:600 clamp(18px,4.5vw,26px) var(--mono);letter-spacing:.06em;margin:0;overflow-wrap:anywhere;user-select:all}
 .foot{text-align:center;padding:8px 0}
 .welcome{border-color:var(--vit)}.welcome p{margin:0}
+/* Las mascotas */
+.masc-esp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:760px){.masc-esp{grid-template-columns:1fr 1fr}}
+.esp{display:grid;gap:3px;align-content:start;padding:10px 12px;border-radius:10px;background:var(--surf2);border-top:3px solid var(--c)}
+.esp .ms{width:60px;height:60px}.esp b{font:700 15px var(--display)}.esp p{margin:0;color:var(--mute);font-size:12px}.esp .hizo{color:var(--ink)}
+.masc{display:grid;grid-template-columns:52px 1fr auto;gap:2px 12px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--surf2)}
+.masc .ms{width:52px;height:52px;grid-row:1/span 2}.masc p{margin:0;color:var(--mute);font-size:12px}.masc .bar{margin:4px 0 2px}.masc .bar i{background:#F08BB0}
+.masc-acc{display:flex;flex-direction:column;gap:6px;grid-row:1/span 2;grid-column:3}
+.masc.chica{grid-template-columns:40px 1fr}.masc.chica .ms{width:40px;height:40px}
+@media(max-width:520px){.masc{grid-template-columns:46px 1fr}.masc .ms{width:46px;height:46px}.masc-acc{grid-row:auto;grid-column:1/-1;flex-direction:row}}
+.lazo{color:#FF7FA8;font-size:12px;letter-spacing:1px}.lazo i{font-style:normal;color:var(--line)}
+.ms{display:block;overflow:visible}
+.ms-anim .ms-flota{animation:msFlota 3.2s ease-in-out infinite}
+@keyframes msFlota{50%{transform:translateY(-3px)}}
+.ms-anim .ms-ala{animation:msAla .3s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes msAla{to{transform:scaleY(.6)}}
+.ms-anim .ms-brilla{animation:msBrilla 2.4s ease-in-out infinite}
+@keyframes msBrilla{50%{opacity:.3}}
+.ms-anim .ms-antena{animation:crVaiven 2.8s ease-in-out infinite}
+.ms-anim .ms-ojo{animation:crParpadeo 5.3s infinite;transform-box:fill-box;transform-origin:center}
+.ms-anim .ms-late{animation:msLate 1.6s ease-in-out infinite}
+@keyframes msLate{15%,45%{transform:scale(1.18)}30%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.ms-anim *{animation:none!important}}
 .oruz-cols{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start}@media(max-width:900px){.oruz-cols{grid-template-columns:1fr}}
 #oMap{display:block;width:100%;height:auto;background:#061014;border-radius:10px;touch-action:manipulation}
 .hx{cursor:pointer}.hx polygon{stroke:#24414D;stroke-width:1.5}.hx.sel polygon{stroke:var(--vit);stroke-width:3}.hx:focus{outline:none}.hx:focus-visible polygon{stroke:var(--ink)}
@@ -260,6 +282,29 @@ a{color:var(--vit)}.full{flex-basis:100%}
     </section>
   </div>
 
+  <section class="panel" id="mascotas" hidden>
+    <h2><span id="mTitulo">Mascotas de la colonia</span> <span class="pill" id="mArmonia"></span></h2>
+    <p class="note" id="mIntro"></p>
+    <div class="masc-esp" id="mEspecies"></div>
+    <div class="grid2">
+      <div class="list">
+        <h2>Tus mascotas <span class="pill" id="mTuyas"></span></h2>
+        <p class="note" id="mNota"></p>
+        <div class="row" id="mAcciones"></div>
+        <div class="list" id="mMias"></div>
+        <div class="list" id="mHogar"></div>
+      </div>
+      <div class="list">
+        <h2>Las parejas más unidas</h2>
+        <div class="list" id="mTop"></div>
+        <h2>En el refugio <span class="pill" id="mRefN"></span></h2>
+        <div class="list" id="mRefugio"></div>
+        <h2>Crónica de las mascotas</h2>
+        <ul class="log" id="mCron"></ul>
+      </div>
+    </div>
+  </section>
+
   <div class="grid3">
     <section class="panel">
       <h2>Cartera de la IA <span class="pill" id="sp"></span></h2>
@@ -343,6 +388,7 @@ a{color:var(--vit)}.full{flex-basis:100%}
   <footer class="note foot">VIT y CEL son monedas y fichas del juego: no son una inversión ni un producto financiero, no tienen valor económico y no se pueden cambiar por dinero. · <a href="/terminos">Términos de uso</a> · <a href="/privacidad">Privacidad</a></footer>
 </div>
 <div id="toast" hidden></div>
+<script src="/mascotas-arte.js"></script>
 
 <script src="/cria-arte.js"></script>
 <script>
@@ -447,6 +493,7 @@ document.addEventListener("click", e => {
   else if (d.a === "claim") act({ type: "claim", key: d.id }, "Misión cobrada");
   else if (d.a === "habit") habito(d.id);
   else if (d.a === "cria") criaAct(d.op);
+  else if (d.a === "masc") mascotaAct(d.op, d.id);
   else if (d.a === "reg") { selReg = d.id; renderOruz(); }
   else if (d.a === "amb") act({ type: "amber_collect", id: d.id }, "Ámbar recogido: ya es tuyo");
   else if (d.a === "inf") act({ type: "amber_infuse", id: d.id, colony: sel }, "Ámbar infundido en la colonia");
@@ -477,6 +524,7 @@ async function habito(k) {
   const r = await api("/api/action", { type: "habit", key: k, colony: sel });
   toast(!r.ok ? r.error || "No se pudo" : !r.cria ? "Hábito registrado" : r.cria.sube ? `Hábito registrado. ¡Tu cría sube su ${r.cria.rasgo.toLowerCase()} a ${r.cria.nivel}!` : "Hábito registrado. Tu cría también lo siente");
   if (r.ok) lastSave = 0;
+  if (r.mascotas?.suben) setTimeout(() => toast(r.mascotas.n === 1 ? "Tu mascota también lo siente: sube de nivel de lazo" : `Tus mascotas también lo sienten: ${r.mascotas.suben === 1 ? "una sube" : `${r.mascotas.suben} suben`} de nivel de lazo`), 2700);
   await refresh();
 }
 
@@ -724,7 +772,7 @@ async function criaAct(op) {
   criaDespierta = Date.now(); lastSave = 0; // la copia firmada de la cuenta lleva la cría
 
   if (op === "calor") { toast(r.nacio ? `¡Nació ${r.nombre}!${r.primera ? " Es la primera cría de VITA" : ""}` : "El huevo se mueve…"); }
-  else if (op === "saludar") { toast(r.visita ? `${nombre} fue a visitar ${r.visita.colonia} y le llevó +${r.visita.energia} energía` : `${nombre} está feliz de verte`); }
+  else if (op === "saludar") { toast(r.visita ? `${nombre} fue a visitar ${r.visita.colonia} y le llevó +${r.visita.energia} energía${r.mascotas?.jugo ? `, y jugó con ${r.mascotas.jugo === 1 ? "tu mascota" : `tus ${r.mascotas.jugo} mascotas`}` : ""}` : `${nombre} está feliz de verte`); }
   else if (op === "comer") toast(`Ñam. ${nombre} tiene más energía`);
   else if (op === "jugar") toast(`¡${nombre} juega contigo!`);
   else if (op === "excursion") toast(`${nombre} sale hacia ${r.colonia}; vuelve en ${r.min} min`);
@@ -775,9 +823,73 @@ function rankText(r) {
 }
 function bar(id, p, c) { const e = $(id); e.style.width = Math.max(0, Math.min(100, p)) + "%"; if (c) e.style.background = c; }
 const tone = v => v > 60 ? "var(--life)" : v > 30 ? "var(--warn)" : "var(--bad)";
+// ---------- las mascotas: cada ser vivo de la colonia con la suya ----------
+const MSEM = { luz: "4be1a9c3", polen: "a37c11e0", guardia: "e40f9a77", ciclo: "33aa55cc" }; // las de las fichas de especie
+const corazones = n => `<span class="lazo" title="nivel de lazo ${n} de 4">${"♥".repeat(n)}<i>${"♥".repeat(4 - n)}</i></span>`;
+const veces = (n, una, varias) => n === 1 ? una : varias.replace("#", n);
+const dec = x => x >= 10 ? String(Math.round(x)) : (Math.round(x * 10) / 10).toString().replace(".", ","); // 7,1 · 0,4 · 12
+function parejaHtml(p, mias) {
+  const M = W.mascotas, E = M.especies[p.e], N = M.niveles, desde = N[p.nivel].desde, sig = p.siguiente, hasta = sig ? sig.desde : 100;
+  const pct = hasta > desde ? (p.lazo - desde) / (hasta - desde) * 100 : 100;
+  const premio = mias && M.mias ? `<div class="masc-acc"><button class="sm primary" data-a="masc" data-op="premio" data-id="${p.cell}" ${M.mias.premios <= 0 || (W.me?.vit ?? 0) < M.mias.premioVit || p.lazo >= 100 ? "disabled" : ""}>Premio · ${M.mias.premioVit} VIT</button><button class="sm" data-a="masc" data-op="nombre" data-id="${p.cell}">Nombre</button></div>` : "";
+  return `<div class="masc">${MascotasArte.svg(p.e, p.s, { nivel: p.nivel, anim: !quieta, label: `${esc(p.nombre)}, ${esc(E.una)}` })}
+    <div><b>${esc(p.nombre)}</b> ${corazones(p.nivel)}<p>${esc(E.una)} de ${p.cell}${mias ? ` en ${esc(p.colName)}` : ""} · <b>${esc(p.nivelName)}</b>${p.dias ? ` · ${veces(p.dias, "1 día", "# días")} ${E.la === "la" ? "juntas" : "juntos"}` : ""}</p>
+    <div class="bar"><i style="width:${Math.max(3, Math.min(100, pct))}%"></i></div>
+    <p>${p.lazo >= 100 ? "Lazo 100: no pueden quererse más" : sig ? `Lazo ${p.lazo} de ${sig.desde} para ser ${esc(sig.name.toLowerCase())}` : `Lazo ${p.lazo} de 100`}${p.afinidad >= 1.15 ? " · se entienden de maravilla" : p.afinidad <= 0.85 ? " · les cuesta entenderse" : ""}${p.k > 1 ? ` · antes acompañó a ${veces(p.k - 1, "otra célula", "# células")}` : ""}</p></div>${premio}</div>`;
+}
+function esperaHtml(o, propia) {
+  const E = W.mascotas.especies[o.e];
+  return `<div class="masc chica">${MascotasArte.svg(o.e, o.s, { anim: false, label: `${esc(o.nombre)}, ${esc(E.una)}` })}<div><b>${esc(o.nombre)}</b> <span class="note">${esc(E.una)}</span>
+    <p>Acompañó a ${veces(o.k, "una célula", "# células")}, la última ${o.de}. ${propia ? "Espera a la próxima célula de tu familia." : `Espera a una recién nacida${o.quedan != null ? `; si no llega en ${o.quedan} h, se irá a vivir libre a Oruz` : ""}.`}</p></div></div>`;
+}
+function renderMascotas() {
+  const M = W?.mascotas, D = C?.mascotas;
+  $("mascotas").hidden = !(M && D);
+  if (!M || !D) return;
+  const me = W.me, my = M.mias, hizo = { luz: x => `+${dec(x)} de energía`, polen: x => `+${dec(x)} nacimientos`, guardia: x => `+${dec(x)} de salud`, ciclo: x => `+${dec(x)} de energía` };
+  const calma = { luz: "No hizo falta: la colonia tenía energía de noche", polen: C.cells >= C.cap ? "La colonia está llena: esperan sitio" : "Esperan a que la colonia tenga energía de sobra", guardia: "Sin plagas, heladas ni sequías: descansan", ciclo: "No hizo falta: la colonia tenía energía" };
+  $("mTitulo").textContent = `Mascotas de ${C.name}`;
+  $("mArmonia").textContent = C.alive ? `armonía ${Math.round(D.armonia * 100)} % · lazo medio ${Math.round(D.lazo)}` : "esperan en el refugio";
+  $("mIntro").textContent = C.alive
+    ? `En ${C.name} cada célula vive con su mascota: ${D.total} parejas${D.almas ? `, ${veces(D.almas, "una de ellas almas gemelas", "# de ellas almas gemelas")}` : ""}. Su lazo crece cada ciclo que viven juntas, más deprisa si se entienden, si la colonia está sana y si las cuatro especies viven en armonía, y cada nivel de lazo alarga la vida de la célula. Cuando una célula se va, su mascota espera a otra en el refugio.`
+    : `${C.name} se apagó, pero sus mascotas no se van: esperan en el refugio. Si se apagaran todas las colonias, ellas despertarían a una generación nueva.`;
+  $("mEspecies").innerHTML = D.especies.map(x => { const E = M.especies[x.k]; return `<div class="esp" style="--c:${E.color}">${MascotasArte.svg(x.k, MSEM[x.k], { anim: !quieta, label: esc(E.name) })}
+    <b>${esc(E.name)}</b><p>${x.n} · lazo medio ${x.lazo}</p><p>${esc(E.rol)}: ${esc(E.desc.charAt(0).toLowerCase() + E.desc.slice(1))}</p><p class="hizo">${x.dia ? `${D.diaCompleto ? "En el último día" : "En las últimas horas"}: ${hizo[x.k](x.dia)}` : C.alive ? calma[x.k] : ""}</p></div>`; }).join("");
+  // Las del jugador, en todas las colonias
+  $("mTuyas").textContent = my?.n ? `${my.n}${my.porNivel[4] ? ` · ${veces(my.porNivel[4], "1 alma gemela", "# almas gemelas")}` : ""}` : ""; $("mTuyas").hidden = !my?.n;
+  $("mNota").textContent = !me ? "Entra con tu nombre y adopta una célula: su mascota también será tuya."
+    : !my?.n ? "Adopta una célula en «Células en adopción»: llega con su mascota, y las de sus hijas también serán tuyas."
+    : `Dales mimos cada día y algún premio: cuanto más fuerte es su lazo, más vive tu célula. Tus hábitos de «Salud real» y las visitas de tu cría también las alegran.`;
+  $("mAcciones").innerHTML = my?.n ? `<button class="${my.mimos ? "sm" : "primary"}" data-a="masc" data-op="mimos" ${my.mimos ? "disabled" : ""}>${my.mimos ? "Ya les diste mimos hoy" : `Ronda de mimos · +${my.mimosLazo} de lazo a ${my.n === 1 ? "tu mascota" : `tus ${my.n}`}`}</button><span class="note">Premios de hoy: ${my.premios} de 3 · +${my.premioLazo} de lazo cada uno</span>` : "";
+  $("mMias").innerHTML = my?.n ? my.lista.map(p => parejaHtml(p, true)).join("") + (my.n > my.lista.length ? `<p class="note">Y ${my.n - my.lista.length} más.</p>` : "") : "";
+  $("mHogar").innerHTML = my?.hogar.length ? `<h2>Esperan en tu hogar</h2>${my.hogar.map(o => esperaHtml(o, true)).join("")}` : "";
+  // La colonia que se está viendo
+  $("mTop").innerHTML = D.top.length ? D.top.map(p => parejaHtml(p, false)).join("") : `<p class="note">Aquí no vive nadie ahora.</p>`;
+  $("mRefN").textContent = `${D.refugio.length} esperando`; $("mRefN").hidden = !D.refugio.length;
+  $("mRefugio").innerHTML = D.refugio.length ? D.refugio.slice(0, 4).map(o => esperaHtml(o, false)).join("") + (D.refugio.length > 4 ? `<p class="note">Y ${D.refugio.length - 4} más esperan a una recién nacida.</p>` : "") : `<p class="note">Nadie espera: todas tienen compañera.</p>`;
+  $("mCron").innerHTML = D.cronica.map(l => `<li>${esc(l.h)} ${esc(l.txt)}</li>`).join("") || `<li>Todavía no ha pasado nada que contar.</li>`;
+}
+async function mascotaAct(op, cell) {
+  let body = { type: "mimos" };
+  if (op === "premio") body = { type: "mascota", op, cell };
+  else if (op === "nombre") {
+    const p = W?.mascotas?.mias?.lista.find(x => x.cell === cell);
+    const n = prompt("¿Cómo quieres que se llame tu mascota?", p?.nombre || "");
+    if (n == null) return;
+    body = { type: "mascota", op, cell, nombre: n };
+  }
+  const r = await api("/api/action", body);
+  if (!r.ok) toast(r.error || "No se pudo");
+  else if (op === "mimos") toast(`${r.n === 1 ? "Tu mascota recibió" : `Tus ${r.n} mascotas recibieron`} sus mimos de hoy${!r.suben ? "" : r.n === 1 ? ", y sube de nivel de lazo" : `, y ${r.suben === 1 ? "una sube" : `${r.suben} suben`} de nivel de lazo`}`);
+  else if (op === "premio") toast(r.sube ? `¡${r.nombre} y tu célula ahora son ${r.sube.toLowerCase()}!` : `A ${r.nombre} le encantó: lazo ${r.lazo}`);
+  else toast(`Ahora se llama ${r.nombre}`);
+  if (r.ok) lastSave = 0; // la copia firmada de la cuenta lleva sus mascotas
+  await refresh();
+}
 function renderColony() {
   if (!C) return;
   const me = W?.me;
+  try { renderMascotas(); } catch (e) { console.error("[mascotas]", e); } // las mascotas nunca rompen el resto de la web
   $("cName").textContent = C.name; $("cGenome").textContent = `${C.genome} · gen ${C.gen}`;
   $("deadOv").hidden = C.alive;
   $("sE").textContent = C.energia; bar("bE", C.energia / (150 + C.cells) * 100, tone(Math.min(100, C.energia)));
@@ -829,8 +941,8 @@ function draw(t) {
   g.addColorStop(0, `rgba(40,110,105,${0.15 + day * 0.4})`); g.addColorStop(1, "#061014");
   cx.fillStyle = g; cx.fillRect(0, 0, w, h);
   if (C) {
-    const live = new Set();
-    for (const [id, rar, fer, mine] of C.dots) {
+    const live = new Set(), P = C.mascotas?.puntos, MA = window.MascotasArte;
+    for (const [i, [id, rar, fer, mine]] of C.dots.entries()) {
       live.add(id);
       let p = vis.get(id);
       if (!p) { p = { x: w / 2 + (Math.random() - .5) * 140, y: h / 2 + (Math.random() - .5) * 90, vx: 0, vy: 0, ph: Math.random() * 6 }; vis.set(id, p); }
@@ -839,6 +951,7 @@ function draw(t) {
       cx.beginPath(); cx.arc(p.x, p.y, rad, 0, 6.283); cx.fillStyle = rar ? RC[rar] + "cc" : `hsla(${160 - (100 - C.salud) * 1.4},65%,50%,.75)`;
       if (rar >= 2) { cx.shadowColor = RC[rar]; cx.shadowBlur = 10; } cx.fill(); cx.shadowBlur = 0;
       if (mine) { cx.strokeStyle = "#F0B03F"; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(p.x, p.y, rad + 3, 0, 6.283); cx.stroke(); }
+      if (MA && P?.[i]) MA.orbita(cx, p.x, p.y, rad, P[i][0], P[i][1], reduce ? 0 : t, p.ph, mine); // su mascota, a su lado
     }
     for (const k of vis.keys()) if (!live.has(k)) vis.delete(k);
   }

@@ -7,6 +7,7 @@ Un juego de colonias digitales que viven 24/7 en un servidor. Cada colonia depen
 
 - **Colonias vivas 24/7.** En modo `real` hay un ciclo cada 10 minutos y el sol sigue la hora local. Las nubes, el frío y la lluvia reales cambian la energía. Si Open-Meteo no responde, se usa un clima simulado de temporada (la web lo marca como "simulado").
 - **Células tokenizadas (CEL).** Cada célula tiene genes, rareza y dueño. Nace, acuña VIT para su dueño y muere, y todo queda en una cadena de bloques con hash SHA-256 que se verifica sola.
+- **Cada célula con su mascota.** Luciérnagas, abejas, erizos y caracoles que nacen con su célula y la acompañan toda su vida. El lazo entre las dos es lo que mueve el ecosistema. Ver abajo.
 - **IA por colonia.** Cada colonia tiene un autopiloto con personalidad (riesgo, codicia, cuidado) que de noche ahorra energía y solo compra nutrientes en emergencias. Si hay clave de Anthropic y presupuesto, consulta a Claude una vez al día y **paga su consulta con su propio tesoro VIT** (25 VIT). Si no puede pagar, sigue con el autopiloto.
 - **Colonias que fundan colonias.** Una colonia con tesoro y población suficientes funda una hija con sus mejores células y una IA nueva que hereda y muta su personalidad.
 - **Supervisora IA.** Ajusta la dificultad, envía ayuda a colonias en apuros y hace renacer a las extintas.
@@ -33,6 +34,18 @@ Cada hora se reúne el consejo de VITA (`src/rangos.js`):
 - **Oruz, el rango intermedio.** Organizan colectas para las colonias en apuros: ponen su parte y piden a las colonias ricas que den la suya. Cada colonia decide según su carácter si da o se niega. Negarse con más de 600 VIT en el tesoro se sanciona. También median cuando una colonia le guarda rencor a otra. Caben la mitad de las colonias vivas.
 - **Ámbar, la élite.** Hay un asiento por cada cuatro colonias vivas, para las que más suman entre respeto y mérito.
 - Las colectas solo pasan VIT de un tesoro a otro, sin acuñar ni quemar nada. Cada colecta, ascenso, descenso y sanción queda en la cadena.
+
+## Las mascotas: cada ser vivo con la suya
+
+`src/mascotas.js` da a cada célula de las colonias una mascota compañera, dibujada por `public/mascotas-arte.js`. No hay dos iguales: su aspecto y su nombre salen de su semilla.
+
+- **Nacen juntas.** Cada célula que nace recibe la cría de la mascota de su madre (a veces de otra especie, casi siempre la que más falta en la colonia) o adopta a una que la esperaba en el refugio. Las que llegan de otra forma (premios, legados, copias) también reciben la suya.
+- **El lazo.** Crece cada ciclo que viven juntas, más deprisa si se entienden (cada especie se lleva mejor con un tipo de célula), si la colonia está sana y si las cuatro especies viven en armonía. Tiene cinco niveles (recién conocidas, amigas, compañeras, inseparables y almas gemelas) y cada nivel alarga la vida de la célula. Un lazo nunca baja.
+- **Cuatro especies que se necesitan.** Las luciérnagas dan energía de noche, las abejas de polen ayudan a nacer mientras queda sitio, los erizos guardianes curan durante las plagas, heladas y sequías, y los caracoles del ciclo devuelven la energía de cada célula que se va. La luz y el reciclaje llegan cuando a la colonia le falta energía (con menos de un cuarto de su tope), y la armonía (que las cuatro vivan en número parecido) multiplica lo que dan.
+- **Nadie se queda solo.** Cuando una célula se va, su mascota espera: la de un jugador, en su hogar, a la próxima célula de su familia; las demás, en el refugio de la colonia, a una recién nacida. Si espera más de 3 días, se va a vivir libre a Oruz.
+- **Renacer.** Si se apagan todas las colonias, ninguna puede donar células para que renazcan. Seis horas después, las mascotas del refugio despiertan a 20 células nuevas con los genes de las que acompañaron.
+- **Los jugadores.** Las mascotas de sus células son suyas: una ronda de mimos al día (+6 de lazo a todas, suma puntos en la liga), hasta 3 premios al día (+10 de lazo, quema 1 VIT) y un nombre. Sus hábitos de «Salud real» y las visitas de su cría también las alegran. En el dibujo de la colonia, cada mascota da vueltas junto a su célula, más cerca cuanto más fuerte es su lazo.
+- **Equilibrio.** En 20 simulaciones de 30 días con el clima de otoño y sin jugadores, sin mascotas Génesis se apagó en 7 y no pudo volver; con mascotas, en ninguna. Con clima neutro se acuña entre un 13 % y un 21 % más de VIT, porque viven más colonias. Las mascotas no gastan el azar del ciclo, la copia firmada de la cuenta las guarda y `/api/admin/metrics` las cuenta.
 
 ## Oruz: el mundo paralelo
 

@@ -159,6 +159,21 @@ export function onColonyBorn(fn) {
   bornHooks.push(fn);
   return () => { const i = bornHooks.indexOf(fn); if (i >= 0) bornHooks.splice(i, 1); };
 }
+// Lo mismo para cada célula (por ejemplo, para su mascota): (world, colonia, hija, madre) cuando nace
+// una célula en un ciclo, y (world, colonia, muertas) con las que murieron en ese ciclo.
+// No deben usar el azar del ciclo: así la simulación sigue el mismo camino con ellas o sin ellas.
+const cellHooks = { born: [], dead: [] };
+function engancha(list, fn) {
+  list.push(fn);
+  return () => { const i = list.indexOf(fn); if (i >= 0) list.splice(i, 1); };
+}
+export const onCellBorn = fn => engancha(cellHooks.born, fn);
+export const onCellsDie = fn => engancha(cellHooks.dead, fn);
+function avisa(list, tag, ...args) {
+  for (const fn of list) {
+    try { fn(...args); } catch (e) { console.error(`[${tag}]`, e); } // un módulo con fallos no para el mundo
+  }
+}
 
 export const cap = col => CONFIG.CELL_CAP_BASE + 100 * col.up.territorio;
 export const upCost = (col, k) => UPGRADES[k].cost[col.up[k]];
@@ -369,6 +384,7 @@ export function stepColony(w, col, env, rnd = Math.random) {
       for (const c of cells) { r -= 1 + c.g.fer; if (r <= 0) { parent = c; break; } }
       const child = newCell(w, col, mutG(parent.g, rnd() < 0.12 ? 4 : 2, rnd), parent.owner);
       cells.push(child); born.push(child);
+      if (cellHooks.born.length) avisa(cellHooks.born, "onCellBorn", w, col, child, parent);
     }
     const m = ((grat ? Math.min(a.res, CONFIG.GRATITUDE_RES_MAX) : a.res) / 100) * col.energia * 0.01;
     col.energia -= m * 4;
@@ -401,6 +417,7 @@ export function stepColony(w, col, env, rnd = Math.random) {
   if (dead.length) {
     w.supply.cellsBurned += dead.length; w.stats.deaths += dead.length;
     block(w, "quema célula", col.id, "∅", dead.length, "CEL", dead.slice(0, 3).map(c => c.id));
+    if (cellHooks.dead.length) avisa(cellHooks.dead, "onCellsDie", w, col, dead);
   }
   for (const [owner, amt] of Object.entries(col.mintBuf)) {
     if (amt < 1) continue;
